@@ -25,8 +25,8 @@ def remove_columns_from_csv(input_csv, output_csv, columns_to_remove):
 
 if __name__ == "__main__":
     # Set the input and output CSV file names.
-    input_csv_file = "Andalus.csv"       # Replace with your input CSV filename.
-    output_csv_file = "Andalus2.csv"  # The new CSV file with removed columns.
+    input_csv_file = "data\without\without1.xlsx"       # Replace with your input CSV filename.
+    output_csv_file = "data\without\without2.xlsx"  # The new CSV file with removed columns.
 
     # Specify which columns to remove.
     # For example, based on your sample CSV header:
