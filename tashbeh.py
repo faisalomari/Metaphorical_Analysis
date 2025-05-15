@@ -271,6 +271,6 @@ def process_csv(input_file, output_file):
 # Main program: process the input CSV and save the output to a new CSV file.
 # =============================================================================
 if __name__ == "__main__":
-    input_csv_file = "data/without/without2.csv"
-    output_csv_file = "output2.csv"
+    input_csv_file = "data/with/merged_output2.csv"
+    output_csv_file = "output.csv"
     process_csv(input_csv_file, output_csv_file)
