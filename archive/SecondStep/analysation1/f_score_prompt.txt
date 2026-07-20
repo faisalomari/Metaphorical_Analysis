@@ -1,0 +1,89 @@
+I have a new poetic analysis where for each bayt (verse) I have:
+
+The automatic (AI) rhetorical elements list.
+
+The manual (human) rhetorical elements list.
+I will give them to you 5 verses at a time, in this exact format:
+
+verse_number | automatic analysis lines  
+verse_number | manual analysis lines
+
+
+For each group of verses, do the following:
+
+Compare both lists element by element (consider elements identical if their root meaning matches, e.g., تشبيه تمثيلي = تشبيه).
+
+Calculate:
+
+True Positives (TP): rhetorical elements appearing in both lists.
+
+False Positives (FP): elements found only in the automatic analysis.
+
+False Negatives (FN): elements found only in the manual analysis.
+
+For each element type, compute:
+
+Precision = TP / (TP + FP)
+
+Recall = TP / (TP + FN)
+
+F1 = 2 × (Precision × Recall) / (Precision + Recall)
+
+Keep a running total across batches so we can combine results later.
+
+When I tell you “✅ finalize,” merge all data and produce:
+
+Full table of TP/FP/FN for each rhetorical element.
+
+Macro Precision / Recall / F1.
+
+Micro Precision / Recall / F1.
+
+Final summary with conclusions about strongest and weakest elements.
+
+Save everything in an Excel file named:
+Muallaqa_ImruAlQays_BalaghaMetrics_Final.xlsx
+with two sheets:
+
+“Detailed Metrics” (all elements)
+
+“Summary” (macro/micro results).
+
+Please follow exactly the same method, structure, and level of detail as we used in our previous conversation.
+
+the only elemnts we have:
+ترصيع
+الجناس المحرف
+الجناس المطلق
+الجناس المقلوب 1
+الجناس المقلوب 2
+تشبيه
+تكرار
+توزيع
+توشيع
+جناس التصحيف
+جناس التصريف
+رد الأعجاز على الصدور
+سجع التشطير
+سجع مطرف
+سجع موازَن
+طباق سلب
+عكس
+جناس الاشتقاق
+طباق إيجاب
+كناية
+مجاز
+مبالغة
+التفات
+المراجعة
+مقابلة
+تضمين (جريان)
+الرجوع
+تجريد
+التقسيم
+
+من الممكن اعتبار بعض العناصر نفس العنصر مثل الاستعارة والمجاز
+لا تشرح كثيرا لكل دفعة، فقط احسب واعرض النتائج لكل رسالة
+
+save and count the TP and FP and FN for each rethorical element please(numerical counters across messages)
+so we have detailed metrices in the end

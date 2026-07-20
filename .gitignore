@@ -1,2 +1,17 @@
 cls_model
 logs
+
+# secrets — never commit real keys (see .env.example)
+.env
+key.txt
+token.txt
+keys/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.DS_Store
+~$*
+
+# large binary model/embedding artifacts — kept on disk, not in git
+*.joblib
+*.parquet
