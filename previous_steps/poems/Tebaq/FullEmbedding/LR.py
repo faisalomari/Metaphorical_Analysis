@@ -16,7 +16,7 @@ from tabpfn import TabPFNClassifier
 from sklearn.metrics import accuracy_score, roc_auc_score
 
 # 1. Setup
-os.environ["HF_TOKEN"] = "REDACTED_HF_TOKEN"
+os.environ["HF_TOKEN"] = "REPLACE_WITH_YOUR_OWN_KEY"
 login(token=os.environ["HF_TOKEN"])
 
 # 2. Data Loading
