@@ -13,6 +13,7 @@ from analyze import load_all_runs
 from ground_truth import load_ground_truth_spans
 from span_scoring import majority_exists_and_appearance
 from span_matching import best_match
+from rtl_utils import apply_paragraph_direction
 
 POEM_DIRS = {
     "Imru1": RESULTS_DIR / "test_final" / "v4_combined" / "Imru1",
@@ -68,20 +69,27 @@ VERDICT_LABEL = {"TP": "TP (correct)", "FP": "FP (false alarm)", "FN": "FN (miss
 
 def fill_model_cell(cell, verdict_info):
     from docx.shared import RGBColor
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
     cell.text = ""
     p = cell.paragraphs[0]
     verdict = verdict_info["verdict"]
     if verdict in ("TN", "NA"):
         p.add_run(VERDICT_LABEL[verdict])
+        apply_paragraph_direction(p)  # Latin-only label, resolves to LTR
         return
     run = p.add_run(VERDICT_LABEL[verdict])
     run.bold = True
     run.font.color.rgb = RGBColor(*VERDICT_COLOR[verdict])
+    apply_paragraph_direction(p)  # "TP (correct)" etc. - Latin-only, resolves to LTR
     if verdict_info.get("appearance"):
         p2 = cell.add_paragraph()
         r2 = p2.add_run(verdict_info["appearance"])
         r2.italic = True
-        p2.alignment = 3  # WD_ALIGN_PARAGRAPH.RIGHT (Arabic reads better right-aligned)
+        # the appearance span is Arabic text: set real paragraph-level RTL
+        # (bidi + run rtl), not just visual right-alignment, so hemistich/
+        # phrase word order is correct, not merely justified to the right
+        if apply_paragraph_direction(p2):
+            p2.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
 
 def build_docx(out_path):
@@ -147,12 +155,16 @@ def build_docx(out_path):
                 gt_texts = [g["span"] for g in gt_spans[verse_no][element]]
                 row = table.add_row().cells
                 row[0].text = str(verse_no)
+                verse_text = verse_texts.get(verse_no, "")
                 vt = row[1].paragraphs[0]
-                vt.add_run(verse_texts.get(verse_no, ""))
-                vt.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                vt.add_run(verse_text)
+                if apply_paragraph_direction(vt, verse_text):
+                    vt.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                gt_text = "; ".join(gt_texts) if gt_texts else "-"
                 gtp = row[2].paragraphs[0]
-                gtp.add_run("; ".join(gt_texts) if gt_texts else "-")
-                gtp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                gtp.add_run(gt_text)
+                if apply_paragraph_direction(gtp, gt_text):
+                    gtp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
                 for i, provider in enumerate(providers):
                     v = classify(by_provider[provider], element, verse_no, gt_texts)
                     fill_model_cell(row[3 + i], v)

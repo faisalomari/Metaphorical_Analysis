@@ -44,7 +44,7 @@ The token-overlap criterion tells the same Trope/Simile/Kenning story but reveal
 | استعارة تمثيلية (unmarked whole-clause allegory) | 24 | 33% | 29% |
 | استعارة قديمة (archaic/lexicalized) | 15 | 80% | 60% |
 | مجاز مرسل (metonymy, single lexicalized word) | 13 | 85% | **85% — unchanged** |
-| استعارة حديثة | 4 | 75% | 75% — unchanged |
+| استعارة حديثة (modern/innovative metaphor) | 4 | 75% | 75% — unchanged |
 
 A 2-poem DEV analysis (Imru2+Nabigha) had flagged استعارة تمثيلية as the hardest Trope subtype — at TEST scale (3 poems, larger n) that did **not** hold up: it is actually the *easiest* subtype both before and after v4. v4's genuine, TEST-validated wins are استعارة فعل and مجاز عقلي; مجاز مرسل is the one subtype v4 does nothing for at all. **Lesson carried forward: small-sample DEV subtype analysis pointed at the wrong culprit — always re-check subtype breakdowns at TEST scale before trusting a DEV-derived narrative.**
 

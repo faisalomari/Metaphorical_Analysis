@@ -13,6 +13,7 @@ from analyze import load_all_runs, per_verse_majority
 from ground_truth import load_ground_truth_spans
 from span_matching import best_match
 from build_detailed_results import get_verse_texts, VERDICT_COLOR, VERDICT_LABEL
+from rtl_utils import apply_paragraph_direction
 
 SAMPLE_DIR = RESULTS_DIR / "explanations_sample" / "Imru2"
 FENCE_RE = re.compile(r"^```(?:json|jsonl)?\s*|\s*```$", re.MULTILINE)
@@ -154,9 +155,11 @@ def build_docx(out_path):
     providers = list(by_provider.keys())
     for verse_no in range(1, n_verses + 1):
         doc.add_heading(f"Verse {verse_no}", level=3)
+        verse_text = verse_texts.get(verse_no, "")
         vp = doc.add_paragraph()
-        vp.add_run(verse_texts.get(verse_no, ""))
-        vp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        vp.add_run(verse_text)
+        if apply_paragraph_direction(vp, verse_text):
+            vp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
         table = doc.add_table(rows=1, cols=2 + len(providers))
         table.style = "Light Grid Accent 1"
@@ -170,9 +173,11 @@ def build_docx(out_path):
             gt_texts = [g["span"] for g in gt_spans[verse_no][element]]
             row = table.add_row().cells
             row[0].text = f"{element} ({ELEMENT_AR[element]})"
+            gt_text = "; ".join(gt_texts) if gt_texts else "-"
             gtp = row[1].paragraphs[0]
-            gtp.add_run("; ".join(gt_texts) if gt_texts else "-")
-            gtp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            gtp.add_run(gt_text)
+            if apply_paragraph_direction(gtp, gt_text):
+                gtp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
             for i, provider in enumerate(providers):
                 cell = row[2 + i]
@@ -182,20 +187,26 @@ def build_docx(out_path):
                 p0 = cell.paragraphs[0]
                 if verdict in ("TN",):
                     p0.add_run("-")
+                    apply_paragraph_direction(p0)
                     continue
                 vr = p0.add_run(VERDICT_LABEL[verdict])
                 vr.bold = True
                 if verdict in VERDICT_COLOR:
                     vr.font.color.rgb = RGBColor(*VERDICT_COLOR[verdict])
+                apply_paragraph_direction(p0)  # "TP (correct)" etc. - Latin-only, resolves to LTR
                 if v.get("appearance"):
                     p1 = cell.add_paragraph()
                     r1 = p1.add_run(v["appearance"])
                     r1.italic = True
-                    p1.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                    # Arabic evidence span: real RTL paragraph direction, not just alignment
+                    if apply_paragraph_direction(p1):
+                        p1.alignment = WD_ALIGN_PARAGRAPH.RIGHT
                 if v.get("reason"):
                     p2 = cell.add_paragraph()
                     r2 = p2.add_run(v["reason"])
-                    p2.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                    # Arabic justification sentence: same treatment
+                    if apply_paragraph_direction(p2):
+                        p2.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
     doc.save(out_path)
     print(f"Wrote {out_path}")

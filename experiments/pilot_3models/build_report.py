@@ -227,7 +227,10 @@ def _parse_table_block(lines, start):
 def _add_paragraph_with_bold(doc, text, style=None):
     """Add a paragraph, rendering **bold** spans as real bold runs instead of
     leaving literal asterisks in the output (markdown_text elsewhere in this
-    module uses ** for emphasis in prose, not just in table cells)."""
+    module uses ** for emphasis in prose, not just in table cells). Applies
+    paragraph-level RTL (see rtl_utils) based on whether this paragraph's
+    own text is majority-Arabic - each paragraph is judged independently."""
+    from rtl_utils import apply_paragraph_direction
     p = doc.add_paragraph(style=style)
     parts = text.split("**")
     for idx, part in enumerate(parts):
@@ -235,12 +238,14 @@ def _add_paragraph_with_bold(doc, text, style=None):
             continue
         run = p.add_run(part)
         run.bold = bool(idx % 2)
+    apply_paragraph_direction(p, text)
     return p
 
 
 def build_docx(markdown_text: str, out_path):
     import docx
     from docx.shared import Pt
+    from rtl_utils import apply_paragraph_direction
 
     doc = docx.Document()
     style = doc.styles["Normal"]
@@ -255,11 +260,18 @@ def build_docx(markdown_text: str, out_path):
         line = lines[i].rstrip()
         if line.startswith("```"):
             if in_code_block:
-                p = doc.add_paragraph("\n".join(code_buffer))
-                p.style = doc.styles["Normal"]
-                for run in p.runs:
-                    run.font.name = "Consolas"
-                    run.font.size = Pt(9)
+                # one paragraph PER LINE, not one giant paragraph, so each
+                # line's own direction can be judged independently - this
+                # block is exactly the "mixed Arabic/English content" case
+                # rule 4 flags as highest-risk (English rule headers
+                # interleaved with Arabic definitions and worked examples)
+                for code_line in code_buffer:
+                    p = doc.add_paragraph(code_line)
+                    p.style = doc.styles["Normal"]
+                    for run in p.runs:
+                        run.font.name = "Consolas"
+                        run.font.size = Pt(9)
+                    apply_paragraph_direction(p, code_line)
                 code_buffer = []
             in_code_block = not in_code_block
             i += 1
@@ -272,11 +284,11 @@ def build_docx(markdown_text: str, out_path):
             i += 1
             continue
         if line.startswith("### "):
-            doc.add_heading(line[4:], level=3)
+            apply_paragraph_direction(doc.add_heading(line[4:], level=3))
         elif line.startswith("## "):
-            doc.add_heading(line[3:], level=2)
+            apply_paragraph_direction(doc.add_heading(line[3:], level=2))
         elif line.startswith("# "):
-            doc.add_heading(line[2:], level=1)
+            apply_paragraph_direction(doc.add_heading(line[2:], level=1))
         elif line.strip().startswith("|"):
             rows, next_i = _parse_table_block(lines, i)
             if rows:
@@ -284,7 +296,10 @@ def build_docx(markdown_text: str, out_path):
                 table.style = "Light Grid Accent 1"
                 for r, row_vals in enumerate(rows):
                     for c, val in enumerate(row_vals):
-                        table.cell(r, c).text = val.replace("**", "").replace("_", "")
+                        cell_text = val.replace("**", "").replace("_", "")
+                        cell = table.cell(r, c)
+                        cell.text = cell_text
+                        apply_paragraph_direction(cell.paragraphs[0], cell_text)
             i = next_i
             continue
         elif line.strip().startswith("- "):

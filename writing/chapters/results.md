@@ -72,7 +72,7 @@ Ground-truth trope instances on the test set carry a secondary subtype label fro
 | استعارة تمثيلية (unmarked whole-clause allegory) | 24 | 33% | 29% |
 | استعارة قديمة (archaic/lexicalized) | 15 | 80% | 60% |
 | مجاز مرسل (metonymy, single lexicalized word) | 13 | 85% | 85% |
-| استعارة حديثة | 4 | 75% | 75% |
+| استعارة حديثة (modern/innovative metaphor) | 4 | 75% | 75% |
 
 `v4_combined`'s genuine wins are on verbal metaphor and rational trope — the two subtypes its added boundary rule was designed to address (§4.2 of the methodology chapter) — while مجاز مرسل, a closed class of single, conventionalized lexical metonyms, is the one subtype the refined prompt does not move at all. As discussed in the methodology chapter, a development-set-scale analysis on two poems had identified a different subtype (استعارة تمثيلية) as the hardest case; at test scale, on three poems and a larger instance count, استعارة تمثيلية is in fact the *easiest* subtype in the table, both before and after refinement. This reversal is treated as a caution about drawing subtype-level conclusions from a two-poem development sample rather than as a finding about استعارة تمثيلية itself.
 
