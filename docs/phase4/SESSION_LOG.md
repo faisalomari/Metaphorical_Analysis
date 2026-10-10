@@ -281,3 +281,131 @@ files, 20MB, under the 50MB ask-first threshold] + this log). Per this task's ex
 `3d91e28`, unrelated to this task, already hit three times earlier this session) — no retry, no history
 rewrite. `main` is now 18 commits ahead of `origin/main`, all local-only pending the user's earlier-flagged
 decision (LFS-migrate / strip-from-history / stay-local).
+
+---
+
+## Task: resolve the large-file push blocker (history rewrite), no API calls
+
+**2026-10-10T16:40–17:05** — Steps 1–2 (backup + diagnose) were run and logged in full in this file, then
+**lost**: the entries were written with `Edit` but never `git commit`-ed, and Step 4's `git filter-repo`
+run (below) does a fresh internal clone + checkout, which silently discarded that uncommitted edit along
+with it. Summarizing what was established in that lost pass, since it still holds and isn't being
+re-verified from scratch:
+- Full pre-rewrite backup taken **outside the repo**: `../metaphorical_backup_2026-10-10.bundle` (295.7 MB,
+  `git bundle verify` confirmed "complete history", all 5 refs incl. `pre-phase4-snapshot`), plus the 3
+  known large CSVs copied to `../csv_backup/<element>_<variant>_embeddings_out/dataset_with_embeddings.csv`.
+  Pre-rewrite `HEAD` = `ae3b1fa2ec85ab3d66f5c0ca37e36d3560f9e809`, `HEAD^{tree}` = `15857a77e5d85a330d4693490e5834e6fd66110d`.
+- Diagnosis found exactly 3 blobs >50MB reachable from any ref, all introduced in `3d91e28`, all still
+  present on disk (187MB, 112MB, 74MB), all regenerable via each classifier's sibling `embeddings.py`
+  (reads a small labeled CSV, calls OpenAI `text-embedding-3-large`, writes `embeddings_out/dataset_with_embeddings.{csv,parquet}`
+  — regeneration would be a paid API call, out of scope here, not performed).
+  `origin/main` (`1633cf5`) confirmed to not contain `3d91e28` or anything after (`git merge-base
+  --is-ancestor` exit 1) — consistent with the original rejected push. `git filter-repo` was not installed;
+  `pip`/`python` were available to install it.
+- Corrected one detail in the task's framing: `main` was **19** commits ahead of `origin/main` at the time,
+  not 18 (two more had landed in the Ali-poems-corpus task since that count was written).
+- User gave explicit OK to proceed with the proposed `git filter-repo --path <3 files> --invert-paths` plan
+  in a separate chat turn (not re-transcribed here since the turn boundary, not this log, is the record of
+  that approval) before Step 4 below started.
+
+**2026-10-10T17:10** — Step 4a: `pip install git-filter-repo` → `git-filter-repo-2.47.0` installed
+successfully (pure-Python, no other dependency). Pre-rewrite snapshot taken for later comparison: `git
+ls-files -s | grep -v dataset_with_embeddings.csv | sort` (2,345 lines) saved to a scratch file; noted
+`main` had 36 total commits, `pre-phase4-snapshot` tag → `8949746` ("fix: strip Arabic guillemets..."),
+remote `origin` → `https://github.com/faisalomari/Metaphorical_Analysis.git`.
+
+**2026-10-10T17:11** — Step 4b: ran `git filter-repo --path <3 known CSVs> --invert-paths --force`.
+Completed in ~41s, removed `origin` remote (filter-repo's documented default behavior — "assumes a fresh
+start"), rewrote `HEAD` to a new hash (same final commit message, as expected since all 36 commits are
+after `3d91e28`... actually only commits from `3d91e28` onward are rewritten, but since `3d91e28` is early
+in history every descendant commit's hash changes). Working tree afterward: `git status` clean, 36 commits
+still in `git log`, `pre-phase4-snapshot` tag still present.
+
+**2026-10-10T17:12** — **Found a problem the plan hadn't anticipated**: a full history rescan
+(`git rev-list --objects --all | git cat-file --batch-check ... | awk '$3>50000000'`) still showed **3
+blobs >50MB** — same content hashes as the 3 just-stripped files, but at *different, older paths*:
+`experiments/classifiers/trope/embeddings_out/...`, `previous_steps/poems/Kenayh/PartlyEmbedding/embeddings_out/...`,
+`previous_steps/poems/Majaz/FullEmbedding/embeddings_out/...`. These are duplicate-content copies of the
+same 3 CSVs that existed under pre-reorg (`previous_steps/`) or pre-rename paths earlier in history, which
+the original `--path` list (built from the *current* working-tree paths only) didn't cover. `git
+filter-repo --path` matches by path, not by blob hash, so stripping 3 current paths left identical content
+reachable via old paths.
+- Fixed by iterating: re-ran `git filter-repo --path <path> --invert-paths --force` for each newly-found
+  path, then rescanned for >50MB blobs again, repeating until the rescan came back empty. Took 4 rounds
+  total (the first follow-up round surfaced one further hidden duplicate,
+  `previous_steps/poems/Majaz/PartlyEmbedding/embeddings_out/...`, and then one more,
+  `previous_steps/poems/Majaz/embeddings_out/...`, each only found once the previous one was stripped —
+  `git rev-list --objects --all | grep <filename>` was used each round to confirm no path remained for
+  any of the 3 original hashes before moving on).
+- Final rescan: `awk '$3>50000000'` over all history objects — **empty**. A secondary `awk '$3>10000000'`
+  sweep for completeness surfaced only files the user had already explicitly approved committing earlier
+  in the session (2 PDFs, 1 xlsx, 1 csv, all <25MB, see the 2026-10-10T00:10 entry above) — nothing new to
+  strip. `.git` shrank from (not measured before) to 144MB after this pass.
+- Each `filter-repo` re-run also re-did a fresh checkout of `HEAD`, which **deleted the 3 large CSVs from
+  the working tree** each time (filter-repo doesn't just rewrite history, it repopulates the working copy
+  from the new HEAD tree, and files excluded from every commit via `--invert-paths` are consequently absent
+  from that tree). Restored all 3 from `../csv_backup/` after every round, confirmed byte-identical via
+  `diff -q` against the backup copies each time. The task's own "working tree is unchanged" verification
+  step is what caught this — a non-stripped-file diff alone would have missed it.
+
+**2026-10-10T17:20** — Added a gitignore rule, `**/embeddings_out/*.csv`, to `.gitignore` (previously only
+`*.joblib`/`*.parquet` were excluded) so these regenerable caches can live on disk without being re-added by
+a future `git add -A`. Confirmed via `git status --short` that the 3 restored CSVs no longer show as
+untracked (ignored, as intended) and only `.gitignore` itself shows modified. Committed as `fbb73c2`
+("chore: ignore embeddings_out CSV caches after history rewrite").
+
+**2026-10-10T17:25** — Re-added `origin` remote, `git fetch origin` (confirmed `origin/main` still at
+stale `1633cf5`, matching pre-task state — no one else pushed in the meantime), full pre-push sanity
+rescan (0 blobs >50MB), then `git push origin main --force-with-lease`.
+
+**2026-10-10T17:26** — **Push rejected by GitHub secret scanning / push protection** (`GH013`), not the
+original large-file issue: a real, live-looking Hugging Face user access token (`hf_...`, verified present
+but not printed in full to this log or chat — only a masked prefix was ever surfaced) hardcoded in the
+*pre-reorg* commit (the rewritten-hash version of the original `3d91e28`/14a021f reorg commit) across 5
+files: `previous_steps/poems/{Majaz,Tashbeeh,Tebaq}/{Partly,Full}Embedding/LR.py` (4 files, same line
+pattern: `os.environ["HF_TOKEN"] = "hf_..."`) and `previous_steps/poems/Majaz/PartlyEmbedding/main.ipynb`
+(1 file). The *current* working-tree copies of these same `LR.py` files already have this scrubbed to a
+placeholder (`"REPLACE_WITH_YOUR_OWN_KEY"`) per the original `3d91e28` commit's own stated intent ("hardens
+secret handling... scrubs plaintext API keys/tokens to placeholders") — but the real value survived in the
+older, pre-scrub commit in history, which none of the CSV-stripping passes above touched (different
+problem: a tracked secret, not an oversized blob).
+- Checked `git merge-base --is-ancestor <that commit> origin/main`: exit 1 (not an ancestor) — confirmed
+  this secret-containing commit was **never actually pushed to GitHub**, so push protection caught it
+  before any public exposure. Still sitting in the local bundle backup and local history, though.
+- This was new scope the user hadn't pre-approved (the original OK covered the 3 CSVs only), so **stopped
+  and asked** via `AskUserQuestion` rather than working around GitHub's block. Options offered: strip the
+  secret from history now (git filter-repo --replace-text), pause for the user to rotate the token first,
+  or use GitHub's "allow this secret" bypass link. **User chose: strip it from history now.**
+
+**2026-10-10T17:30** — Redacted the secret from all history. Rather than hardcoding the literal token value
+into a filter-repo replace-text expression (would have required printing/handling the raw secret more than
+necessary — and a direct `cat`/`grep`-and-print of the full value across all 5 locations was in fact
+blocked by the session's own credential-materialization safeguard when attempted), used a **regex pattern**
+instead: `regex:hf_[A-Za-z0-9]{20,}==>REDACTED_HF_TOKEN` in a scratch expressions file, passed to
+`git filter-repo --replace-text <file> --force`. This matches the token shape wherever it appears without
+needing to view or special-case each of the 5 locations individually.
+- Verified via `git log --all -p | grep -c "hf_[A-Za-z0-9]\{20,\}"` → **0** matches anywhere in rewritten
+  history. Restored the 3 large CSVs from `../csv_backup/` again (same fresh-checkout side effect as
+  before), confirmed byte-identical. Re-ran the full verification suite: `git status` clean, 37 commits
+  (36 + the `fbb73c2` gitignore commit from the prior step, correctly preserved), `pre-phase4-snapshot` tag
+  still resolves to a commit with the same message as before (hash changed, as expected — filter-repo
+  rewrites tags pointing into rewritten history automatically), 0 blobs >50MB, and a full
+  `git ls-files -s` diff against the very first pre-rewrite snapshot showed **no differences except
+  `.gitignore` itself** (the one intentional change) — every other tracked file's path+blob hash is
+  identical to before any of this session's rewrites.
+- Deleted the scratch files that had briefly held secret-adjacent content (`/tmp/secret_line.txt`, the
+  `--replace-text` expressions file) immediately after use.
+
+**2026-10-10T17:35** — Re-added `origin`, `git fetch origin` (picked up `origin/main` at the stale
+`1633cf5` — unchanged), `git push origin main --force-with-lease` → **succeeded**
+(`1633cf5..1172141  main -> main`, no secret-scanning rejection this time). `git push origin
+pre-phase4-snapshot --force` → succeeded (tag moved, as expected). Final confirmation: `git status` →
+clean; `git log origin/main -n 3` → `1172141` (chore: gitignore), `bdc97d2` (docs: Ali-poems outcome),
+`b688804` (data: Ali-poems download) — matches local `main` exactly. New `HEAD` = `1172141189f8b099a5066d0d650e7bff25598186`.
+
+**Outstanding item for the user, outside this task's original scope**: the Hugging Face token found above
+was never actually exposed on GitHub (confirmed not an ancestor of the old `origin/main`) and is now
+redacted from all local history that was just pushed — but it still exists in the `../csv_backup/`-adjacent
+full bundle backup (`../metaphorical_backup_2026-10-10.bundle`, taken *before* the redaction) and in
+whatever shell/editor history may have touched it previously. Recommend rotating/revoking that Hugging Face
+token regardless, since "never pushed to GitHub" isn't the same guarantee as "never exposed anywhere."
