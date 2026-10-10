@@ -175,3 +175,107 @@ at commit `3d91e28`, up to 186.92MB — first hit 2026-10-10T00:45, unrelated to
 a history rewrite/force-push. `98c5384` exists locally on `main`, stacked on the already-unpushed commits
 from earlier this session, still waiting on the user's decision (LFS-migrate / strip from history / stay
 local for now).
+
+---
+
+**2026-10-10T04:00** — New task: resume the Ali-corpus download, now fully scoped. Goal: for every one
+of the 167 manually-analyzed poems, capture full verse text (verse by verse), all annotations + analysis
+text, poet name, period, place, poem name, theme, rhetorical element — using the site's own filter schema
+(الفترة, المكان, الشاعر, القصيدة, الثيمة, العنصر البلاغي). No LLM API calls. Re-read `CLAUDE.md` and this
+log's Phase A entries (2026-10-10T02:10–02:45) before starting, per instruction.
+
+**2026-10-10T04:05–04:35** — Step 1 (find the best full-text source), via built-in browser + direct
+`fetch()` calls (visitor-access session, same unauthenticated `/api/*` backend as Phase A):
+- 1a: Grepped `main.5f9e9721169cb1ba.js` (2.98MB) for `/api/...` literals and for route-name string
+  constants (`Line|Lines|Poem|Verse|Bayt`) — found `getWordsPoem` as a new, previously-unseen route name
+  not surfaced by Phase A's literal-path grep (Angular assembles `environment.apiUrl + 'routeName'`, so
+  literal `/api/foo` greps miss routes built this way — this is why 1a also required driving the UI and
+  watching live network traffic, not just a static grep).
+- 1b: Drove the manual-analysis UI (`/manual-analysis/poems`, poet امرؤ القيس) — confirmed it only ever
+  renders the same annotation-span table the API already gives (span text + بيت index + explanation), no
+  full verse text anywhere in that view. Drove `/rhetorical-analysis/poems` (automatic-analysis-run list)
+  — same: per-poet poem list with تم التحليل yes/no, no full text. Drove `/automatic-analysis/poems` for
+  امرؤ القيس — no automatic analysis exists for this poet (empty result), same annotation-record shape as
+  manual when populated, still no full verse text. Drove `/search-engine/poems`, searched the word
+  "الديار" — this view DOES show full verse text, split into صدر/عجز hemistichs, with poem/poet/period/
+  place/source/verse-number columns, via `/api/getLineWordsBySearchWord` — but it's a word-match search
+  across the whole corpus, not a per-poem "give me every verse" call.
+  Breakthrough: called `/api/getWordsPoem?poetid=<id>&poemid=<id>` directly (found via the route-name grep
+  above) — returns the ENTIRE poem word-by-word: `{id, name, colomn (verse index, same numbering as the
+  annotation records' colomn field), fl (0=صدر/1=عجز), poem_id, poet_id}`. Reconstructing by grouping on
+  colomn+fl and joining `name` tokens in array order gives the full poem text, verse by verse, hemistich by
+  hemistich. Confirmed no `poetid`/`poemid` pair returns a gap (no missing colomn values) for the one poem
+  tested so far.
+- 1c: Consistency check against the project's own frozen ground truth, all 5 poems:
+  - **Full text**: reconstructed قصيدة رقم 8 (poem_id 2196, poet_id 58 / امرؤ القيس) from `getWordsPoem` —
+    23 verses, byte-for-byte identical (including diacritics) to
+    `archive/Forth_Step/Data/Imru2/poetry.txt` for every verse spot-checked (1–12, 21–23; full 23/23
+    reconstructed with zero missing colomn values).
+  - **Annotation counts**: fetched `/api/searchRetoricalsByPoemsPoets` per poet and compared per-poem
+    record counts against `data/ground_truth/ali_ana/original/*.xlsx` row counts (read via `openpyxl`,
+    local, read-only) — **exact match on all 5**: Imru1 (poem 3205, poet 58) 305=305, Imru2 (poem 2196,
+    poet 58) 44=44, Jarir (poem 10539, poet 1385 "جرير بن عطيّة") 166=166, Nabigha (poem 3218, poet 1070)
+    167=167, Abu_Tammam (poem 2127, poet 33) 94=94. (Poet 1385 also has poem 10662 with 93 unrelated
+    records — a different Jarir poem not used in this project, correctly excluded.)
+  - Conclusion: `getWordsPoem` + `searchRetoricalsByPoemsPoets` + `poem/{id}` + `poets`/`periods`/`places`/
+    `themas`/`retoricals` lookups together are sufficient and verified-accurate for the full goal. No need
+    to fall back to page-scraping (1b/1c already ruled that out as strictly worse than the API) or to stop
+    and ask for an external export — proceeding straight to Step 2.
+- Schema note: period (الفترة) and place (المكان) are **poet-level** attributes in this database (`/api/
+  poets` gives each poet a single `period` id and a `places` array), not per-poem fields — confirmed via
+  `/api/periods` (16 rows) and `/api/places` (56 rows, each with `name`+`subPlace`) lookup tables. Theme
+  (الثيمة) and rhetorical element (العنصر البلاغي) are per-annotation-record fields (`themaName`,
+  `retoricalName`/`subRetoricalName`), already confirmed in Phase A.
+
+**2026-10-10T04:40** — Writing `scripts/download_ali_poems.py` next (Step 2): batched
+`searchRetoricalsByPoemsPoets` sweep to enumerate the 167 poems (reusing Phase A's batching approach), then
+per-poem `poem/{id}` + `getWordsPoem` + grouped annotations, 1-2s delay, retry-with-backoff, full logging,
+resumable, raw responses saved unchanged plus normalized per-poem JSON + manifest.csv. No API-cost
+implications (this is a plain HTTP scrape of a public, unauthenticated site, not an LLM call) so no cost
+confirmation gate applies here, consistent with how Phase A was already run under this same understanding.
+
+**2026-10-10T04:45** — Wrote `scripts/download_ali_poems.py` in full (lookups, batched annotation
+enumeration, per-poem `poem/{id}` + `getWordsPoem` fetch + reconstruction, raw+normalized output,
+manifest, resumability via on-disk raw-file caching, retry-with-backoff, logging to both stdout and
+`data/ali_poems/download.log`). Ran it in the background (`python scripts/download_ali_poems.py`).
+
+**2026-10-10T05:19–05:31** — Download run completed: 14 annotation batches (1,042 poet ids ÷ 80/batch),
+then 167/167 poems processed with **0 errors**. Total elapsed ≈12 minutes (dominated by the 1.5s
+per-poem-pair delay × ~340 API calls). `data/ali_poems/` is 20MB on disk (lookups + 14 annotation
+batches + 167×2 raw poem responses + 167 normalized JSON + manifest.csv + download.log) — well under the
+50MB ask-first threshold, so proceeding to commit without asking per the standing instruction.
+
+**2026-10-10T05:32–05:45** — Step 3 validation, via a local read-only Python script over `manifest.csv`
+and the raw files (no network calls):
+- **Counts**: 167 unique `poem_id`s, 52 unique poet names — matches Phase A's census exactly.
+- **No duplicates** (`poem_id` set has no repeats), **no empty/missing files** (every `file_path` in the
+  manifest exists and is >50 bytes).
+- **Totals**: 3,470 reconstructed verses, 10,430 annotation records — matches Phase A's corpus-wide
+  annotation count (10,430) exactly.
+- **Arabic encoding**: spot-checked `poems/2196_امرؤ_القيس_العصر_الجاهلي.json` directly — diacritics and
+  RTL text intact, `verses[0]` and `annotations[0]` both render correctly, themes/elements lists correct
+  (6 themes, 9 distinct elements, matching the 44-row manual-analysis table seen live in Step 1c).
+- **Missing fields**: 6 poems total, all traced to genuine gaps in the *source site's own data*, not
+  scraper bugs — 4 poems (poet id 1400, الحمدوي) have a `period` id (27) absent from the site's own
+  `/api/periods` lookup (max valid id there is 26); 1 poem (poem_id 7408, poet id 1263) has no `period`
+  set on the site at all; 1 poem (poem_id 28601, poet id 1676) has 29 manual annotations but
+  `/api/getWordsPoem` returns `{"success":true,"data":[]}` for it — no word-level text was ever entered
+  for this poem on the site, so its full verse text is genuinely unobtainable from this source (its
+  annotation span text is still captured).
+- **5-poem consistency re-check** (already done in Step 1c, re-confirmed against the downloaded files):
+  Imru1 305/305, Imru2 44/44 (+ verse-by-verse identical text, 23/23 verses), Jarir 166/166, Nabigha
+  167/167, Abu_Tammam 94/94 — all exact matches, `already_used_in_project` manifest column correctly
+  flags all 5.
+
+**2026-10-10T05:50** — Wrote `data/ali_poems/README.md`: source URL, download date (2026-10-10), method
+(lookup tables → batched annotation enumeration → per-poem `poem/{id}` + `getWordsPoem` fetch), why
+`getWordsPoem` was chosen over page-scraping (summarized from Step 1), the full schema (manifest columns
++ per-poem JSON shape with a real example), the 5-poem consistency table, the validation results above,
+and an explicit, prominent licensing-unconfirmed caveat tying back to `TOP_5_BLOCKERS.md` item 1 — states
+plainly that downloading this data does not resolve that blocker and it must be cleared with the
+supervisor/Dr. Hussein before any redistribution.
+
+**2026-10-10T05:55** — Committing next: `scripts/download_ali_poems.py`, `data/ali_poems/` (20MB, under
+the 50MB ask-first threshold), and this log entry. `git push` will be attempted once per standing
+instruction from earlier in this session, expected to fail on the same pre-existing large-file-in-history
+issue (commit `3d91e28`, unrelated to this task) — will not retry or rewrite history per instruction.
