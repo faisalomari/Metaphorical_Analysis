@@ -168,3 +168,10 @@ since a null example-sensitivity finding would undercut the per-poet-prompt prem
 **2026-10-10T03:50** — Wrote `docs/phase4/COST_PLAN.md` in full (sections 0-4). No API calls at any point
 in this task. Committing and pushing next; final chat output will be the options table only, per
 instruction.
+
+**2026-10-10T03:55** — Committed `98c5384` (`docs/phase4/{COST_PLAN.md,SESSION_LOG.md}`). `git push origin
+main` rejected again by the same pre-existing GitHub pre-receive hook (3 oversized CSVs baked into history
+at commit `3d91e28`, up to 186.92MB — first hit 2026-10-10T00:45, unrelated to this task). Did not attempt
+a history rewrite/force-push. `98c5384` exists locally on `main`, stacked on the already-unpushed commits
+from earlier this session, still waiting on the user's decision (LFS-migrate / strip from history / stay
+local for now).
