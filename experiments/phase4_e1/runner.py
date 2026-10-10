@@ -26,10 +26,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from e1_config import (  # noqa: E402
     EVAL_POOL_PATH, EXAMPLE_SETS_PATH, PILOT_DIR, REPEAT_SET_A, RESULTS_DIR,
-    RUN_MODELS, SET_NAMES, TEMPERATURE,
+    ROOT, RUN_MODELS, SET_NAMES, TEMPERATURE,
 )
 from ali_poems_io import build_poem_text, load_poem_json  # noqa: E402
 from fewshot_examples import build_system_message_e1  # noqa: E402
+
+from dotenv import load_dotenv  # noqa: E402
+load_dotenv(ROOT / ".env")
 
 if str(PILOT_DIR) not in sys.path:
     sys.path.insert(0, str(PILOT_DIR))

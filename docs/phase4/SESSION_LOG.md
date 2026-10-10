@@ -618,3 +618,85 @@ question this pool's poet tagging exists to support.
   set-A repeat: 400 calls/$10.58. All 3 models individually: GPT-5.4-mini $2.23, Gemini 3.5 Flash $5.72,
   Claude Sonnet 4.6 $8.26 (comparison only, not part of the confirmed run).
 - No API calls made in this fix. Still STOPPED, awaiting go-ahead before `runner.py --confirm`.
+
+---
+
+## Task: run E1 (Gemini + GPT-5.4-mini only, sets A/B/C, 1 run each), then analysis + write-up
+
+User re-confirmed the frozen design in a new instruction: eval pool fixed at 10 abu_nuwas + 40 other
+(50 poems, 1,010 verses, seed=43, commit `7906d02`), models Gemini 3.5 Flash + GPT-5.4-mini only (no
+Claude), sets A/B/C one run each, no set-A repeat. Hard cap $9, confirmed up to $9; stop and ask if the
+dry-run total exceeds $9.
+
+**2026-10-10 (this task, Step 1)** — Re-verified pool composition via a local read-only script over
+`experiments/phase4_e1/config/eval_pool.json`: 50 poems, 50 unique poem_ids, exactly 10 tagged
+`abu_nuwas` / 40 tagged `other`; zero overlap between the eval-pool poem_ids and the 3 example-source
+poem_ids (16251/17234/21337), the 5 already-used Phase-1 poem_ids (2127/2196/3205/3218/10539), and the
+no-text poem (28601). Checked `.env` for `OPENAI_API_KEY`/`GEMINI_API_KEY`/`ANTHROPIC_API_KEY` presence
+(presence only, values never printed) — all 3 present. Re-ran `dryrun.py`: **300 calls, $7.95** for the
+confirmed pair (Gemini 3.5 Flash + GPT-5.4-mini), 1 run/set/model, no repeat — matches the prior run
+exactly (pool/config unchanged since). $7.95 is under the user's $9 hard cap — proceeding to Step 2
+(`runner.py --confirm`) without stopping to ask, per the task's own stated threshold.
+
+**Step 2, attempt 1 — all 300 calls failed, $0 spent.** First `runner.py --confirm` run produced 300/300
+manifest records all with `error = "KeyError: '<PROVIDER>_API_KEY'"` — the error fires inside
+`providers.py` reading `os.environ[...]` *before* any network call is made, so no request ever reached
+Gemini or OpenAI and no spend occurred. Root cause: unlike `pilot_3models/run_pilot.py` (which calls
+`load_dotenv(ROOT / ".env")` at import time), `experiments/phase4_e1/runner.py` never loaded the `.env`
+file — `os.environ` was empty for the keys in that process even though `.env` itself has all 3 keys
+(verified present in Step 1). Fix: added the same `from dotenv import load_dotenv; load_dotenv(ROOT /
+".env")` call to `runner.py`, verified standalone that it populates all 3 keys. Deleted the all-error
+manifest (`results/phase4_e1/run_manifest.json`) before retrying, since `runner.py`'s own resume logic
+already treats any record with a non-null `error` as not-done and would retry it anyway — removing it
+first just keeps the manifest clean of a dead false-start batch.
+
+**Step 2, attempt 2 — ran, STOPPED on repeated Gemini API errors.** Re-ran `runner.py --confirm` (300
+calls: 150 OpenAI + 150 Google). Result: all 150 GPT-5.4-mini calls succeeded, 0 errors. Google:
+142/150 failed, overwhelmingly (128/142) `ClientError 429 RESOURCE_EXHAUSTED` with the error body stating
+`generativelanguage.googleapis.com/generate_content_free_tier_requests ... quotaValue: '20'` for model
+`gemini-3.6-flash` (the account's Gemini key is on the free tier, 20 requests/day, not a paid tier able
+to absorb 150 calls in one run); the other 14/142 are `ServerError 503 UNAVAILABLE` (transient overload,
+unrelated to quota), all in set A early in the run before the quota wall hit. Only 8 Google calls
+succeeded (all set A, poems 3261/3265/3754/3755/4554/5660/10662/11835) before the daily quota was
+exhausted.
+- Actual spend so far (computed from each successful record's real `usage` tokens x `config.py` pricing,
+  not the dry-run estimate): $1.46 total -- $1.28 OpenAI (150/150 calls) + $0.18 Google (8/150 calls).
+  Well under the $9 cap; no retry attempted past the quota wall.
+- Per this task's own "stop immediately on repeated API errors and report spend so far" instruction,
+  stopping here rather than retrying into the same quota wall or waiting out the ~6h12m `retryDelay` the
+  API reports. Flagging for the user: Google's 20-req/day free-tier cap makes finishing the remaining 142
+  Google calls in one sitting infeasible without either (a) upgrading/enabling billing on the Gemini API
+  key so it leaves the free tier, or (b) spreading the remaining calls across several days at 20/day, or
+  (c) proceeding with OpenAI-only results for now and backfilling Google later. Not deciding this
+  unilaterally -- asking the user next.
+- **User decision (AskUserQuestion): "Analyze OpenAI-only for now, backfill Gemini later."** Proceeding
+  to Step 3 analysis on the complete GPT-5.4-mini data (150/150 cells, all 3 sets x 50 poems) only.
+  `E1_RESULTS.md` will state plainly that Gemini 3.5 Flash is incomplete (8/150 cells, free-tier quota
+  wall) and excluded from the comparative analysis pending a backfill once the quota/billing issue is
+  resolved -- not reported as a result, not silently dropped.
+
+**Step 3 (analysis), GPT-5.4-mini only.** Wrote a scratch driver (not committed to the repo; calls
+`experiments/phase4_e1/scoring.py`'s `score_set`/`bootstrap_ci_pairwise`/`poem_f1` directly, restricted to
+`provider="openai"` -- did not edit `scoring.py` itself, which still hardcodes `["google","openai"]` for
+whenever Gemini is backfilled). Computed strict + token-overlap span-level TP/FP/FN/P/R/F1 for sets A/B/C,
+overall and split abu_nuwas(n=10)/other(n=40); pairwise bootstrap 95% CI (2,000 resamples over poems) for
+A-B/A-C/B-C on both criteria; per-poem paired-difference sign counts.
+- Finding: **B > A > C** on both criteria (strict F1 0.209/0.154/0.139; token F1 0.234/0.170/0.153). B is
+  significantly better than C on both criteria (bootstrap CI excludes 0: strict [0.023,0.124], token
+  [0.030,0.138]). A vs B is borderline -- significant under token overlap ([-0.121,-0.006]) but the CI
+  just touches 0 under strict ([-0.108,0.001]). A vs C is not distinguishable (CI spans 0 both criteria).
+- Confirmed via `config/example_sets.json` that Set C's two examples are the user's flagged
+  "both about التعقيل" case -- both built on the same root ع-ق-ل (عقل/عقّل), applied to different objects
+  but with no other pattern represented; Set C is also the worst performer, consistent with (not proof
+  of) example homogeneity hurting generalization.
+- Abu Nuwas (n=10) vs other (n=40) split computed and reported but marked indicative-only per n size, as
+  instructed.
+- No run-noise baseline exists (1 run/cell, per the frozen design) -- stated plainly per instruction that
+  all set-to-set differences are indicative only, with the bootstrap CI as the sole uncertainty measure
+  (does not substitute for a second run; CLAUDE.md rule 2's Kenning/Periphrasis 8x-to-1/2 precedent cited
+  as the concrete risk this caveat exists for).
+- No model comparison performed or reported (Gemini incomplete).
+
+**Step 4** — wrote `docs/phase4/E1_RESULTS.md` (design recap, actual cost table, key TP/FP/FN/P/R/F1
+tables both criteria, bootstrap CI table, per-poem diff table, abu_nuwas/other split, the Set-C-homogeneity
+note, caveats, bottom line). Committing and pushing next.
