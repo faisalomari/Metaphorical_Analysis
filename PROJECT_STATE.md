@@ -2,9 +2,9 @@
 
 **Purpose**: single source of truth for a fresh session to continue this work with zero prior context. If anything here conflicts with your memory of a past conversation, trust this file and the files it points to — not the conversation.
 
-**STATUS: EXPERIMENTAL PHASE CLOSED — 2026-07-21.** No further API calls, experiments, or changes to any frozen number are planned. Remaining work is thesis writing (`/writing/chapters/`, drafted from this document and the frozen reports only) and whatever the supervisor's feedback on the 3 sent deliverables (`final_report.docx`, `detailed_results.docx`, `explanations_sample.docx`) requires — see §5 for exactly what's pending and what's blocked on that feedback.
+**STATUS: PHASE 1 EXPERIMENTAL PHASE CLOSED — 2026-07-21. PHASE 2 (v2) OPENED — 2026-07-23.** Everything in §1-§7 below is Phase 1: frozen, historical, and untouched — no further API calls, experiments, or changes to any Phase 1 number are planned, and Phase 1 documents/reports keep their original (now-superseded) terminology (see Phase 2 §0 below). Phase 2 is a new, distinct experimental cycle opened in response to a supervisor terminology correction and a chat-interface observation that Phase 1's pipeline missed a real كناية instance — see the **Phase 2** section after §7 for full rationale, terminology corrections, and the §3i (Phase 2) experiment. Thesis writing (`/writing/chapters/`) continues to draw from Phase 1's frozen numbers for everything Phase 1 covered; Phase 2 findings get their own subsections once results exist.
 
-**Last updated**: 2026-07-21 (final pass, closing the experimental phase).
+**Last updated**: 2026-07-26 (analysis-only session: supervisor notes logged in Phase 2 §5 Entry 2; four deliverables + one new methodology finding in Phase 2 §7).
 
 ---
 
@@ -334,3 +334,131 @@ Nothing in the codebase should change in response to either question until the s
 5. (later, same closure pass) — `/writing/chapters/*.md` thesis drafts + `/writing/figures/*` result figures.
 
 **`REPRODUCIBILITY.md`** (repo root) now documents exact environment setup, `.env` keys needed, model IDs/pricing, script execution order, where manifests/results land, and scoring-harness usage — a stranger with API keys can reproduce the frozen TEST run from that file alone (`python run_test.py` + `python test_report.py`).
+
+---
+
+# PHASE 2 (v2) — opened 2026-07-23
+
+Everything above this line (§1-§7) is Phase 1: frozen, closed, historical. Nothing above is edited or re-scored by Phase 2. This section is additive.
+
+## Phase 2 §0 — Rationale
+
+Phase 2 exists because of two developments that came **after** Phase 1 closed on 2026-07-21:
+
+1. **Supervisor correction on English element terminology.** Phase 1's English names for two of the four elements were wrong, and may have misled the models (all of whose prompts are in a mix of Arabic definitions + English element names) throughout Phase 1:
+   - **طباق** — Phase 1 called this "antonymy" (a lexical relation between two words). The correct term is **antithesis** (a rhetorical figure: pairing opposites within one context for effect). Antonymy and antithesis are related but not the same thing, and the wrong name could plausibly bias a model toward a narrower, more lexical reading than the element actually requires.
+   - **كناية** — Phase 1 called this "kenning". A kenning is a specific Old Norse/Old English poetic-compounding device ("whale-road" for sea) — a real but unrelated device from a different poetic tradition. The correct term is **periphrasis** (indirect expression conveying a meaning without stating it directly, while the literal reading stays possible) — this is not just "wrong terminology" but potentially *actively misleading*, since "kenning" points a model at the wrong structural pattern entirely.
+   - **مجاز** is confirmed to be an umbrella term, not a single figure. It covers at minimum three subtypes: **استعارة** (metaphor), **تمثيل** (analogy/extended metaphor), and **مجاز مرسل** (metonymy/synecdoche — e.g. «السماء تمطر» "the sky is raining" where the actual rain-source is the cloud, a part-for-whole/cause-for-effect relation; or «أراني أعصر خمراً» "I see myself pressing wine" where what is literally pressed is grapes, not wine). Phase 1's `data/elements/Trope.txt` gives one unified definition and examples but never explicitly names or exemplifies the مجاز مرسل subtype — see §3c above, where مجاز مرسل is the one Trope subtype v4_combined does nothing for (85%→85% missed, completely flat). This is a candidate explanation worth testing, not yet confirmed.
+
+2. **Chat-gap observation.** In a chat-interface session (not this pipeline), Fable 5, given free-form Arabic reasoning space (no strict JSON schema, no "don't explain" instruction), correctly identified a كناية in Imru' al-Qais's verse «فُوهَا كُلَّمَا نَبَّهْتُهَا... » that **every** Phase 1 pipeline configuration missed for that verse (baseline, v4_combined, decomposed, per-verse — across all 3 models, both runs). Hypothesis under test: Phase 1's strict no-explanation JSON output format, the wrong terminology, and the mid-tier models used, **jointly** suppressed detection — and §3i (Phase 2) below is designed to disentangle which of the three variables (if any) is doing the work, rather than assume it's all three.
+
+**Important framing**: this is a hypothesis-generation and disentanglement experiment, not a re-litigation of Phase 1's frozen numbers. Phase 1's TEST results remain the thesis's primary numbers regardless of what Phase 2 finds — see §2 below for how Phase 2 findings get reported alongside them.
+
+## Phase 2 §1 — Frozen decisions carried over unchanged from Phase 1, plus new ones
+
+All of Phase 1 §2's rules still apply without exception: DEV = Imru2 + Nabigha, TEST = Imru1 + Jarir + Abu_Tammam, TEST remains spent and untouchable, 2 runs per configuration with 2-run majority as primary, span-level scoring (both strict and token-overlap criteria) — never verse-level. Phase 2 adds:
+
+5. **Phase 2 experiments are DEV-only, same as Phase 1's supplementary experiments (§3f, §3g).** §3i (Phase 2) uses Imru2 + Nabigha exclusively. TEST is not touched by anything in this section.
+6. **Terminology corrections apply to all NEW writing only.** Phase 1 documents/reports (`final_report.docx`, `detailed_results.docx`, `explanations_sample.docx`, `/writing/chapters/*.md` as already drafted, and every number/table in §1-§7 above) are **not** retroactively edited — they used "antonymy"/"kenning" throughout and stay that way as an accurate historical record of what was actually run. See `GLOSSARY.md` (repo root) for the full old-term → correct-term mapping and how to cite Phase 1 material going forward without silently correcting it in place.
+7. **Cost estimate + explicit user confirmation BEFORE running any Phase 2 API call.** Same discipline as Phase 1 §5's Nabigha-replication follow-up — no exceptions, especially for Config C (unknown-priced flagship model, per-verse, two-stage, with thinking).
+
+## Phase 2 §2 — Where Phase 2 lives
+
+- Code: `experiments/phase2_chatlike/`
+- Results: `results/phase2_chatlike/`
+- Terminology: `GLOSSARY.md` (repo root)
+
+## Phase 2 §3i — Three-configuration disentanglement experiment (DEV: Config A/B full DEV, Config C Imru2-only so far)
+
+**Status as of 2026-07-23: Config A and B run on full DEV (Imru2+Nabigha, 2 runs); Config C run on Imru2 only (2 runs), Nabigha's Config C explicitly held pending confirmation.** Full tables, the verse-6 case study, and the four-question analysis are in [`results/phase2_chatlike/report_3i.md`](../results/phase2_chatlike/report_3i.md) — this subsection is a summary pointer, not a duplicate.
+
+Three configurations isolate the model-effect, terminology-effect, and full-recipe variables from Phase 1's Sonnet 4.6 + v4_combined + strict-JSON baseline:
+
+- **Config A (pure model effect)**: v4_combined unchanged, on Fable 5 (`claude-fable-5`, `effort=medium`). Compared against Sonnet 4.6's existing v4 DEV numbers.
+- **Config B (pure terminology effect)**: v4_combined with only the English element names corrected (antonymy→antithesis, kenning→periphrasis) and the مجاز block annotated with its three subtypes and the two canonical examples above, on Sonnet 4.6. Everything else — model, schema, scoring — identical to v4.
+- **Config C (full chat-like recipe)**: two-stage, per-verse (Mode A granularity, matching §3g's per-verse mechanism), Stage 1 on Fable 5 (free-form Arabic analysis, verbatim user-specified prompt, full poem context, one verse per call), Stage 2 on GPT-5.4-mini (extraction into the unmodified strict JSONL schema). **Imru2 only so far** — Nabigha not yet run.
+
+**Headline results** (full detail + TP/FP/FN in `report_3i.md`):
+1. **Model effect is real**: Fable 5 alone (Config A, same prompt/terminology as existing) moves both Trope (F1 0.059→0.200) and Kenning (F1 0.130→0.198) on pooled DEV, with *no* precision cost — the first intervention in this whole project (Phase 1 included) to gain recall without trading precision.
+2. **Terminology effect is real but small, and element-specific**: Trope gets a modest genuine boost (F1 0.059→0.090); Kenning does not (F1 0.130→0.123, flat-to-worse) — correcting "kenning"→"periphrasis" alone did not unlock Kenning recall. **Reportable caveat for the thesis**: Phase 1's frozen Trope numbers carry a small terminology caveat; its Kenning numbers do not.
+3. **Full recipe (Config C) moves Kenning recall substantially on Imru2** (strict F1 0.111→0.316, token F1 0.111→0.421; TP 1→6-8 out of GT n=16), at a real precision cost (more FP than TP) consistent with every other recall-boosting intervention tried in this project (§3f, §3g). **It catches the exact motivating verse** (Imru2 v6, «كُلَّمَا نَبَّهْتُهَا») that Existing/A/B all miss, in both runs, with a substantively correct rhetorical justification — replicating the original chat-gap observation inside the harness.
+4. **مجاز مرسل question is inconclusive from Imru2 alone** — its ground truth has exactly 1 مجاز مرسل instance, too thin to read either way. Answering this properly requires Nabigha.
+
+**A shared-infra bug found and fixed during scoring**: `span_matching.py`'s `normalize()` didn't strip Arabic guillemets (`«»`), which Config C's Stage-1-quoting style introduces but no Phase 1 model ever produced. Fixed (now strips `«»` alongside the existing `"'`) and **verified byte-identical against Phase 1's frozen TEST pooled counts before/after** — zero impact on any frozen number, real and substantial impact on Config C's own scores (Kenning token F1 0.263→0.421 once spans matched correctly).
+
+**Cost actually spent**: A $1.91, B $0.27, C (Imru2 only) $5.05 — **$7.23 total**, within the approved ranges. Extending C to Nabigha *in full* is estimated at **≈$11.9** and remains **not run** — the user instead approved a cheaper, narrowly-scoped alternative to answer question 4 specifically (below), and the full-poem Nabigha run is still open for a future decision.
+
+**Addendum, same day — Nabigha مجاز مرسل targeted recall probe** ($2.73 actual, 22 stage-pairs: 9 verses containing all of Nabigha's مجاز مرسل ground truth + 2 contrast verses, 2 runs each). **Labeled explicitly as a recall probe, not an evaluation** — known-positive verses only, no precision/F1 claim made. Result: 4 of 9 مجاز مرسل verses caught in ≥1 of 2 runs (v7, v14, v30, v47); pooled with Imru2's 1 verse, **4/10 verses caught strict, 3/10 token (any-of-2-runs)** — a directional improvement over Phase 1's flat ~15% recall, but inconsistent run-to-run (3 of the 4 hits came from only one of two runs — under the project's standard 2-run-majority convention this collapses to just **1/10 strict, 0/10 token**) and not methodologically comparable to Phase 1's pooled-3-model 2-run-majority figure. Both contrast verses (استعارة فعل, مجاز عقلي) were caught, matching §3c's finding that those subtypes are already tractable. Full detail, per-instance quotes, and the full-poem-Nabigha-still-open note: `report_3i.md` §8.
+
+## Phase 2 §4 — Open items (2026-07-23)
+
+1. **Nabigha full-poem Config C run — budget-held, not run.** The targeted مجاز مرسل probe (Phase 2 §3i addendum, above) answered question 4 cheaply ($2.73) without it. A full run would additionally produce real precision/F1 numbers for Config C on a second poem (the probe deliberately does not — see `report_3i.md` §8's known-positive-only framing) and would let §9's "reachable but not reliably decided" finding be checked against a second poem's data, the same way §3g's Kenning-per-verse finding was checked against Nabigha in Phase 1. Estimated cost ≈$11.9 (measured Imru2 per-call average carried forward — see Phase 2 §3i above). **Requires fresh confirmation before running**, per standing discipline.
+2. **Few-shot demonstration experiment — designed, not run.** Full design in `experiments/phase2_chatlike/PROPOSAL_fewshot.md`: tests whether 2-3 worked reasoning demonstrations (drawn from `data/elements/*.txt`'s own existing example couplets plus the مجاز مرسل canonical examples already in `GLOSSARY.md` — zero DEV/TEST leakage) embedded in Config B's system message can recover part of Config C's Kenning/مجاز مرسل recall gain at Config A/B's whole-poem cost, and — the more interesting question given §3i §9's finding — without Config C's run-to-run non-determinism. Estimated cost ≈$0.35–0.55 (Sonnet 4.6 only) if run. Not started.
+3. **Fresh-poem validation — needs supervisor.** Phase 1 §5.3 already flagged this for the per-verse Kenning finding specifically ("a third poem would tell us whether Nabigha's numbers are themselves reliable or still noisy at n=2 poems"); Phase 2's findings (Config A's model effect, Config C's Kenning/مجاز مرسل reachability, the determinism gap in §3i §9) sharpen the case for it but don't change the fact that no DEV/TEST poem can serve this purpose — a genuinely fresh, never-touched poem is needed, which means new ground-truth annotation. This is a scope/resourcing decision for the supervisor, not something this codebase can decide or start on its own.
+
+## Phase 2 §5 — Supervisor feedback log
+
+**Purpose**: this project has two supervisors and one ground-truth annotator, and feedback from them arrives outside this repo (chat, email, meetings) — logging it here verbatim is the only way a future session (or a future instance of this assistant) has access to it. Add to this log; don't summarize over previous entries.
+
+**People**: **Tsvi Kuflik** ("Tsvika") — co-supervisor. **Ali Hussein** ("Ali") — the ground-truth annotator (his manual annotations are `data/ground_truth/ali_ana/*.xlsx`, referenced throughout this document).
+
+**Entry 1 — 2026-07-23, Tsvika, responding to the Phase 1 report** (translated from Hebrew, relayed via chat, not in this repo until now):
+
+> "The results are indeed not impressive. You have 2 poems by the same poet — you could check just for this poet (perhaps when it's the same poet, success will be better?). Regarding the errors, we need to start examining them and identifying characteristics. We should talk at the next meeting and you'll probably need to go over this with Ali."
+
+**What this means, disambiguated** (the request that produced this log entry clarified the reading): the same-poet question is a **hypothesis about the models** — does performance improve when evaluated within one poet's poems (style consistency) versus across poets — not a question about DEV/TEST split validity per se. It happens to be confounded with the DEV/TEST split here, since the two Imru' al-Qais poems are Imru2 (DEV) and Imru1 (TEST) — that confound must be stated honestly whenever this question is answered (see Phase 2 §6 below), not glossed over. The "errors... identifying characteristics" request is answered by the error-characteristics summary (`results/phase2_chatlike/error_characteristics_summary.md`). The "go over this with Ali" request is the motivation for the shortlist prepared in Phase 2 §7 below.
+
+## Phase 2 §6 — Per-poem breakdown and the same-poet question
+
+Computed by `experiments/phase2_chatlike/per_poem_breakdown.py` — re-slices Phase 1's frozen TEST/DEV manifests (baseline and v4_combined, all 3 models, both criteria) by individual poem instead of §3a's pooled-across-poems view. No new API calls; no change to any frozen pooled number. Full per-element/per-model table is reproducible by running that script; this section reports the macro-average (mean F1 across all 3 models × 4 elements, strict criterion, v4_combined) per poem, which is what's needed to answer Tsvika's question, plus the full table's most relevant lines inline.
+
+**One pre-existing asymmetry worth flagging before the numbers**: Nabigha's baseline has only **1 run** per model (not 2) — a Phase 1-era data gap (`PROJECT_STATE.md` §4), not something Phase 2 introduced. Nabigha's baseline column should be read with that in mind; its v4_combined column (2 runs, same as everywhere else) is unaffected.
+
+### Macro-average F1 per poem (v4_combined, strict, mean across 3 models × 4 elements)
+
+| Poem | Poet | Split | Macro-avg F1 |
+|---|---|---|---|
+| Abu_Tammam | Abu Tammam | TEST | **0.366** (highest of all 5) |
+| Imru2 | Imru' al-Qais | DEV | 0.343 |
+| Imru1 | Imru' al-Qais | TEST | 0.302 |
+| Nabigha | Al-Nabigha | DEV | 0.284 |
+| Jarir | Jarir | TEST | **0.256** (lowest of all 5) |
+
+### Tsvika's question, answered
+
+**Question** (Tsvika, §5): does model performance improve when evaluated on a single poet's poems, compared to across poets — is style consistency a factor?
+
+**Short answer: the data doesn't show a clear same-poet effect.** Imru' al-Qais's two poems (Imru2 0.343, Imru1 0.302; poet mean 0.323) sit in the *middle* of the 5-poem range, not clustered at the top — Abu_Tammam, a different poet with only one poem in the corpus, scores highest (0.366), and Jarir, also a different poet with one poem, scores lowest (0.256). If "same poet" were a strong driver of success, Imru' al-Qais's two poems should cluster together and apart from the rest; instead, individual-poem variance (Abu_Tammam vs. Jarir: Δ=0.11) is larger than the gap between the two Imru' al-Qais poems and the group of other poets (poet-of-interest mean 0.323 vs. other-poets mean 0.302: Δ=0.02).
+
+**The honest confound, stated as asked**: Imru2 was studied during DEV prompt-tuning (all 4 variants, ablations, decomposition, and per-verse experiments were iterated against it); Imru1 was TEST, seeing the frozen v4_combined prompt exactly once. If DEV-tuning gave Imru2 a "home-field" advantage independent of poet identity, we would expect Imru2 to outscore Imru1 by more than ordinary poem-to-poem noise — it does outscore it (0.343 vs 0.302, Δ=0.04), but that gap is *smaller* than the gap between Abu_Tammam and Jarir (Δ=0.11), two poems that never touched the DEV-tuning loop at all. So the DEV-tuning advantage, if it's doing anything here, isn't doing more than ordinary poem-to-poem noise already does.
+
+**What can be concluded**: no dramatic, unambiguous poet-consistency effect is visible in this data.
+**What cannot be concluded**: whether a real but modest poet-effect exists that 5 single-poem data points (2 for the poet in question, 1 each for 3 others) are too thin to resolve — this is the same "never trust a comparative conclusion from a small sample" caution already on record (`PROJECT_STATE.md` §6.1, §3d) applied to a new axis (poet identity, not run-to-run or element-support size). Properly separating "poet consistency" from "individual poem difficulty" from "DEV-tuning advantage" would need at least one more poem by an already-represented poet that never touched DEV tuning — structurally the same ask as Phase 2 §4 item 3 (fresh-poem validation), not a new, separate request.
+
+**Entry 2 — 2026-07-23, supervisor meeting (relayed via chat, not in this repo until now)**:
+
+> "Check line by line in chat and Claude Code, not using the API" — they want to see the chat-like per-verse reasoning output itself.
+>
+> "Check and analyze why the models are missing a lot — recall is too low."
+>
+> "What are the differences between the examples used in the few-shot prompt and the testing — why is it missing?"
+>
+> Working hypothesis to refine: "models are good at simpler rhetorical elements but not strong on more complex tasks."
+>
+> Terminology corrections (already implemented in GLOSSARY.md / Phase 2 Config B — verify, don't redo).
+
+**Disambiguation / how this maps to work items**: the "check line by line in chat" request is answered by a new per-verse analyses document (assembling Config C's existing Fable 5 stage-1 Arabic reasoning, verbatim, verse text + ground truth alongside it — no new API calls, since Config C's Imru2 and Nabigha-probe outputs already exist from §3i). The "why is recall too low" and "few-shot example gap" requests are answered by two new analysis documents: a recall/FN decomposition over the frozen TEST results, and a gap analysis comparing `data/elements/*.txt`'s worked examples against the ground-truth instances (especially missed ones) — both from existing frozen data, zero new API calls. The "simple vs complex" hypothesis is being refined (not rebutted) into a marker-explicitness framing for the discussion chapter, cross-referencing §3c's subtype breakdown and §3i's Config C findings. The terminology-correction item is confirmed already done (`GLOSSARY.md`, Phase 2 Config B) — nothing to redo.
+
+## Phase 2 §7 — Analysis-only session, 2026-07-26: four deliverables + one new methodology finding
+
+**Status**: this entire session was analysis-only, zero new API calls, per standing user instruction. Everything below reconstructs or re-presents already-collected Phase 1/Phase 2 data.
+
+**Deliverables**:
+1. [`results/phase2_chatlike/verse_by_verse_reasoning.docx`](../results/phase2_chatlike/verse_by_verse_reasoning.docx) — Config C's Fable 5 Stage-1 Arabic analyses, verbatim, all 23 Imru2 verses (both runs) + the 11 Nabigha مجاز مرسل-probe verses (both runs), each with verse text and Dr. Hussein's ground truth alongside. Built with `experiments/phase2_chatlike/build_verse_by_verse_reasoning.py`. RTL-verified by rendering actual pages to PNG (Word→PDF→PyMuPDF) — not just source inspection — per CLAUDE.md's mandatory visual-render rule.
+2. [`results/phase2_chatlike/recall_decomposition.md`](../results/phase2_chatlike/recall_decomposition.md) — every frozen-TEST FN (v4_combined, strict, 1,031 events) classified into schema-structural / subtype-knowledge / boundary-confusion (mechanical scan) / annotation-sensitive (shortlist) / model-capability / format-suppression-candidate / unclassified, per a priority order explicitly sanity-checked with the user before running. Reconstruction verified byte-exact against §3a's frozen TP/FP/FN table before any decomposition. Code: `experiments/phase2_chatlike/recall_decomposition.py`; raw per-instance data in `results/phase2_chatlike/recall_decomposition_events.json`. Also surfaced 8 new mechanical Trope↔Kenning boundary-confusion instances beyond the manual shortlist, and 5 candidate new entries for `ali_adjudication_shortlist.md` (shared-FP pattern, not auto-classified — flagged for Dr. Hussein).
+3. [`results/phase2_chatlike/example_gap_analysis.md`](../results/phase2_chatlike/example_gap_analysis.md) — characterizes `data/elements/*.txt`'s worked examples against the ground-truth population (subtype coverage, marker explicitness, span length, multi-figure share). Code: `experiments/phase2_chatlike/example_gap_analysis.py`.
+4. [`writing/chapters/discussion_draft.md`](../writing/chapters/discussion_draft.md) — draft discussion section refining "simple vs. complex" into a marker-explicitness/literal-reading-foreclosure hypothesis, cited against §3a/§3c/§3i's frozen numbers. Not yet reviewed.
+
+**Important new finding, surfaced by deliverable 3 — needs attention before `PROPOSAL_fewshot.md` is ever run**: every one of the 19 worked examples across `data/elements/{Trope,Simile,Kenning,Antonymy}.txt` is a real, annotated verse from this project's own 5-poem corpus, one per poem in the fixed order Imru1→Imru2→Nabigha→Jarir→Abu_Tammam — verified byte-for-byte (e.g. Trope.txt's example #1 is Imru1 v22 verbatim, example #4 is Jarir v12 verbatim). Since `data/elements/*.txt` is loaded into every prompt variant's system message (frozen, byte-identical since Phase 1), **3 of every element file's 4-5 examples are literal TEST-poem verses** — meaning the frozen TEST evaluation has, since Phase 1, shown the model a "this verse contains element X" example drawn from the exact poem (and in a few cases the exact verse) it is later asked to score. This directly contradicts `PROPOSAL_fewshot.md`'s stated premise that its planned demonstration source ("`data/elements/{Kenning,Trope}.txt`'s own existing canonical example couplets") was "never drawn from the 5 annotated poems" — that proposal's demonstration-selection plan needs new source material before it is ever run. Full detail and the provenance table: `results/phase2_chatlike/example_gap_analysis.md` §0. Not re-litigated against any frozen TEST number here — TEST stays spent regardless (§2) — but flagged as a limitation for `limitations_future_work.md` to pick up.
+
+**Housekeeping note**: `git status` at the start of this session showed `CLAUDE.md`, `GLOSSARY.md`, all of `experiments/phase2_chatlike/`, and all of `results/phase2_chatlike/` (i.e. everything from the 2026-07-23 Phase 2 session) as untracked/uncommitted, plus an uncommitted fix to `span_matching.py`'s `normalize()` (the «» guillemet-stripping fix already documented in Phase 2 §3i). None of this was touched or committed by this session — flagging only so a future session (or the user) is aware a large amount of Phase 2 work has never been committed to git.
