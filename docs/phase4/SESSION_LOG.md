@@ -275,7 +275,9 @@ and an explicit, prominent licensing-unconfirmed caveat tying back to `TOP_5_BLO
 plainly that downloading this data does not resolve that blocker and it must be cleared with the
 supervisor/Dr. Hussein before any redistribution.
 
-**2026-10-10T05:55** — Committing next: `scripts/download_ali_poems.py`, `data/ali_poems/` (20MB, under
-the 50MB ask-first threshold), and this log entry. `git push` will be attempted once per standing
-instruction from earlier in this session, expected to fail on the same pre-existing large-file-in-history
-issue (commit `3d91e28`, unrelated to this task) — will not retry or rewrite history per instruction.
+**2026-10-10T05:55** — Committed `1e7b233` (`scripts/download_ali_poems.py` + `data/ali_poems/` [525
+files, 20MB, under the 50MB ask-first threshold] + this log). Per this task's explicit instruction, did
+**not** attempt `git push` (it would fail on the same pre-existing large-file-in-history issue from commit
+`3d91e28`, unrelated to this task, already hit three times earlier this session) — no retry, no history
+rewrite. `main` is now 18 commits ahead of `origin/main`, all local-only pending the user's earlier-flagged
+decision (LFS-migrate / strip-from-history / stay-local).
