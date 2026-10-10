@@ -1,11 +1,15 @@
-"""Build the 50-poem eval pool for E1 (docs/phase4/COST_PLAN.md §2.2).
+"""Build the 50-poem eval pool for E1: 10 Abu Nuwas poems + 40 poems from
+other poets (user's explicit design spec), stratified sampling under a
+single random.seed(43).
 
 Candidate pool = all 167 manifest poems minus: the no-text poem (28601), the
 5 frozen Phase 1 poems (already_used_in_project), and the 3 Abu Nuwas
 example-source poems (fewshot_examples.py). Each poem is tagged "abu_nuwas"
-or "other". A 50-poem subsample is drawn with random.seed(43) (a different
-seed from the example draw, per the design, so the two randomizations don't
-interact).
+or "other". The eval pool is drawn as two separate random.sample calls under
+one random.seed(43) call (abu_nuwas subset first, then other subset, in that
+order, for reproducibility) — NOT one random.sample(50) over the combined
+pool, which would reproduce the candidate pool's own ~27:131 poet ratio
+(~5:45) instead of the requested 10:40 split.
 
 Writes experiments/phase4_e1/config/eval_pool.json and
 experiments/phase4_e1/config/example_sets.json. No API calls.
@@ -17,8 +21,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from e1_config import (  # noqa: E402
-    ALREADY_USED_POEM_IDS, CONFIG_DIR, EVAL_POOL_PATH, EVAL_POOL_SIZE,
-    EXAMPLE_POEM_IDS, EXAMPLE_SETS_PATH, NO_TEXT_POEM_ID, POET_NAME, POOL_SEED,
+    ALREADY_USED_POEM_IDS, CONFIG_DIR, EVAL_POOL_ABU_NUWAS_N, EVAL_POOL_PATH,
+    EVAL_POOL_OTHER_N, EXAMPLE_POEM_IDS, EXAMPLE_SETS_PATH, NO_TEXT_POEM_ID,
+    POET_NAME, POOL_SEED,
 )
 from ali_poems_io import load_manifest  # noqa: E402
 from fewshot_examples import build_example_sets  # noqa: E402
@@ -41,9 +46,12 @@ def build_candidate_pool() -> list:
     return pool
 
 
-def build_eval_subsample(candidate_pool: list, size: int, seed: int) -> list:
+def build_eval_subsample(candidate_pool: list, n_abu_nuwas: int, n_other: int, seed: int) -> list:
+    abu_nuwas_candidates = [p for p in candidate_pool if p["tag"] == "abu_nuwas"]
+    other_candidates = [p for p in candidate_pool if p["tag"] == "other"]
     random.seed(seed)
-    return sorted(random.sample(candidate_pool, size), key=lambda p: int(p["poem_id"]))
+    picked = random.sample(abu_nuwas_candidates, n_abu_nuwas) + random.sample(other_candidates, n_other)
+    return sorted(picked, key=lambda p: int(p["poem_id"]))
 
 
 def main():
@@ -51,7 +59,7 @@ def main():
 
     candidate_pool = build_candidate_pool()
     eval_pool_full = candidate_pool  # the full cross-poet pool (158 poems)
-    eval_pool_50 = build_eval_subsample(candidate_pool, EVAL_POOL_SIZE, POOL_SEED)
+    eval_pool_50 = build_eval_subsample(candidate_pool, EVAL_POOL_ABU_NUWAS_N, EVAL_POOL_OTHER_N, POOL_SEED)
 
     n_abu_nuwas_full = sum(1 for p in eval_pool_full if p["tag"] == "abu_nuwas")
     n_abu_nuwas_50 = sum(1 for p in eval_pool_50 if p["tag"] == "abu_nuwas")

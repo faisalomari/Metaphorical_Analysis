@@ -37,7 +37,14 @@ ALREADY_USED_POEM_IDS = {"2127", "2196", "3205", "3218", "10539"}  # Abu_Tammam,
 EXAMPLE_POEM_IDS = ["16251", "17234", "21337"]  # sets A, B, C source poems, in order
 EXAMPLE_SEED = 42
 POOL_SEED = 43
-EVAL_POOL_SIZE = 50
+# Stratified eval pool: 10 Abu Nuwas poems + 40 poems from other poets (the
+# user's explicit design spec) — NOT a single random.sample(50) over the
+# combined candidate pool, which would give a poet split close to the
+# candidate pool's own ratio (27/131 -> ~5/45) by chance instead of the
+# requested 10/40 split needed for a legible same-poet-vs-other-poet readout.
+EVAL_POOL_ABU_NUWAS_N = 10
+EVAL_POOL_OTHER_N = 40
+EVAL_POOL_SIZE = EVAL_POOL_ABU_NUWAS_N + EVAL_POOL_OTHER_N
 
 SET_NAMES = ["A", "B", "C"]
 N_RUNS = 1          # one run per set per model (no second run) per the design

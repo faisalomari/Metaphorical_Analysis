@@ -598,3 +598,23 @@ that call's real input count.
 **2026-10-10T19:40** — STOP per task instruction: no API call made anywhere in this task. Awaiting the
 user's explicit go-ahead before running `runner.py --confirm`. Appending this entry, then committing and
 pushing `experiments/phase4_e1/` + this log.
+
+**2026-10-10T20:00** — Committed (`c0f08e2`) and pushed. User confirmed the model pick (Gemini + GPT), and
+separately flagged a real bug after reviewing the output: the eval pool spec was "10 Abu Nuwas poems + 40
+poems from other poets," but `build_pool.py` had drawn all 50 with a single `random.sample(candidate_pool,
+50)` call over the combined 158-poem pool — that reproduces the candidate pool's own ~27:131 poet ratio by
+chance (came out 5 abu_nuwas/45 other) instead of the requested fixed 10:40 split. A 5-poem same-poet
+subsample is too small to read a same-poet-vs-other-poet signal off of, which is exactly the secondary
+question this pool's poet tagging exists to support.
+- Fix: `e1_config.py` now has explicit `EVAL_POOL_ABU_NUWAS_N=10`/`EVAL_POOL_OTHER_N=40` constants;
+  `build_pool.py`'s `build_eval_subsample()` splits the candidate pool into abu_nuwas/other subsets first,
+  then draws `random.sample(abu_nuwas_subset, 10) + random.sample(other_subset, 40)` under one
+  `random.seed(43)` call (abu_nuwas drawn first, for reproducibility) — stratified, not pooled, sampling.
+- Re-ran `build_pool.py`: eval pool now **50 poems, 1,010 verses, exactly 10 abu_nuwas / 40 other** (up
+  from the buggy 885 verses/5:45 split — more verses because Abu Nuwas's poems in this pool average longer
+  than the cross-poet average, pulling the total up when forced to 10 rather than 5).
+- Regenerated the 3 prompt previews and re-ran `dryrun.py` on the corrected pool: confirmed pair (Gemini +
+  GPT-5.4-mini), 1 run, no repeat: **300 calls, $7.95** (was $7.75 on the buggy pool); with the optional
+  set-A repeat: 400 calls/$10.58. All 3 models individually: GPT-5.4-mini $2.23, Gemini 3.5 Flash $5.72,
+  Claude Sonnet 4.6 $8.26 (comparison only, not part of the confirmed run).
+- No API calls made in this fix. Still STOPPED, awaiting go-ahead before `runner.py --confirm`.
