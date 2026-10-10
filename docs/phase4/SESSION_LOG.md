@@ -409,3 +409,96 @@ redacted from all local history that was just pushed — but it still exists in 
 full bundle backup (`../metaphorical_backup_2026-10-10.bundle`, taken *before* the redaction) and in
 whatever shell/editor history may have touched it previously. Recommend rotating/revoking that Hugging Face
 token regardless, since "never pushed to GitHub" isn't the same guarantee as "never exposed anywhere."
+
+---
+
+## Task: replace `COST_PLAN.md` with a real, decision-ready version (manifest now exists), no API calls
+
+**2026-10-10T18:00** — New task: now that `data/ali_poems/manifest.csv` exists (167 poems, 52 poets,
+downloaded earlier this session), redo the Phase 4 cost plan with real pool numbers instead of the
+placeholder version's Phase-1-extrapolated guesses. Re-read `CLAUDE.md`, `NEW_SESSION_HANDOFF.md`,
+`docs/phase4/INFO_REPORT.md`, the old `docs/phase4/COST_PLAN.md`, `data/ali_poems/README.md`, and
+`data/ali_poems/manifest.csv` (169-line file, read via `Read` offset for the tail half) before starting.
+No LLM API calls anywhere in this task — local-file analysis and arithmetic only, per explicit instruction.
+
+**2026-10-10T18:05** — Parsed `manifest.csv` with Python's `csv` module (167 data rows, clean parse — the
+file's semicolon-separated sub-fields and Arabic commas avoid any quoting ambiguity with the comma
+delimiter). Applied the two exclusions required by the task: poem 28601 (no verse text, confirmed via its
+own `README.md`-documented gap) and the 5 `already_used_in_project`-flagged poems (Abu_Tammam=2127,
+Imru2=2196, Imru1=3205, Nabigha=3218, Jarir=10539). Resulting candidate pool:
+**161 poems, 50 distinct poets**.
+
+**2026-10-10T18:10** — Per-poet pool analysis (COST_PLAN §1): wrote a local script
+(scratchpad `pool_analysis.py`) that loads every pool poem's full JSON (`poems/*.json`), maps each
+annotation's `element`/`subtype` field to this project's own Trope/Simile/Kenning/Antonymy categories using
+the same substring logic as `ground_truth.py:SUBSTRING_MAP` (مجاز/استعارة→Trope, تشبيه→Simile, كناية→Kenning,
+طباق→Antonymy — reused for consistency, not reimplemented differently), and tallies per-poet poem count,
+verse count, annotation count, and counts for the 3 `INFO_REPORT.md` §1e mid-difficulty subtypes (مجاز
+عقلي, كناية عن صفة, استعارة فعل) directly from each poem's own `annotations[].subtype` field (finer-grained
+than the manifest CSV's own `annotation_counts_per_element` column, which only has top-level categories).
+- Found: **أبو نواس (Abu Nuwas) has 30 poems** pool-wide — more than double the next-largest poet
+  (النابغة الذبياني, 13) — and is a poet never used anywhere in the project before. 12 poets total have
+  ≥3 poems; the other 38 have only 1–2.
+- Confirmed the literal "50–100 eval poems from the same poet" target is infeasible for every poet
+  (corpus-wide average 3.2 poems/poet; even Abu Nuwas tops out at 30) — this was already flagged as a risk
+  in the placeholder plan before the manifest existed; now confirmed as fact. Resolved by relaxing to a
+  cross-poet eval pool (examples from one poet, eval across the whole remaining corpus).
+
+**2026-10-10T18:20** — Poet/element recommendation: **أبو نواس + مجاز (Trope), subtype استعارة فعل** —
+largest poem count, zero prior use in the project, largest single-poet instance count for the top
+mid-difficulty subtype (222 استعارة فعل instances, ~13% of the entire corpus's pool-wide supply of 1,646).
+Considered and rejected أبو تمّام (more raw volume but already has 1 frozen-TEST poem — a clean, unused
+poet avoids the interpretive wrinkle) and النابغة الذبياني (same DEV-poem caveat, smaller margin) as the
+primary pick; recorded both as alternatives in the doc.
+
+**2026-10-10T18:25** — E1 example-set selection (COST_PLAN §2.1): picked 3 of Abu Nuwas's shortest poems
+(6 verses each: 16251, 17234, 21337), each independently rich in استعارة فعل annotations (5 instances
+each), as the 3 disjoint example-source poems for sets A/B/C. For each poem, listed the distinct verse
+numbers carrying an استعارة فعل annotation and drew 2 via `random.sample(verses, 2)` under a single
+`random.seed(42)` (sets drawn in order A→B→C) — fully reproducible, logged verse-by-verse with full Arabic
+text (read directly from each poem's `verses` array) in the doc.
+
+**2026-10-10T18:30** — Eval pool computation (COST_PLAN §2.2): eval pool = 161-poem candidate pool minus
+the 3 example-source poems = **158 poems, 3,228 verses** (mean 20.4 verses/poem, computed by loading
+`verse_count` from every pool poem's JSON). Drew a 50-poem subsample via a separate `random.seed(43)` (kept
+distinct from the example-selection seed so the two randomizations can't interact) — **50 poems, 885
+verses actual** (not a hypothetical average; this exact sample is what gets costed). Also tallied the 27
+Abu-Nuwas-authored poems remaining in the eval pool (439 verses) as a same-poet-vs-other-poet secondary
+split, rather than excluding the whole poet from eval.
+
+**2026-10-10T18:35** — Cost model correction (COST_PLAN §3.1): the placeholder plan's flat per-call
+average cost ($0.0865/$0.0161/$0.0402 for Anthropic/OpenAI/Google) implicitly assumes Phase 1's longer
+poems (mean ≈45 verses); the real Ali-corpus eval pool averages only 20.4 verses/poem, so a flat average
+would overstate cost for this corpus (the fixed system-prompt-overhead portion of each call matters more
+for short poems). Fit a linear model (`cost = a + b×n_verses`) via `numpy.polyfit` over Phase 1's 5 real
+(verses, cost) data points per model (from `INFO_REPORT.md` §4's `run_manifest.json`-derived table) —
+predicts the known 5 points within ~3–15%, used to cost the real pool sizes from §2.2 and §4.2 rather than
+a flat average.
+
+**2026-10-10T18:40** — Built the real E1 cost table (COST_PLAN §3.2): 50-poem subsample (885 real verses)
+vs. full 158-poem pool (3,228 verses) × 2 vs. 3 sets × 1 vs. 2 models × 2 runs. Headline recommended cell
+(3 sets, GPT+Gemini, 2 runs): $7.36 for the 50-poem pilot, $26.03 for the full pool — both substantially
+cheaper than the placeholder plan's equivalent rows (~$17–51), because the real corpus's shorter poems cut
+cost rather than raise it (the opposite of the direction the placeholder had flagged as a risk).
+
+**2026-10-10T18:45** — Full-CV projection, now against real poet counts (COST_PLAN §4): grepped the actual
+per-poet poem/verse distribution computed in the §1 script and found only **6 poets have ≥10 poems**
+(أبو نواس, النابغة الذبياني, بشار بن برد, أبو تمّام, ابن الرومي, ديك الجن — 86 poems/1,609 verses total)
+and only **12 have ≥3** (109 poems/1,940 verses) — the placeholder plan's "~30 poets" assumption does not
+hold against the real corpus; a literal 30-poet 10-fold-CV design would need ≥18 poets with only 1–2 poems
+each, for which 10-fold CV isn't a meaningful operation. Computed same-poet (holdout) cost, the
+shared-cross-poet-benchmark alternative, and the **literal full grid** exactly from real per-poet poem/
+verse counts for both the 6-poet and 12-poet tiers (debugged one Arabic-string-literal mismatch that had
+under-counted 2 poets' poems on a first pass — fixed by reading poet names directly from the computed
+dict rather than retyping them, verified against the dict's own keys before reusing).
+- Finding: because the real poet tiers are small (6–12, not 30), the full grid is now **affordable**
+  (≈$26–64 for 6–12 poets, GPT+Gemini, 2 runs) — much closer to the shared-benchmark alternative's cost
+  than the placeholder's hypothetical 30×30 grid (which projected a 13–50× gap). Recommendation changed
+  accordingly: run the literal full grid on the 6-poet (true-10-fold-eligible) tier (≈$26.43) rather than
+  defaulting to a shared-benchmark shortcut that was only necessary under the old, incorrect 30-poet
+  assumption.
+
+**2026-10-10T18:50** — Wrote the full replacement `docs/phase4/COST_PLAN.md` (sections 0–5: exclusions,
+pool analysis + poet/element table and recommendation, E1 design with concrete example verses and eval
+pool, real cost tables, real full-CV projection, one-page Tuesday recommendation with an options table).
+No API calls at any point in this task. Committing and pushing next.
