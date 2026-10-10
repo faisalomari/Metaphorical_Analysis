@@ -17,7 +17,11 @@ def normalize(text) -> str:
     text = ARABIC_DIACRITICS.sub("", str(text))
     text = text.replace("ـ", "")  # strip tatweel
     text = re.sub(r"\s+", " ", text).strip()
-    return text.strip("\"'")
+    # Strip quote-like wrapping punctuation - straight quotes (present since
+    # Phase 1) plus Arabic guillemets « » (added Phase 2: Fable 5's Config C
+    # extraction quotes spans with them; never appeared in any Phase 1 raw
+    # output, so this is a no-op there, not a change to any frozen number).
+    return text.strip("\"'«»")
 
 
 # Single-letter conjunction/preposition clitics that attach directly to the next
