@@ -502,3 +502,99 @@ dict rather than retyping them, verified against the dict's own keys before reus
 pool analysis + poet/element table and recommendation, E1 design with concrete example verses and eval
 pool, real cost tables, real full-CV projection, one-page Tuesday recommendation with an options table).
 No API calls at any point in this task. Committing and pushing next.
+
+---
+
+## Task: build + dry-run E1 (example-sensitivity pilot), STOP before any real API call
+
+**2026-10-10T19:00** — New task: build the full E1 harness per the design already agreed in
+`COST_PLAN.md`/`INFO_REPORT.md` (poet=Abu Nuwas, element=مجاز, subtype focus=استعارة فعل, 3 example sets
+A/B/C seed=42, 50-poem eval pool seed=43, 1 run/set/model + an off-by-default set-A repeat flag), dry-run
+the exact cost, then STOP for explicit go-ahead. No API calls anywhere in this task. Re-read `CLAUDE.md`,
+`NEW_SESSION_HANDOFF.md`, `docs/phase4/COST_PLAN.md`, `docs/phase4/INFO_REPORT.md`,
+`data/ali_poems/manifest.csv` before starting.
+
+**2026-10-10T19:05** — Model confirmation gate (per the task's explicit "wait for my confirmation of the
+models" instruction): presented the two-best-model pick with evidence via `AskUserQuestion` — Gemini 3.5
+Flash (مجاز/Trope F1 0.386, استعارة فعل strict recall 0.264, cost/call $0.0402) + GPT-5.4-mini (Trope F1
+0.251, استعارة فعل strict recall 0.155, cheapest at $0.0161/call) vs. Claude Sonnet 4.6 (Trope F1 0.242 —
+actually the *worst* of the 3 — and most expensive at $0.0865/call). **User confirmed Gemini + GPT-5.4-mini**
+or either instructed change). Mid-task the user separately asked to also cost Claude Sonnet 4.6 in the
+dry-run table (not to add it to the actual confirmed run) — `dryrun.py` reports all 3 models' cost; the
+actual `runner.py` default stays Gemini+GPT per the confirmed pair.
+
+**2026-10-10T19:10** — Read `experiments/pilot_3models/{config,prompts,providers,span_matching,
+span_scoring,run_pilot,ground_truth,parsing,analyze}.py` directly (not just INFO_REPORT's summary) to
+confirm exact function signatures/return shapes before reusing them from a new module
+(`experiments/phase4_e1/`), per the task's explicit "do not change prompts.py logic; add a new module"
+instruction — nothing in `experiments/pilot_3models/` was edited.
+
+**2026-10-10T19:15** — Inspected 3 Abu Nuwas poem JSONs (16251, 17234, 21337) directly
+(`data/ali_poems/poems/*.json`) to find the real annotation schema (`span_text`, `verse_index`
+comma-list-per-word, `element`, `subtype`, `analysis` — not the `wordName`/`colomn` field names
+`COST_PLAN.md` assumed from the scrape-recon phase; the actual normalized-JSON field names differ from the
+raw-API field names documented in `data/ali_poems/README.md`). Confirmed exact-subtype-match (`subtype ==
+"استعارة فعل"`, not substring) against the 3 poems reproduces `COST_PLAN.md §2.1`'s per-poem candidate-verse
+lists exactly (16251: {1,2,3,5}; 17234: {3,4}; 21337: {1,2,4,6}).
+
+**2026-10-10T19:20** — Built `experiments/phase4_e1/`:
+- `e1_config.py` — all frozen constants (poet, element, subtype, both seeds, exclusion id sets, set names,
+  N_RUNS=1, REPEAT_SET_A=False default, RUN_MODELS=[google,openai], ALL_MODELS=[anthropic,openai,google]).
+- `ali_poems_io.py` — loads a poem JSON + manifest; `build_poem_text()` reconstructs the same
+  verse-numbered plain-text shape `pilot_3models` already expects (`sadr<spaces>ajuz` per line, ordered by
+  `verse_index`); `load_ali_gt_spans()` re-maps each poem's own `annotations` list to the 4 pilot elements
+  using `pilot_3models.ground_truth.SUBSTRING_MAP` directly (imported, not reimplemented) so the mapping
+  stays identical to every frozen Phase 1-3 number. Verse-of-record for an annotation = first entry of its
+  comma-separated `verse_index` (matches the convention the scraper's own validation pass already used to
+  exactly reconcile annotation counts against the frozen xlsx sheets, `SESSION_LOG.md` 2026-10-10T04:35).
+- `fewshot_examples.py` — `build_example_sets()` reproduces the 3 sets' verse draws from source data with
+  `random.seed(42)` (not transcribed from `COST_PLAN.md` by hand — independently re-derived and verified to
+  match it exactly, see below); `build_fewshot_block()`/`build_system_message_e1()` append a new few-shot
+  section (verse + span + Dr. Hussein's own `analysis` note) after `pilot_3models.prompts.build_system_message()`'s
+  existing, unmodified output — same bare-numbered-example convention as `data/elements/*.txt`, extended
+  with the annotation per the task's "show verse text and annotation" instruction.
+- `build_pool.py` — builds the candidate pool (167 manifest poems minus poem 28601, the 5
+  already-used-in-project poems, and the 3 example-source poems) tagged `abu_nuwas`/`other`, draws the
+  50-poem eval subsample with `random.seed(43)`, writes `config/eval_pool.json` + `config/example_sets.json`.
+- `runner.py` — resumable: skips any `(set, poem_id, provider, run_index)` cell already in
+  `run_manifest.json` with no error (full re-run only via `--force`); refuses to call any provider at all
+  unless invoked with `--confirm` (defaults to a dry listing of the planned calls, same gate as
+  `dryrun.py` but for the actual spend path); `--repeat-set-a` adds the optional 2nd run for set A only.
+- `scoring.py` — span-level strict + token-overlap scoring (`pilot_3models.span_matching.best_match`,
+  reused), raw TP/FP/FN per poem, pooled per-set overall/`abu_nuwas`/`other`, and a bootstrap CI (2,000
+  resamples over poems, seeded) for each pairwise (F1_set_i − F1_set_j) — the exact check the CLAUDE.md
+  rule 2 Kenning/Periphrasis 8×→1/2 incident calls for.
+- `dryrun.py` — the cost gate itself (below).
+
+**2026-10-10T19:30** — Verification run (no API calls, local only):
+- `python fewshot_examples.py` reproduced `COST_PLAN.md §2.1`'s exact 6 verses/spans independently from
+  source JSON + `random.seed(42)` — confirms the cost-plan's hand-written table wasn't a transcription
+  error.
+- `python build_pool.py` reproduced `COST_PLAN.md §2.2`'s exact pool sizes independently: candidate pool
+  158 poems/3,228 verses (27 Abu Nuwas/131 other), eval subsample 50 poems/885 verses (5 abu_nuwas-tagged/
+  45 other-tagged) under `random.seed(43)`.
+- `python runner.py` (no `--confirm`) printed the planned-call count only: 300 calls (3 sets × 50 poems ×
+  2 models × 1 run), 0 already done — confirmed no network call is attempted without `--confirm`.
+- `python -m py_compile` on every new module — all compile clean.
+
+**2026-10-10T19:35** — Dry-run cost (`dryrun.py`), no API calls: installed `tiktoken` (local pip package,
+not a network/LLM call) and used its `cl100k_base` encoding as the closest available **local** token
+estimate for all 3 providers — explicitly noted in the script's own docstring/output that no offline
+tokenizer exists for `claude-sonnet-4-6` or `gemini-3.5-flash` in this environment, and that counting via
+their real APIs would itself be a network call this task must not make. Computed the REAL input-token count
+for all 150 distinct (set × poem) prompts this design would actually send (not an average), then estimated
+output tokens via each provider's own historical output/input ratio from Phase 1's pooled
+`run_manifest.json` data (`INFO_REPORT.md §4`: anthropic ×0.7255, openai ×0.6653, google ×0.9011) applied to
+that call's real input count.
+- **Confirmed pair (Gemini + GPT-5.4-mini), 1 run, no repeat: 300 calls, $7.75.**
+- All 3 models individually (150 calls each, 1 run): GPT-5.4-mini $2.17, Gemini 3.5 Flash $5.57, **Claude
+  Sonnet 4.6 $8.05** (costed per the user's mid-task ask, not part of the confirmed run).
+- With the optional set-A repeat: confirmed pair 400 calls/$10.31; Claude alone 200 calls/$10.72.
+- Compared to `COST_PLAN.md`'s prior $7.36 estimate (50 poems, 3 sets, GPT+Gemini, **2** runs): this design
+  spends $7.75 at **1** run — more per-run than the placeholder predicted, because the real few-shot-extended
+  prompt is larger than the flat historical per-poem average the placeholder used; flagged explicitly in
+  the script's own output rather than silently matching the old number.
+
+**2026-10-10T19:40** — STOP per task instruction: no API call made anywhere in this task. Awaiting the
+user's explicit go-ahead before running `runner.py --confirm`. Appending this entry, then committing and
+pushing `experiments/phase4_e1/` + this log.
