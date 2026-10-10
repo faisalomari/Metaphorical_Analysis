@@ -40,3 +40,32 @@ Append-only. Each entry: timestamp, what, why, commands, outcome.
   - Traced to commit `3d91e28` ("Reorganize project into data/experiments/results/writing/literature/archive") — a pre-existing commit from well before this session, already sitting in local history, unrelated to anything done in this task.
 - **Push could not complete.** All 5 new commits + the tag exist locally (safe, nothing lost) but are **not yet on `origin/main`**. Fixing this requires rewriting history (e.g. `git filter-repo`/BFG to strip those 3 CSVs from the commit that introduced them, or moving them to Git LFS) followed by a force-push — a destructive/disruptive operation this session did not take without explicit instruction, consistent with how the same large-file problem was previously handled in `PROJECT_STATE.md` §7 (history rewrite "explicitly declined as too destructive/disruptive for this session").
 - Flagging for the user to decide: (a) git-lfs migrate the 3 CSVs + force-push, (b) strip them from history entirely (they're regeneratable embedding caches, not source data) + force-push, or (c) leave `origin/main` behind and keep working locally for now.
+
+---
+
+**2026-10-10T01:00** — New task: gather facts for planning a few-shot example-sensitivity experiment. No API calls, no new analysis beyond a difficulty ranking. Output: `docs/phase4/INFO_REPORT.md`.
+- Read `PROJECT_STATE.md` (full, both pages — Phase 1 §1-§7 and Phase 2 §0-§7) and `NEW_SESSION_HANDOFF.md` for current frozen numbers and open items.
+
+**2026-10-10T01:10** — Per-element/subtype performance (report §1).
+- Pulled frozen TEST table (§3a), Trope subtype table (§3c), and Phase 2 §3i Config A/B/C DEV numbers directly from `PROJECT_STATE.md` (no re-derivation, no new scoring run).
+- Read `results/phase3_subelements/MEETING_SUMMARY.md` and `results/phase3_crossmodel/summary.md` for subtype-level recall (Gemini vs GPT-5.4-mini, span-level strict/token) — noted explicitly that Phase 3's design makes precision/F1 mathematically undefined (recall-only), not just unmeasured.
+- Ranked the 4 elements by v4_combined mean strict F1 (Simile easiest ≈0.70, Trope ≈0.29, Antonymy ≈0.165, Kenning hardest ≈0.109) and picked 3 mid-difficulty subtype candidates (مجاز عقلي, كناية عن صفة, استعارة فعل) reasoned from n-size, cross-model/cross-criterion consistency, and distance from floor/ceiling; explicitly excluded طباق إيجاب (criterion-sensitive) and استعارة تمثيلية (documented sample-instability) from the "mid" recommendation.
+
+**2026-10-10T01:20** — Example injection + leakage map (report §2).
+- Read `experiments/pilot_3models/prompts.py` (`build_system_message`), `data/elements/Trope.txt`, `data/elements/Kenning.txt` directly to confirm the per-file template (header fields + N bare example verses, no span/subtype labels).
+- Read `results/phase2_chatlike/example_gap_analysis.md` in full for the byte-verified leakage table (19 examples, one per poem in fixed order, 3-of-5 drawn from TEST poems) and cross-checked its claim against `experiments/phase2_chatlike/PROPOSAL_fewshot.md`'s contradicted premise.
+
+**2026-10-10T01:30** — Ground-truth format + scoring entry points (report §3).
+- Read `experiments/pilot_3models/ground_truth.py` (xlsx columns, SUBSTRING_MAP, dedup logic, output shape) and `span_matching.py` (normalize/strict_overlap/token_overlap_ratio/token_match/best_match) directly, source code only.
+- Read `experiments/pilot_3models/span_scoring.py` (`majority_exists_and_appearance`, `score_span_level`) and grepped `analyze.py` function signatures (`prf1`, `load_all_runs*`, `run_consistency`, etc.) rather than reading the whole file, since PROJECT_STATE's file index already names their purpose — confirmed signatures only.
+
+**2026-10-10T01:40** — Token usage and cost (report §4).
+- Ran a local, read-only Python one-liner (via Bash tool) over `results/pilot_3models/test_final/**/run_manifest.json` and `results/pilot_3models/dev_variants/v4_combined/**/run_manifest.json` to compute per-poem, per-provider average input/output tokens and derived cost (using `config.py`'s pricing table) — no network calls, no API calls, pure arithmetic over already-stored JSON.
+- Repeated the same read-only computation over `results/phase2_chatlike/{config_a,config_b,config_c}/**/run_manifest.json` for Fable 5 / Config B / Config C; read `results/phase2_chatlike/config_c/Imru2/run_manifest.json` directly (not just via script) to confirm the two-stage usage schema (`stage1_input_tokens` etc.) before computing its cost.
+- Read `experiments/phase2_chatlike/phase2_config.py` for Fable 5's pricing ($10/$50 per MTok) and `experiments/pilot_3models/providers.py` to confirm no prompt-caching exists anywhere in the call wrappers.
+
+**2026-10-10T01:50** — Poets/poems (report §5) and batching/resume logic (report §6).
+- Read `experiments/pilot_3models/config.py`'s `POEMS` dict directly for poet names, titles, and verse counts per poem — no new computation needed, values transcribed as-is.
+- Read `experiments/pilot_3models/run_pilot.py` and `run_per_verse.py` in full for the resume/retry mechanisms (`run_indices` override + manifest-extend in `run_pilot.py`; `--providers` filter + replace-not-append + the `error`-vs-`verse_errors` convention in `run_per_verse.py`) — confirmed no provider-side batch API and no poem-level batching loop exists in the repo today.
+
+**2026-10-10T02:00** — Wrote `docs/phase4/INFO_REPORT.md` (all 6 sections + a "sources consulted" list). No API calls at any point in this task. Committing and pushing next.
