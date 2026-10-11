@@ -700,3 +700,41 @@ A-B/A-C/B-C on both criteria; per-poem paired-difference sign counts.
 **Step 4** — wrote `docs/phase4/E1_RESULTS.md` (design recap, actual cost table, key TP/FP/FN/P/R/F1
 tables both criteria, bootstrap CI table, per-poem diff table, abu_nuwas/other split, the Set-C-homogeneity
 note, caveats, bottom line). Committing and pushing next.
+
+---
+
+## Task: write `docs/phase4/PROMPT_ANATOMY.md` — show exactly what is sent to the API, no API calls
+
+**2026-10-11** — New task: document the E1 prompt/call mechanics (system message, cross-set diff, user
+message template, output format + malformed-output handling, per-model call settings, one real response
+vs ground truth, whether non-target elements are mentioned). Read-only / no code changes, no API calls.
+Re-read `CLAUDE.md` first per instruction.
+
+- Read `experiments/phase4_e1/fewshot_examples.py`, `config/prompt_preview_{A,B,C}.txt`,
+  `experiments/pilot_3models/providers.py`, `prompts.py`, `parsing.py`, `config.py` directly (source only,
+  no re-derivation) for §1/§2/§4/§5.
+- `diff`'d all 3 `prompt_preview_*.txt` files pairwise: identical through line 69, differ only in the 2
+  few-shot example lines (70-76) -- confirms the pilot's manipulation is isolated exactly to the 2
+  examples, nothing else.
+- Built the real user-message template (`ANALYSIS_INSTRUCTIONS` + `build_poem_text()`) for eval poem
+  17373 (أبو نواس, 6 verses, abu_nuwas-tagged) via a local read-only script, truncated to its first 4
+  verses for §3's illustration (noted explicitly that the real runner sends the full poem, not a
+  truncation).
+- For §6, used poem 17373's real raw response `results/phase4_e1/raw/B_17373_openai_run1.txt` (GPT-5.4-mini,
+  Set B) against its ground truth, mapped via `pilot_3models.ground_truth.SUBSTRING_MAP` (ran
+  `ali_poems_io.load_ali_gt_spans` directly, no reimplementation) -- verse-by-verse comparison found 2
+  strict TPs (v4 Trope + Antonymy, both exact span matches), 1 token-only TP (v5, model's "مُرّنت" is a
+  true substring of the longer GT span), several FNs (v2 Kenning, v3 Trope, v4 Kenning x3, v6 Trope x2),
+  0 FPs, and noted the SUBSTRING_MAP quirk where one GT span ("استعارة مبنية على الكناية" subtype) maps to
+  both Trope and Kenning since its subtype label contains both substrings.
+- For §5, confirmed from `providers.py` source: temperature 0.0 identical across all 3 providers; no
+  JSON/structured-output mode anywhere; no retry logic in `runner.py` (single attempt, exception caught
+  and recorded, no auto-retry); the one real difference is `max_tokens` -- Anthropic gets an explicit
+  16000 cap, OpenAI and Google get no explicit cap (provider default) -- and no reasoning/thinking params
+  are set for any provider despite gpt-5.4-mini/gemini-3.5-flash being reasoning-capable families.
+- For §7, confirmed the system message's ELEMENTS_BLOCK (frozen, Phase-1) defines and asks about all 4
+  elements every verse; E1's own few-shot addition covers only استعارة فعل, explicitly scoped by its own
+  header text -- so the model is told about all 4 elements, and the output schema still asks for all 4,
+  but E1's extra emphasis is subtype-scoped.
+- Wrote `docs/phase4/PROMPT_ANATOMY.md` (7 sections as specified). No API calls, no code changes anywhere
+  in this task. Committing and pushing next.
