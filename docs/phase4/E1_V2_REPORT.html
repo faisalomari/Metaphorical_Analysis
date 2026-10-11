@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>E1 v2: Example sensitivity for استعارة فعل</title>
+<style>
+:root {
+  --bg: #fbfaf8; --fg: #1d1b18; --muted: #6b655c; --border: #e3ddd3;
+  --panel: #ffffff; --accent: #8a5a2a; --accent-2: #2a5a6b;
+  --c-anthropic: #c9622f; --c-openai: #2f8f6b; --c-google: #3f6fc9;
+  --warn-bg: #fff4e5; --warn-fg: #7a4a00; --warn-border: #e8b86a;
+  --sig-bg: #fde9e5; --ok: #2f8f6b; --bad: #c9622f;
+  --f1-low: 229,221,208; --f1-high: 138,90,42;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #171512; --fg: #ece7df; --muted: #a79f92; --border: #3a352e;
+    --panel: #201d19; --accent: #d79a5f; --accent-2: #7fb3c7;
+    --warn-bg: #3a2a0a; --warn-fg: #ffd9a0; --warn-border: #8a6020;
+    --sig-bg: #3a1e18; --ok: #6fcf9e; --bad: #e08a5f;
+    --f1-low: 58,53,46; --f1-high: 215,154,95;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #171512; --fg: #ece7df; --muted: #a79f92; --border: #3a352e;
+  --panel: #201d19; --accent: #d79a5f; --accent-2: #7fb3c7;
+  --warn-bg: #3a2a0a; --warn-fg: #ffd9a0; --warn-border: #8a6020;
+  --sig-bg: #3a1e18; --ok: #6fcf9e; --bad: #e08a5f;
+  --f1-low: 58,53,46; --f1-high: 215,154,95;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); margin: 0;
+  font-family: Tahoma, "Segoe UI", system-ui, sans-serif;
+  line-height: 1.55;
+}
+.bidi { unicode-bidi: isolate; }
+.bidi[dir="rtl"] { font-family: "Noto Naskh Arabic", "Amiri", Tahoma, system-ui, sans-serif; }
+main { max-width: 980px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+header.hero { padding: 2rem 1rem 1.25rem; border-bottom: 1px solid var(--border); }
+h1 { margin: 0 0 .4rem; font-size: 1.6rem; }
+.subtitle { color: var(--muted); margin: 0 0 1rem; }
+.badges { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1rem; }
+.badge {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 999px;
+  padding: .25rem .7rem; font-size: .8rem; color: var(--muted);
+}
+.warning-banner {
+  background: var(--warn-bg); color: var(--warn-fg); border: 1px solid var(--warn-border);
+  border-radius: 10px; padding: .7rem 1rem; font-weight: 600; font-size: .92rem;
+}
+section { margin: 1.75rem 0; }
+h2 { font-size: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: .3rem; }
+h3 { font-size: 1.05rem; color: var(--accent); }
+h4 { font-size: .95rem; color: var(--accent-2); margin-top: 1.2rem; }
+p { margin: .6rem 0; }
+code {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 4px;
+  padding: .05rem .3rem; font-size: .88em;
+}
+.exec-summary { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.2rem; }
+.exec-summary p { margin: .5rem 0; }
+table { border-collapse: collapse; width: 100%; margin: .8rem 0; font-size: .88rem; }
+th, td { border: 1px solid var(--border); padding: .35rem .5rem; text-align: left; }
+th { background: var(--panel); }
+.f1table td.f1cell {
+  text-align: center; font-weight: 600;
+  background: rgba(calc(var(--f1-low) + (var(--f1-high) - var(--f1-low)) * 0), 1);
+}
+.f1cell { background-color: color-mix(in srgb, rgb(var(--f1-low)) calc((1 - var(--t)) * 100%), rgb(var(--f1-high)) calc(var(--t) * 100%)); }
+.f1cell.best span { text-decoration: underline; text-decoration-thickness: 2px; }
+.detail-table { font-size: .82rem; }
+.cicell.sig { background: var(--sig-bg); font-weight: 600; }
+.tag { border-radius: 999px; padding: .05rem .5rem; font-size: .75rem; }
+.tag-abu_nuwas { background: #f1dfc4; color: #5c3b00; }
+.tag-other { background: var(--panel); border: 1px solid var(--border); }
+.status-ok { color: var(--ok); } .status-bad, td.bad { color: var(--bad); font-weight: 700; }
+td.ok { color: var(--ok); }
+.chart-row { display: flex; flex-wrap: wrap; gap: 1rem; }
+.chart-card { flex: 1 1 320px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: .7rem; }
+svg.barchart { width: 100%; height: auto; }
+.axis { stroke: var(--muted); stroke-width: 1; }
+.axis-label, .legend-label { font-size: 9px; fill: var(--muted); }
+.bar-label { font-size: 8px; fill: var(--fg); text-anchor: middle; }
+details { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; margin: .6rem 0; padding: .1rem 1rem .8rem; }
+summary { cursor: pointer; font-weight: 700; padding: .7rem 0; font-size: 1.02rem; }
+.toolbar { display: flex; gap: .5rem; margin: .6rem 0 1rem; flex-wrap: wrap; }
+button {
+  background: var(--panel); color: var(--fg); border: 1px solid var(--border); border-radius: 8px;
+  padding: .35rem .8rem; cursor: pointer; font-size: .85rem;
+}
+button:hover { border-color: var(--accent); }
+button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.prompt-block { margin: 1rem 0; }
+.prompt-head { display: flex; align-items: center; gap: .6rem; margin-bottom: .3rem; }
+.set-chip {
+  display: inline-block; background: var(--accent-2); color: #fff; border-radius: 6px;
+  padding: .1rem .5rem; font-weight: 700; font-size: .8rem;
+}
+.prompt-pre, .diff-pre {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+  padding: .8rem; overflow-x: auto; white-space: pre-wrap; font-size: .85rem;
+}
+.diff-pre span { display: block; }
+.diff-add { color: var(--ok); } .diff-del { color: var(--bad); }
+.diff-hdr { color: var(--muted); font-weight: 700; } .diff-hunk { color: var(--accent-2); }
+.example-card { border: 1px solid var(--border); border-radius: 10px; padding: .8rem 1rem; margin: .8rem 0; background: var(--panel); }
+.example-head { margin-bottom: .5rem; }
+.example-verse { margin: .5rem 0; padding: .5rem .7rem; border-inline-start: 3px solid var(--accent-2); }
+.verse-text { font-size: 1.05rem; margin-bottom: .3rem; }
+.ann-list { margin: 0; padding-inline-start: 1.2rem; font-size: .88rem; color: var(--muted); }
+.example-note { font-size: .85rem; color: var(--muted); font-style: italic; }
+.total-spend { font-weight: 700; }
+.md-table-wrap { overflow-x: auto; }
+.md-table-wrap table { font-size: .8rem; }
+hr { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+footer { border-top: 1px solid var(--border); padding-top: 1rem; color: var(--muted); font-size: .82rem; }
+footer ul { padding-inline-start: 1.2rem; }
+@media print {
+  details { break-inside: avoid; }
+  button, .toolbar { display: none !important; }
+  details:not([open]) summary ~ * { display: block !important; }
+  details { padding-bottom: .8rem; }
+}
+@media (max-width: 600px) {
+  main { padding: 1rem .6rem 3rem; }
+  table { font-size: .78rem; display: block; overflow-x: auto; white-space: nowrap; }
+}
+</style>
+</head>
+<body>
+<main>
+<header class="hero">
+  <h1>E1 v2: Example sensitivity for <span dir="rtl" class="bidi">استعارة فعل</span></h1>
+  <p class="subtitle">Generated 2026-10-11 &middot; Phase 4, Metaphorical Analysis project</p>
+  <div class="badges">
+    <span class="badge">3 models</span>
+    <span class="badge">4 sets (Z/A/B/C)</span>
+    <span class="badge">25 poems</span>
+    <span class="badge">3924 calls</span>
+    <span class="badge">1 run per cell</span>
+    <span class="badge">actual cost $10.5680</span>
+    <span class="badge">Gemini served as gemini-3.6-flash</span>
+  </div>
+  <div class="warning-banner">&#9888; Indicative only: single run, no noise baseline.</div>
+</header>
+
+
+<section id="exec-summary">
+  <h2>Executive summary</h2>
+  <div class="exec-summary">
+    <p><strong>Do examples help?</strong> <strong>Bottom line</strong>: few-shot examples help Gemini unambiguously, help Claude for 2 of 3 example sets, and do not help — or actively hurt — GPT-5.4-mini. A single blanket &quot;yes, few-shot helps&quot; conclusion would be wrong for this subtype/prompt/model combination; the effect is model-dependent.</p>
+    <p><strong>How much does the choice of examples matter?</strong> <strong>So example-choice sensitivity is real but concentrated</strong>: it&#x27;s not &quot;any two example sets differ,&quot; it&#x27;s specifically &quot;Set C differs from A and B&quot; — and that gap is large enough to be a bigger factor than whether few-shot is used at all, for 2 of the 3 models (Claude, GPT). <code>example_sets.json</code> confirms Set C&#x27;s two example verses are both built on the same root ع-ق-ل (التعقيل) applied to different objects, with no other pattern represented — the leading candidate explanation this pilot was designed to test, and the data here is consistent with (not proof of) that homogeneity hurting generalization for Claude and GPT. Gemini&#x27;s relative insensitivity to the same C-set homogeneity is itself a notable, model-dependent finding, not something assumed in advance.</p>
+    <p><strong>Model comparison:</strong> <strong>Cost-adjusted</strong>: Gemini&#x27;s advantage with few-shot, combined with being ~3x cheaper than Claude and only slightly pricier than GPT, makes it the standout choice for this subtype if few-shot examples are used — Claude&#x27;s much higher cost ($7.09 of the $10.57 total) is not matched by a corresponding performance edge over Gemini anywhere in this table.</p>
+  </div>
+</section>
+
+
+<section id="key-results">
+  <h2>Key results</h2>
+  <div class="toolbar">
+    <button class="crit-btn" data-target="strict" onclick="toggleCriterion('strict')">Strict</button>
+    <button class="crit-btn" data-target="token" onclick="toggleCriterion('token')">Token-overlap</button>
+  </div>
+  <div data-criterion="strict"><table class="f1table" data-criterion="strict"><thead><tr><th>Model</th><th>Z</th><th>A</th><th>B</th><th>C</th></tr></thead><tbody><tr><th>Claude</th><td class="f1cell" style="--t:0.0623"><span>0.193</span></td><td class="f1cell" style="--t:0.6412"><span>0.257</span></td><td class="f1cell best" style="--t:0.6955"><span>0.263</span></td><td class="f1cell" style="--t:0.2349"><span>0.212</span></td></tr><tr><th>GPT</th><td class="f1cell best" style="--t:0.5398"><span>0.246</span></td><td class="f1cell" style="--t:0.5191"><span>0.243</span></td><td class="f1cell" style="--t:0.5185"><span>0.243</span></td><td class="f1cell" style="--t:0.0000"><span>0.186</span></td></tr><tr><th>Gemini</th><td class="f1cell" style="--t:0.2444"><span>0.213</span></td><td class="f1cell" style="--t:0.6751"><span>0.260</span></td><td class="f1cell best" style="--t:1.0000"><span>0.296</span></td><td class="f1cell" style="--t:0.5081"><span>0.242</span></td></tr></tbody></table></div>
+  <div data-criterion="token"><table class="f1table" data-criterion="token"><thead><tr><th>Model</th><th>Z</th><th>A</th><th>B</th><th>C</th></tr></thead><tbody><tr><th>Claude</th><td class="f1cell" style="--t:0.0228"><span>0.208</span></td><td class="f1cell best" style="--t:0.7389"><span>0.281</span></td><td class="f1cell" style="--t:0.7083"><span>0.278</span></td><td class="f1cell" style="--t:0.3373"><span>0.240</span></td></tr><tr><th>GPT</th><td class="f1cell best" style="--t:0.5410"><span>0.261</span></td><td class="f1cell" style="--t:0.4201"><span>0.249</span></td><td class="f1cell" style="--t:0.5133"><span>0.258</span></td><td class="f1cell" style="--t:0.0070"><span>0.207</span></td></tr><tr><th>Gemini</th><td class="f1cell" style="--t:0.0000"><span>0.206</span></td><td class="f1cell" style="--t:0.8103"><span>0.288</span></td><td class="f1cell best" style="--t:1.0000"><span>0.307</span></td><td class="f1cell" style="--t:0.9218"><span>0.299</span></td></tr></tbody></table></div>
+  <div class="chart-row">
+    <div class="chart-card">
+      <h3>F1 per set &amp; model</h3>
+      <div data-criterion="strict"><svg viewBox="0 0 620 220" class="barchart" data-criterion="strict" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="F1 by set and model (strict)"><line x1="40" y1="20" x2="40" y2="190" class="axis"/><line x1="40" y1="190" x2="600" y2="190" class="axis"/><rect x="50.5" y="93.6" width="28.0" height="96.4" fill="var(--c-anthropic)"><title>Claude / Z: F1=0.193</title></rect><text x="64.5" y="89.6" class="bar-label">0.19</text><rect x="85.5" y="67.4" width="28.0" height="122.6" fill="var(--c-openai)"><title>GPT / Z: F1=0.246</title></rect><text x="99.5" y="63.4" class="bar-label">0.25</text><rect x="120.5" y="83.6" width="28.0" height="106.4" fill="var(--c-google)"><title>Gemini / Z: F1=0.213</title></rect><text x="134.5" y="79.6" class="bar-label">0.21</text><text x="110.0" y="206" class="axis-label">Z</text><rect x="190.5" y="61.9" width="28.0" height="128.1" fill="var(--c-anthropic)"><title>Claude / A: F1=0.257</title></rect><text x="204.5" y="57.9" class="bar-label">0.26</text><rect x="225.5" y="68.6" width="28.0" height="121.4" fill="var(--c-openai)"><title>GPT / A: F1=0.243</title></rect><text x="239.5" y="64.6" class="bar-label">0.24</text><rect x="260.5" y="60.0" width="28.0" height="130.0" fill="var(--c-google)"><title>Gemini / A: F1=0.260</title></rect><text x="274.5" y="56.0" class="bar-label">0.26</text><text x="250.0" y="206" class="axis-label">A</text><rect x="330.5" y="58.9" width="28.0" height="131.1" fill="var(--c-anthropic)"><title>Claude / B: F1=0.263</title></rect><text x="344.5" y="54.9" class="bar-label">0.26</text><rect x="365.5" y="68.6" width="28.0" height="121.4" fill="var(--c-openai)"><title>GPT / B: F1=0.243</title></rect><text x="379.5" y="64.6" class="bar-label">0.24</text><rect x="400.5" y="42.2" width="28.0" height="147.8" fill="var(--c-google)"><title>Gemini / B: F1=0.296</title></rect><text x="414.5" y="38.2" class="bar-label">0.30</text><text x="390.0" y="206" class="axis-label">B</text><rect x="470.5" y="84.1" width="28.0" height="105.9" fill="var(--c-anthropic)"><title>Claude / C: F1=0.212</title></rect><text x="484.5" y="80.1" class="bar-label">0.21</text><rect x="505.5" y="97.0" width="28.0" height="93.0" fill="var(--c-openai)"><title>GPT / C: F1=0.186</title></rect><text x="519.5" y="93.0" class="bar-label">0.19</text><rect x="540.5" y="69.2" width="28.0" height="120.8" fill="var(--c-google)"><title>Gemini / C: F1=0.242</title></rect><text x="554.5" y="65.2" class="bar-label">0.24</text><text x="530.0" y="206" class="axis-label">C</text><rect x="40" y="2" width="10" height="10" fill="var(--c-anthropic)"/><text x="54" y="11" class="legend-label">Claude</text><rect x="190" y="2" width="10" height="10" fill="var(--c-openai)"/><text x="204" y="11" class="legend-label">GPT</text><rect x="340" y="2" width="10" height="10" fill="var(--c-google)"/><text x="354" y="11" class="legend-label">Gemini</text></svg></div>
+      <div data-criterion="token"><svg viewBox="0 0 620 220" class="barchart" data-criterion="token" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="F1 by set and model (token)"><line x1="40" y1="20" x2="40" y2="190" class="axis"/><line x1="40" y1="190" x2="600" y2="190" class="axis"/><rect x="50.5" y="89.7" width="28.0" height="100.3" fill="var(--c-anthropic)"><title>Claude / Z: F1=0.208</title></rect><text x="64.5" y="85.7" class="bar-label">0.21</text><rect x="85.5" y="64.5" width="28.0" height="125.5" fill="var(--c-openai)"><title>GPT / Z: F1=0.261</title></rect><text x="99.5" y="60.5" class="bar-label">0.26</text><rect x="120.5" y="90.8" width="28.0" height="99.2" fill="var(--c-google)"><title>Gemini / Z: F1=0.206</title></rect><text x="134.5" y="86.8" class="bar-label">0.21</text><text x="110.0" y="206" class="axis-label">Z</text><rect x="190.5" y="54.9" width="28.0" height="135.1" fill="var(--c-anthropic)"><title>Claude / A: F1=0.281</title></rect><text x="204.5" y="50.9" class="bar-label">0.28</text><rect x="225.5" y="70.4" width="28.0" height="119.6" fill="var(--c-openai)"><title>GPT / A: F1=0.249</title></rect><text x="239.5" y="66.4" class="bar-label">0.25</text><rect x="260.5" y="51.4" width="28.0" height="138.6" fill="var(--c-google)"><title>Gemini / A: F1=0.288</title></rect><text x="274.5" y="47.4" class="bar-label">0.29</text><text x="250.0" y="206" class="axis-label">A</text><rect x="330.5" y="56.4" width="28.0" height="133.6" fill="var(--c-anthropic)"><title>Claude / B: F1=0.278</title></rect><text x="344.5" y="52.4" class="bar-label">0.28</text><rect x="365.5" y="65.8" width="28.0" height="124.2" fill="var(--c-openai)"><title>GPT / B: F1=0.258</title></rect><text x="379.5" y="61.8" class="bar-label">0.26</text><rect x="400.5" y="42.2" width="28.0" height="147.8" fill="var(--c-google)"><title>Gemini / B: F1=0.307</title></rect><text x="414.5" y="38.2" class="bar-label">0.31</text><text x="390.0" y="206" class="axis-label">B</text><rect x="470.5" y="74.4" width="28.0" height="115.6" fill="var(--c-anthropic)"><title>Claude / C: F1=0.240</title></rect><text x="484.5" y="70.4" class="bar-label">0.24</text><rect x="505.5" y="90.5" width="28.0" height="99.5" fill="var(--c-openai)"><title>GPT / C: F1=0.207</title></rect><text x="519.5" y="86.5" class="bar-label">0.21</text><rect x="540.5" y="46.0" width="28.0" height="144.0" fill="var(--c-google)"><title>Gemini / C: F1=0.299</title></rect><text x="554.5" y="42.0" class="bar-label">0.30</text><text x="530.0" y="206" class="axis-label">C</text><rect x="40" y="2" width="10" height="10" fill="var(--c-anthropic)"/><text x="54" y="11" class="legend-label">Claude</text><rect x="190" y="2" width="10" height="10" fill="var(--c-openai)"/><text x="204" y="11" class="legend-label">GPT</text><rect x="340" y="2" width="10" height="10" fill="var(--c-google)"/><text x="354" y="11" class="legend-label">Gemini</text></svg></div>
+    </div>
+    <div class="chart-card">
+      <h3>Gain over zero-shot (Z), strict F1</h3>
+      <svg viewBox="0 0 560 200" class="barchart gainchart" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="F1 gain over zero-shot Z (strict)"><line x1="40" y1="96.0" x2="540" y2="96.0" class="axis"/><line x1="40" y1="16" x2="40" y2="176" class="axis"/><rect x="52.5" y="44.9" width="33.3" height="51.1" fill="var(--c-anthropic)"><title>Claude / A vs Z: +0.064</title></rect><rect x="94.2" y="96.0" width="33.3" height="1.8" fill="var(--c-openai)"><title>GPT / A vs Z: -0.002</title></rect><rect x="135.8" y="58.0" width="33.3" height="38.0" fill="var(--c-google)"><title>Gemini / A vs Z: +0.047</title></rect><text x="123.3" y="192" class="axis-label">A</text><rect x="219.2" y="40.1" width="33.3" height="55.9" fill="var(--c-anthropic)"><title>Claude / B vs Z: +0.070</title></rect><rect x="260.8" y="96.0" width="33.3" height="1.9" fill="var(--c-openai)"><title>GPT / B vs Z: -0.002</title></rect><rect x="302.5" y="29.3" width="33.3" height="66.7" fill="var(--c-google)"><title>Gemini / B vs Z: +0.083</title></rect><text x="290.0" y="192" class="axis-label">B</text><rect x="385.8" y="80.8" width="33.3" height="15.2" fill="var(--c-anthropic)"><title>Claude / C vs Z: +0.019</title></rect><rect x="427.5" y="96.0" width="33.3" height="47.6" fill="var(--c-openai)"><title>GPT / C vs Z: -0.059</title></rect><rect x="469.2" y="72.7" width="33.3" height="23.3" fill="var(--c-google)"><title>Gemini / C vs Z: +0.029</title></rect><text x="456.7" y="192" class="axis-label">C</text></svg>
+      <p style="font-size:.8rem;color:var(--muted)">Positive = few-shot set beats Z; bars from the same
+      bootstrap point estimates as the statistics section below.</p>
+    </div>
+  </div>
+</section>
+
+<section id="collapsibles"><div class="toolbar"><button onclick="expandAll(true)">Expand all</button><button onclick="expandAll(false)">Collapse all</button></div>
+
+<details>
+<summary>a. Design</summary>
+<p>Poet of interest: <span dir="rtl" class="bidi">أبو نواس</span>. Target sub-element: <span dir="rtl" class="bidi">استعارة فعل</span> (parent <span dir="rtl" class="bidi">مجاز (Trope) — فرع الاستعارة</span>). Pool: 25 poems (5 <span dir="rtl" class="bidi">أبو نواس</span> + 20 other), drawn with seed=43 from a 158-poem candidate pool, 327 verse-units total (persisted at <code>experiments/phase4_e1_v2/config/eval_pool_25.json</code>).</p>
+<h4>Sets</h4>
+<ul>
+<li><strong>Z</strong> — zero-shot baseline: Phase 3's original subtype prompt, one built-in definition example, no injected few-shot examples.</li>
+<li><strong>A / B / C</strong> — Z's prompt plus 2 extra example verses each, drawn from 3 different Abu Nuwas poems (reused unchanged from E1 v1's <code>example_sets.json</code>, seed=42).</li>
+</ul>
+<h4>Pool composition (25 poems, 327 verse-units)</h4>
+<table class="detail-table"><thead><tr><th>Poem ID</th><th>Poet</th><th>Title</th><th>Verses</th><th>Tag</th></tr></thead><tbody><tr><td>3200</td><td><span dir="rtl" class="bidi">ذو الرُّمّة</span></td><td><span dir="rtl" class="bidi">قصيدة رقم 30، بسيط، يجِ</span></td><td>27</td><td><span class="tag tag-other">other</span></td></tr><tr><td>3263</td><td><span dir="rtl" class="bidi">النابغة الذبياني</span></td><td><span dir="rtl" class="bidi">قصيدة رقم 11، الطويل، رَا</span></td><td>21</td><td><span class="tag tag-other">other</span></td></tr><tr><td>3764</td><td><span dir="rtl" class="bidi">بشار بن برد</span></td><td><span dir="rtl" class="bidi">قصيدة رقم 6، الخفيف، ء</span></td><td>4</td><td><span class="tag tag-other">other</span></td></tr><tr><td>3787</td><td><span dir="rtl" class="bidi">بشار بن برد</span></td><td><span dir="rtl" class="bidi">قصيدة رقم 9، السريع، ءِ</span></td><td>5</td><td><span class="tag tag-other">other</span></td></tr><tr><td>4304</td><td><span dir="rtl" class="bidi">الخنساء بنت عمرو بن الشريد</span></td><td><span dir="rtl" class="bidi">قصيدة رقم 54، بسيط، انِ</span></td><td>11</td><td><span class="tag tag-other">other</span></td></tr><tr><td>4479</td><td><span dir="rtl" class="bidi">أبو تمّام</span></td><td><span dir="rtl" class="bidi">قصيدة رقم 01، الكامل، ءِ</span></td><td>20</td><td><span class="tag tag-other">other</span></td></tr><tr><td>5034</td><td><span dir="rtl" class="bidi">أبو تمّام</span></td><td><span dir="rtl" class="bidi">قصيدة رقم 179، الخفيف، ابِ</span></td><td>22</td><td><span class="tag tag-other">other</span></td></tr><tr><td>5107</td><td><span dir="rtl" class="bidi">البحتري</span></td><td><span dir="rtl" class="bidi">قصيدة رقم 915، البسيط، يها</span></td><td>40</td><td><span class="tag tag-other">other</span></td></tr><tr><td>5549</td><td><span dir="rtl" class="bidi">أبو تمّام</span></td><td><span dir="rtl" class="bidi">قصيدة رقم 464، البسيط، لُ</span></td><td>17</td><td><span class="tag tag-other">other</span></td></tr><tr><td>9078</td><td><span dir="rtl" class="bidi">أبو نواس</span></td><td><span dir="rtl" class="bidi">[باب 3] قصيدة رقم 3، طويل، ئي</span></td><td>13</td><td><span class="tag tag-abu_nuwas">abu_nuwas</span></td></tr><tr><td>13666</td><td><span dir="rtl" class="bidi">أبو نواس</span></td><td><span dir="rtl" class="bidi">[باب 6] قصيدة رقم 8، هزج، دا </span></td><td>12</td><td><span class="tag tag-abu_nuwas">abu_nuwas</span></td></tr><tr><td>17233</td><td><span dir="rtl" class="bidi">أبو نواس</span></td><td><span dir="rtl" class="bidi">[باب 7] قصيدة رقم 5، خفيف، رْ </span></td><td>16</td><td><span class="tag tag-abu_nuwas">abu_nuwas</span></td></tr><tr><td>27934</td><td><span dir="rtl" class="bidi">أيمن بن خريم</span></td><td><span dir="rtl" class="bidi">قصيدة رقم 17، متقارب، طَا</span></td><td>10</td><td><span class="tag tag-other">other</span></td></tr><tr><td>27935</td><td><span dir="rtl" class="bidi">عمران بن حطان</span></td><td><span dir="rtl" class="bidi">قصيدة رقم 199، منسرح، قُها</span></td><td>16</td><td><span class="tag tag-other">other</span></td></tr><tr><td>27936</td><td><span dir="rtl" class="bidi">الكميت بن زيد الأسدي</span></td><td><span dir="rtl" class="bidi">شرح هاشمية 8، بسيط، را</span></td><td>7</td><td><span class="tag tag-other">other</span></td></tr><tr><td>28093</td><td><span dir="rtl" class="bidi">الحمدوي</span></td><td><span dir="rtl" class="bidi">قصيدة رقم 6ب، مجزوء الخفيف، فْ</span></td><td>6</td><td><span class="tag tag-other">other</span></td></tr><tr><td>28095</td><td><span dir="rtl" class="bidi">الحمدوي</span></td><td><span dir="rtl" class="bidi">قصيدة رقم 8ب، طويل، مِ</span></td><td>6</td><td><span class="tag tag-other">other</span></td></tr><tr><td>28764</td><td><span dir="rtl" class="bidi">ابن الرومي</span></td><td><span dir="rtl" class="bidi">قصيدة شعراء عباسيون منسيون 6، سريع، ضِ</span></td><td>7</td><td><span class="tag tag-other">other</span></td></tr><tr><td>29516</td><td><span dir="rtl" class="bidi">عفيف الدين التلمساني</span></td><td><span dir="rtl" class="bidi">قصيدة رقم 1، خفيف، اءُ</span></td><td>14</td><td><span class="tag tag-other">other</span></td></tr><tr><td>30236</td><td><span dir="rtl" class="bidi">المُرقِّشُ الأَصغر</span></td><td><span dir="rtl" class="bidi">قصيدة رقم 1، طويل، حُ</span></td><td>19</td><td><span class="tag tag-other">other</span></td></tr><tr><td>30681</td><td><span dir="rtl" class="bidi">قيس بن ذريح</span></td><td><span dir="rtl" class="bidi">قصيدة رقم 21، طويل، دِ</span></td><td>8</td><td><span class="tag tag-other">other</span></td></tr><tr><td>31126</td><td><span dir="rtl" class="bidi">أبو نواس</span></td><td><span dir="rtl" class="bidi">[باب 11] قصيدة رقم 27، بسيط، بُ</span></td><td>9</td><td><span class="tag tag-abu_nuwas">abu_nuwas</span></td></tr><tr><td>31384</td><td><span dir="rtl" class="bidi">أبو نواس</span></td><td><span dir="rtl" class="bidi">[باب 11] قصيدة رقم 72، وافر، دُ</span></td><td>9</td><td><span class="tag tag-abu_nuwas">abu_nuwas</span></td></tr><tr><td>34780</td><td><span dir="rtl" class="bidi">زياد بن حنظلة</span></td><td><span dir="rtl" class="bidi">قصيدة رقم 3، طويل، رُ</span></td><td>4</td><td><span class="tag tag-other">other</span></td></tr><tr><td>34781</td><td><span dir="rtl" class="bidi">زياد بن حنظلة</span></td><td><span dir="rtl" class="bidi">قصيدة رقم 4، كامل، مِ</span></td><td>4</td><td><span class="tag tag-other">other</span></td></tr></tbody></table>
+<h4>Exclusions from the candidate pool</h4>
+<ul><li>No-text poem excluded: <code>28601</code> (poem record exists but has no verse text).</li><li>Already-used-as-fewshot-source poems excluded (same poems E1 v1 drew its example sets from): <code>10539</code>, <code>2127</code>, <code>2196</code>, <code>3205</code>, <code>3218</code>.</li><li>Example-source poems excluded from the eval pool (sets A/B/C's own example verses come from these, so they cannot also be scored): <code>16251</code>, <code>17234</code>, <code>21337</code>.</li></ul>
+</details>
+
+
+<details>
+<summary>b. The prompts</summary>
+<p>All 4 sets share the same scaffold and Example 1 (the subtype's built-in definition example);
+A/B/C differ from each other only in Example 2/3, confirmed byte-for-byte below.</p>
+<div class="prompt-block"><div class="prompt-head"><span class="set-chip">Z</span><button class="copy-btn" data-copy-target="prompt-Z" type="button">Copy</button></div><pre id="prompt-Z" dir="ltr" class="bidi prompt-pre">You are an Arabic rhetoric analysis engine. Follow instructions strictly.
+
+================================
+SUB-ELEMENT DEFINITION (REFERENCE)
+================================
+Below is EXACTLY ONE rhetorical sub-element (a specific branch of a broader
+Arabic rhetorical element). Learn it deeply using ONLY the definition and
+example given here. Do NOT use outside knowledge, and do NOT confuse it with
+sibling sub-elements under the same parent element. You will apply this
+definition to ONE verse given in the user&#x27;s message.
+
+--------------------------------
+SUB-ELEMENT
+--------------------------------
+Parent element: مجاز (Trope) — فرع الاستعارة
+Arabic name: استعارة فعل
+Definition (Arabic): استعارة الفعل: اللفظ المُستعار هو فعل، أو له معنى الفعل (مثل المصدر)، مُستخدم استعارةً لا حقيقة.
+Example: «هُم يتساقَونَ المنايا» — فعل «يتساقون» (يشربون) مستعار لمعنى المواجهة القاتلة في المعركة.
+</pre></div><div class="prompt-block"><div class="prompt-head"><span class="set-chip">A</span><button class="copy-btn" data-copy-target="prompt-A" type="button">Copy</button></div><pre id="prompt-A" dir="ltr" class="bidi prompt-pre">You are an Arabic rhetoric analysis engine. Follow instructions strictly.
+
+================================
+SUB-ELEMENT DEFINITION (REFERENCE)
+================================
+Below is EXACTLY ONE rhetorical sub-element (a specific branch of a broader
+Arabic rhetorical element). Learn it deeply using ONLY the definition and
+the 3 examples given here. Do NOT use outside knowledge, and do NOT confuse
+it with sibling sub-elements under the same parent element. You will apply
+this definition to ONE verse given in the user&#x27;s message.
+
+--------------------------------
+SUB-ELEMENT
+--------------------------------
+Parent element: مجاز (Trope) — فرع الاستعارة
+Arabic name: استعارة فعل
+Definition (Arabic): استعارة الفعل: اللفظ المُستعار هو فعل، أو له معنى الفعل (مثل المصدر)، مُستخدم استعارةً لا حقيقة.
+
+Example 1: «هُم يتساقَونَ المنايا» — فعل «يتساقون» (يشربون) مستعار لمعنى المواجهة القاتلة في المعركة.
+
+Example 2 (from the annotated corpus - verse: أيا رُبَّ وَجْهٍ في التُّراب عَتيقِ    ويا رُبَّ حُسْنٍ في التُّرابِ رَقيقِ): the sub-element appears at «رَقيقِ حُسْنٍ» — استعار الرقة للحسن (استعارة ميتة؟)
+
+Example 3 (from the annotated corpus - verse: إِذا امتحن الدُّنْيا لَبيبٌ تكشَّفتْ    له عن عَدُوّ في ثِياب صَديقِ): the sub-element appears at «الدُّنْيا لَبيبٌ امتحن»; the sub-element appears at «تكشَّفتْ له» — تكشف الدنيا
+</pre></div><div class="prompt-block"><div class="prompt-head"><span class="set-chip">B</span><button class="copy-btn" data-copy-target="prompt-B" type="button">Copy</button></div><pre id="prompt-B" dir="ltr" class="bidi prompt-pre">You are an Arabic rhetoric analysis engine. Follow instructions strictly.
+
+================================
+SUB-ELEMENT DEFINITION (REFERENCE)
+================================
+Below is EXACTLY ONE rhetorical sub-element (a specific branch of a broader
+Arabic rhetorical element). Learn it deeply using ONLY the definition and
+the 3 examples given here. Do NOT use outside knowledge, and do NOT confuse
+it with sibling sub-elements under the same parent element. You will apply
+this definition to ONE verse given in the user&#x27;s message.
+
+--------------------------------
+SUB-ELEMENT
+--------------------------------
+Parent element: مجاز (Trope) — فرع الاستعارة
+Arabic name: استعارة فعل
+Definition (Arabic): استعارة الفعل: اللفظ المُستعار هو فعل، أو له معنى الفعل (مثل المصدر)، مُستخدم استعارةً لا حقيقة.
+
+Example 1: «هُم يتساقَونَ المنايا» — فعل «يتساقون» (يشربون) مستعار لمعنى المواجهة القاتلة في المعركة.
+
+Example 2 (from the annotated corpus - verse: يا كَبيرَ الذَّنْب عَفْوُ الـ    ـله من ذَنْبك أَكْبَرْ): the sub-element appears at «كَبيرَ الذَّنْب» — استعارة ميتة; the sub-element appears at «ـله من ذَنْبك أَكْبَرْ عَفْوُ الـ» — استعارة ميتة
+
+Example 3 (from the annotated corpus - verse: أَكبرُ الأَشياء في أَصـ    ـغر عَفْوِ الله يصغَرْ): the sub-element appears at «أَصـ عَفْوِ الله ـغر» — استعارة ميتة; the sub-element appears at «أَكبرُ الأَشياء» — يقصد أكبر الآثام؛ استعار الكبر لها. استعارة ميتة; the sub-element appears at «يصغَرْ الأَشياء» — يقصد أنّ الآثام تصغر. استعارة ميتة.
+</pre></div><div class="prompt-block"><div class="prompt-head"><span class="set-chip">C</span><button class="copy-btn" data-copy-target="prompt-C" type="button">Copy</button></div><pre id="prompt-C" dir="ltr" class="bidi prompt-pre">You are an Arabic rhetoric analysis engine. Follow instructions strictly.
+
+================================
+SUB-ELEMENT DEFINITION (REFERENCE)
+================================
+Below is EXACTLY ONE rhetorical sub-element (a specific branch of a broader
+Arabic rhetorical element). Learn it deeply using ONLY the definition and
+the 3 examples given here. Do NOT use outside knowledge, and do NOT confuse
+it with sibling sub-elements under the same parent element. You will apply
+this definition to ONE verse given in the user&#x27;s message.
+
+--------------------------------
+SUB-ELEMENT
+--------------------------------
+Parent element: مجاز (Trope) — فرع الاستعارة
+Arabic name: استعارة فعل
+Definition (Arabic): استعارة الفعل: اللفظ المُستعار هو فعل، أو له معنى الفعل (مثل المصدر)، مُستخدم استعارةً لا حقيقة.
+
+Example 1: «هُم يتساقَونَ المنايا» — فعل «يتساقون» (يشربون) مستعار لمعنى المواجهة القاتلة في المعركة.
+
+Example 2 (from the annotated corpus - verse: ومترَّفٍ عقل الحَياءُُ لِسانَه    فكَلامُه بالوَحْي والإِيماءِ): the sub-element appears at «عقل لِسانَه الحَياءُُ» — استعار &quot;العقل&quot; (الربط) للحياء
+
+Example 3 (from the annotated corpus - verse: لمّا نظرتُ إِلى الكَرَى في عَيْنه    قد عقّل الجَفْنَيْن بالإِغماءِ): the sub-element appears at «الكَرَى قد عقّل الجَفْنَيْن بالإِغماءِ» — استعار العقل (الربط) للكرى وللجفنين وللإغماء
+</pre></div>
+<h4>User message template (all 4 sets)</h4>
+<pre class="prompt-pre" dir="ltr">================================
+ANALYSIS PHASE (OUTPUT REQUIRED)
+================================
+Analyze the verse(s) below for the existence of ONLY the sub-element defined
+above (not the broader parent element, not any other sub-element). Usually
+there is one verse; occasionally there are two or more consecutive verses
+because this specific rhetorical instance spans across them - treat them as
+one unit and answer for the whole passage.
+
+Return ONE JSON object only. No text before or after.
+
+Schema (MUST MATCH EXACTLY):
+{
+  &quot;exists&quot;: &lt;true|false&gt;,
+  &quot;appearance&quot;: &lt;string|null&gt;,
+  &quot;reasoning&quot;: &lt;string&gt;
+}
+
+Rules:
+- If exists is false -&gt; appearance MUST be null
+- If exists is true -&gt; appearance MUST be a literal substring from the text below
+- reasoning is ALWAYS required (both when true and false): 1-3 sentences, in
+  Arabic, explaining WHY the sub-element&#x27;s definition does or does not match
+  this text - reference the specific word(s)/phrase you based the decision on
+- Be conservative: if unsure -&gt; exists=false
+- Do NOT add fields beyond the schema
+- Do NOT use markdown
+
+--------------------------------
+VERSE(S)
+--------------------------------
+{verse}
+</pre>
+<h4>Diff view (A/B/C differ only in the 2 examples)</h4>
+<h4>Diff: Set A vs Set B</h4><pre class="diff-pre"><span class="diff-hdr">--- A</span>
+<span class="diff-hdr">+++ B</span>
+<span class="diff-hunk">@@ -18,6 +18,6 @@</span>
+<span class=""> </span>
+<span class=""> Example 1: «هُم يتساقَونَ المنايا» — فعل «يتساقون» (يشربون) مستعار لمعنى المواجهة القاتلة في المعركة.</span>
+<span class=""> </span>
+<span class="diff-del">-Example 2 (from the annotated corpus - verse: أيا رُبَّ وَجْهٍ في التُّراب عَتيقِ    ويا رُبَّ حُسْنٍ في التُّرابِ رَقيقِ): the sub-element appears at «رَقيقِ حُسْنٍ» — استعار الرقة للحسن (استعارة ميتة؟)</span>
+<span class="diff-add">+Example 2 (from the annotated corpus - verse: يا كَبيرَ الذَّنْب عَفْوُ الـ    ـله من ذَنْبك أَكْبَرْ): the sub-element appears at «كَبيرَ الذَّنْب» — استعارة ميتة; the sub-element appears at «ـله من ذَنْبك أَكْبَرْ عَفْوُ الـ» — استعارة ميتة</span>
+<span class=""> </span>
+<span class="diff-del">-Example 3 (from the annotated corpus - verse: إِذا امتحن الدُّنْيا لَبيبٌ تكشَّفتْ    له عن عَدُوّ في ثِياب صَديقِ): the sub-element appears at «الدُّنْيا لَبيبٌ امتحن»; the sub-element appears at «تكشَّفتْ له» — تكشف الدنيا</span>
+<span class="diff-add">+Example 3 (from the annotated corpus - verse: أَكبرُ الأَشياء في أَصـ    ـغر عَفْوِ الله يصغَرْ): the sub-element appears at «أَصـ عَفْوِ الله ـغر» — استعارة ميتة; the sub-element appears at «أَكبرُ الأَشياء» — يقصد أكبر الآثام؛ استعار الكبر لها. استعارة ميتة; the sub-element appears at «يصغَرْ الأَشياء» — يقصد أنّ الآثام تصغر. استعارة ميتة.</span></pre><h4>Diff: Set A vs Set C</h4><pre class="diff-pre"><span class="diff-hdr">--- A</span>
+<span class="diff-hdr">+++ C</span>
+<span class="diff-hunk">@@ -18,6 +18,6 @@</span>
+<span class=""> </span>
+<span class=""> Example 1: «هُم يتساقَونَ المنايا» — فعل «يتساقون» (يشربون) مستعار لمعنى المواجهة القاتلة في المعركة.</span>
+<span class=""> </span>
+<span class="diff-del">-Example 2 (from the annotated corpus - verse: أيا رُبَّ وَجْهٍ في التُّراب عَتيقِ    ويا رُبَّ حُسْنٍ في التُّرابِ رَقيقِ): the sub-element appears at «رَقيقِ حُسْنٍ» — استعار الرقة للحسن (استعارة ميتة؟)</span>
+<span class="diff-add">+Example 2 (from the annotated corpus - verse: ومترَّفٍ عقل الحَياءُُ لِسانَه    فكَلامُه بالوَحْي والإِيماءِ): the sub-element appears at «عقل لِسانَه الحَياءُُ» — استعار &quot;العقل&quot; (الربط) للحياء</span>
+<span class=""> </span>
+<span class="diff-del">-Example 3 (from the annotated corpus - verse: إِذا امتحن الدُّنْيا لَبيبٌ تكشَّفتْ    له عن عَدُوّ في ثِياب صَديقِ): the sub-element appears at «الدُّنْيا لَبيبٌ امتحن»; the sub-element appears at «تكشَّفتْ له» — تكشف الدنيا</span>
+<span class="diff-add">+Example 3 (from the annotated corpus - verse: لمّا نظرتُ إِلى الكَرَى في عَيْنه    قد عقّل الجَفْنَيْن بالإِغماءِ): the sub-element appears at «الكَرَى قد عقّل الجَفْنَيْن بالإِغماءِ» — استعار العقل (الربط) للكرى وللجفنين وللإغماء</span></pre>
+</details>
+
+
+<details>
+<summary>c. The examples</summary>
+<div class="example-card"><div class="example-head"><span class="set-chip">A</span> source poem <code>16251</code> — <span dir="rtl" class="bidi">[باب 7] قصيدة رقم 2، طويل، قِ </span></div><div class="example-verse"><div class="verse-text"><span dir="rtl" class="bidi">أيا رُبَّ وَجْهٍ في التُّراب عَتيقِ    ويا رُبَّ حُسْنٍ في التُّرابِ رَقيقِ</span></div><ul class="ann-list"><li><span dir="rtl" class="bidi">رَقيقِ حُسْنٍ</span> — <span dir="rtl" class="bidi">استعار الرقة للحسن (استعارة ميتة؟)</span></li></ul></div><div class="example-verse"><div class="verse-text"><span dir="rtl" class="bidi">إِذا امتحن الدُّنْيا لَبيبٌ تكشَّفتْ    له عن عَدُوّ في ثِياب صَديقِ</span></div><ul class="ann-list"><li><span dir="rtl" class="bidi">الدُّنْيا لَبيبٌ امتحن</span> — <span dir="ltr" class="bidi">(no analysis note)</span></li><li><span dir="rtl" class="bidi">تكشَّفتْ له</span> — <span dir="rtl" class="bidi">تكشف الدنيا</span></li></ul></div></div><div class="example-card"><div class="example-head"><span class="set-chip">B</span> source poem <code>17234</code> — <span dir="rtl" class="bidi">[باب 7] قصيدة رقم 6، رمل، رْ </span></div><div class="example-verse"><div class="verse-text"><span dir="rtl" class="bidi">يا كَبيرَ الذَّنْب عَفْوُ الـ    ـله من ذَنْبك أَكْبَرْ</span></div><ul class="ann-list"><li><span dir="rtl" class="bidi">كَبيرَ الذَّنْب</span> — <span dir="rtl" class="bidi">استعارة ميتة</span></li><li><span dir="rtl" class="bidi">ـله من ذَنْبك أَكْبَرْ عَفْوُ الـ</span> — <span dir="rtl" class="bidi">استعارة ميتة</span></li></ul></div><div class="example-verse"><div class="verse-text"><span dir="rtl" class="bidi">أَكبرُ الأَشياء في أَصـ    ـغر عَفْوِ الله يصغَرْ</span></div><ul class="ann-list"><li><span dir="rtl" class="bidi">أَصـ عَفْوِ الله ـغر</span> — <span dir="rtl" class="bidi">استعارة ميتة</span></li><li><span dir="rtl" class="bidi">أَكبرُ الأَشياء</span> — <span dir="rtl" class="bidi">يقصد أكبر الآثام؛ استعار الكبر لها. استعارة ميتة</span></li><li><span dir="rtl" class="bidi">يصغَرْ الأَشياء</span> — <span dir="rtl" class="bidi">يقصد أنّ الآثام تصغر. استعارة ميتة.</span></li></ul></div></div><div class="example-card"><div class="example-head"><span class="set-chip">C</span> source poem <code>21337</code> — <span dir="rtl" class="bidi">[باب 9] قصيدة رقم 18، كامل، اءِ</span></div><div class="example-verse"><div class="verse-text"><span dir="rtl" class="bidi">ومترَّفٍ عقل الحَياءُُ لِسانَه    فكَلامُه بالوَحْي والإِيماءِ</span></div><ul class="ann-list"><li><span dir="rtl" class="bidi">عقل لِسانَه الحَياءُُ</span> — <span dir="rtl" class="bidi">استعار &quot;العقل&quot; (الربط) للحياء</span></li></ul></div><div class="example-verse"><div class="verse-text"><span dir="rtl" class="bidi">لمّا نظرتُ إِلى الكَرَى في عَيْنه    قد عقّل الجَفْنَيْن بالإِغماءِ</span></div><ul class="ann-list"><li><span dir="rtl" class="bidi">الكَرَى قد عقّل الجَفْنَيْن بالإِغماءِ</span> — <span dir="rtl" class="bidi">استعار العقل (الربط) للكرى وللجفنين وللإغماء</span></li></ul></div><p class="example-note">Note: both example verses in this set are built on the root <span dir="rtl" class="bidi">ع-ق-ل (التعقيل)</span>, applied to different objects.</p></div>
+</details>
+
+
+<details>
+<summary>d. Detailed tables (raw TP/FP/FN, P/R/F1)</summary>
+<div class="toolbar">
+  <button class="crit-btn" data-target="strict" onclick="toggleCriterion('strict')">Strict</button>
+  <button class="crit-btn" data-target="token" onclick="toggleCriterion('token')">Token-overlap</button>
+  <button class="crit-btn" data-target="verse" onclick="toggleCriterion('verse')">Verse (supplementary)</button>
+</div>
+<div data-criterion="strict"><h4>Claude Sonnet 4.6</h4>
+<table class="detail-table"><thead><tr><th>Set</th><th>Split</th><th>TP</th><th>FP</th><th>FN</th><th>P</th><th>R</th><th>F1</th></tr></thead><tbody><tr><td>Z</td><td>overall</td><td>25</td><td>55</td><td>154</td><td>0.312</td><td>0.140</td><td>0.193</td></tr><tr><td>Z</td><td>abu_nuwas</td><td>3</td><td>2</td><td>33</td><td>0.600</td><td>0.083</td><td>0.146</td></tr><tr><td>Z</td><td>other</td><td>22</td><td>53</td><td>121</td><td>0.293</td><td>0.154</td><td>0.202</td></tr><tr><td>A</td><td>overall</td><td>53</td><td>181</td><td>126</td><td>0.226</td><td>0.296</td><td>0.257</td></tr><tr><td>A</td><td>abu_nuwas</td><td>9</td><td>28</td><td>27</td><td>0.243</td><td>0.250</td><td>0.247</td></tr><tr><td>A</td><td>other</td><td>44</td><td>153</td><td>99</td><td>0.223</td><td>0.308</td><td>0.259</td></tr><tr><td>B</td><td>overall</td><td>52</td><td>165</td><td>127</td><td>0.240</td><td>0.291</td><td>0.263</td></tr><tr><td>B</td><td>abu_nuwas</td><td>10</td><td>24</td><td>26</td><td>0.294</td><td>0.278</td><td>0.286</td></tr><tr><td>B</td><td>other</td><td>42</td><td>141</td><td>101</td><td>0.230</td><td>0.294</td><td>0.258</td></tr><tr><td>C</td><td>overall</td><td>30</td><td>74</td><td>149</td><td>0.288</td><td>0.168</td><td>0.212</td></tr><tr><td>C</td><td>abu_nuwas</td><td>1</td><td>8</td><td>35</td><td>0.111</td><td>0.028</td><td>0.044</td></tr><tr><td>C</td><td>other</td><td>29</td><td>66</td><td>114</td><td>0.305</td><td>0.203</td><td>0.244</td></tr></tbody></table>
+<h4>GPT-5.4-mini</h4>
+<table class="detail-table"><thead><tr><th>Set</th><th>Split</th><th>TP</th><th>FP</th><th>FN</th><th>P</th><th>R</th><th>F1</th></tr></thead><tbody><tr><td>Z</td><td>overall</td><td>48</td><td>164</td><td>131</td><td>0.226</td><td>0.268</td><td>0.246</td></tr><tr><td>Z</td><td>abu_nuwas</td><td>8</td><td>25</td><td>28</td><td>0.242</td><td>0.222</td><td>0.232</td></tr><tr><td>Z</td><td>other</td><td>40</td><td>139</td><td>103</td><td>0.223</td><td>0.280</td><td>0.248</td></tr><tr><td>A</td><td>overall</td><td>45</td><td>146</td><td>134</td><td>0.236</td><td>0.251</td><td>0.243</td></tr><tr><td>A</td><td>abu_nuwas</td><td>6</td><td>21</td><td>30</td><td>0.222</td><td>0.167</td><td>0.190</td></tr><tr><td>A</td><td>other</td><td>39</td><td>125</td><td>104</td><td>0.238</td><td>0.273</td><td>0.254</td></tr><tr><td>B</td><td>overall</td><td>49</td><td>175</td><td>130</td><td>0.219</td><td>0.274</td><td>0.243</td></tr><tr><td>B</td><td>abu_nuwas</td><td>9</td><td>25</td><td>27</td><td>0.265</td><td>0.250</td><td>0.257</td></tr><tr><td>B</td><td>other</td><td>40</td><td>150</td><td>103</td><td>0.211</td><td>0.280</td><td>0.240</td></tr><tr><td>C</td><td>overall</td><td>27</td><td>84</td><td>152</td><td>0.243</td><td>0.151</td><td>0.186</td></tr><tr><td>C</td><td>abu_nuwas</td><td>3</td><td>12</td><td>33</td><td>0.200</td><td>0.083</td><td>0.118</td></tr><tr><td>C</td><td>other</td><td>24</td><td>72</td><td>119</td><td>0.250</td><td>0.168</td><td>0.201</td></tr></tbody></table>
+<h4>Gemini (served: gemini-3.6-flash)</h4>
+<table class="detail-table"><thead><tr><th>Set</th><th>Split</th><th>TP</th><th>FP</th><th>FN</th><th>P</th><th>R</th><th>F1</th></tr></thead><tbody><tr><td>Z</td><td>overall</td><td>31</td><td>81</td><td>148</td><td>0.277</td><td>0.173</td><td>0.213</td></tr><tr><td>Z</td><td>abu_nuwas</td><td>6</td><td>10</td><td>30</td><td>0.375</td><td>0.167</td><td>0.231</td></tr><tr><td>Z</td><td>other</td><td>25</td><td>71</td><td>118</td><td>0.260</td><td>0.175</td><td>0.209</td></tr><tr><td>A</td><td>overall</td><td>47</td><td>135</td><td>132</td><td>0.258</td><td>0.263</td><td>0.260</td></tr><tr><td>A</td><td>abu_nuwas</td><td>7</td><td>18</td><td>29</td><td>0.280</td><td>0.194</td><td>0.230</td></tr><tr><td>A</td><td>other</td><td>40</td><td>117</td><td>103</td><td>0.255</td><td>0.280</td><td>0.267</td></tr><tr><td>B</td><td>overall</td><td>53</td><td>126</td><td>126</td><td>0.296</td><td>0.296</td><td>0.296</td></tr><tr><td>B</td><td>abu_nuwas</td><td>10</td><td>16</td><td>26</td><td>0.385</td><td>0.278</td><td>0.323</td></tr><tr><td>B</td><td>other</td><td>43</td><td>110</td><td>100</td><td>0.281</td><td>0.301</td><td>0.291</td></tr><tr><td>C</td><td>overall</td><td>38</td><td>97</td><td>141</td><td>0.281</td><td>0.212</td><td>0.242</td></tr><tr><td>C</td><td>abu_nuwas</td><td>6</td><td>14</td><td>30</td><td>0.300</td><td>0.167</td><td>0.214</td></tr><tr><td>C</td><td>other</td><td>32</td><td>83</td><td>111</td><td>0.278</td><td>0.224</td><td>0.248</td></tr></tbody></table></div>
+<div data-criterion="token"><h4>Claude Sonnet 4.6</h4>
+<table class="detail-table"><thead><tr><th>Set</th><th>Split</th><th>TP</th><th>FP</th><th>FN</th><th>P</th><th>R</th><th>F1</th></tr></thead><tbody><tr><td>Z</td><td>overall</td><td>27</td><td>53</td><td>152</td><td>0.338</td><td>0.151</td><td>0.208</td></tr><tr><td>Z</td><td>abu_nuwas</td><td>3</td><td>2</td><td>33</td><td>0.600</td><td>0.083</td><td>0.146</td></tr><tr><td>Z</td><td>other</td><td>24</td><td>51</td><td>119</td><td>0.320</td><td>0.168</td><td>0.220</td></tr><tr><td>A</td><td>overall</td><td>58</td><td>176</td><td>121</td><td>0.248</td><td>0.324</td><td>0.281</td></tr><tr><td>A</td><td>abu_nuwas</td><td>10</td><td>27</td><td>26</td><td>0.270</td><td>0.278</td><td>0.274</td></tr><tr><td>A</td><td>other</td><td>48</td><td>149</td><td>95</td><td>0.244</td><td>0.336</td><td>0.282</td></tr><tr><td>B</td><td>overall</td><td>55</td><td>162</td><td>124</td><td>0.253</td><td>0.307</td><td>0.278</td></tr><tr><td>B</td><td>abu_nuwas</td><td>11</td><td>23</td><td>25</td><td>0.324</td><td>0.306</td><td>0.314</td></tr><tr><td>B</td><td>other</td><td>44</td><td>139</td><td>99</td><td>0.240</td><td>0.308</td><td>0.270</td></tr><tr><td>C</td><td>overall</td><td>34</td><td>70</td><td>145</td><td>0.327</td><td>0.190</td><td>0.240</td></tr><tr><td>C</td><td>abu_nuwas</td><td>1</td><td>8</td><td>35</td><td>0.111</td><td>0.028</td><td>0.044</td></tr><tr><td>C</td><td>other</td><td>33</td><td>62</td><td>110</td><td>0.347</td><td>0.231</td><td>0.277</td></tr></tbody></table>
+<h4>GPT-5.4-mini</h4>
+<table class="detail-table"><thead><tr><th>Set</th><th>Split</th><th>TP</th><th>FP</th><th>FN</th><th>P</th><th>R</th><th>F1</th></tr></thead><tbody><tr><td>Z</td><td>overall</td><td>51</td><td>161</td><td>128</td><td>0.241</td><td>0.285</td><td>0.261</td></tr><tr><td>Z</td><td>abu_nuwas</td><td>8</td><td>25</td><td>28</td><td>0.242</td><td>0.222</td><td>0.232</td></tr><tr><td>Z</td><td>other</td><td>43</td><td>136</td><td>100</td><td>0.240</td><td>0.301</td><td>0.267</td></tr><tr><td>A</td><td>overall</td><td>46</td><td>145</td><td>133</td><td>0.241</td><td>0.257</td><td>0.249</td></tr><tr><td>A</td><td>abu_nuwas</td><td>7</td><td>20</td><td>29</td><td>0.259</td><td>0.194</td><td>0.222</td></tr><tr><td>A</td><td>other</td><td>39</td><td>125</td><td>104</td><td>0.238</td><td>0.273</td><td>0.254</td></tr><tr><td>B</td><td>overall</td><td>52</td><td>172</td><td>127</td><td>0.232</td><td>0.291</td><td>0.258</td></tr><tr><td>B</td><td>abu_nuwas</td><td>10</td><td>24</td><td>26</td><td>0.294</td><td>0.278</td><td>0.286</td></tr><tr><td>B</td><td>other</td><td>42</td><td>148</td><td>101</td><td>0.221</td><td>0.294</td><td>0.252</td></tr><tr><td>C</td><td>overall</td><td>30</td><td>81</td><td>149</td><td>0.270</td><td>0.168</td><td>0.207</td></tr><tr><td>C</td><td>abu_nuwas</td><td>4</td><td>11</td><td>32</td><td>0.267</td><td>0.111</td><td>0.157</td></tr><tr><td>C</td><td>other</td><td>26</td><td>70</td><td>117</td><td>0.271</td><td>0.182</td><td>0.218</td></tr></tbody></table>
+<h4>Gemini (served: gemini-3.6-flash)</h4>
+<table class="detail-table"><thead><tr><th>Set</th><th>Split</th><th>TP</th><th>FP</th><th>FN</th><th>P</th><th>R</th><th>F1</th></tr></thead><tbody><tr><td>Z</td><td>overall</td><td>30</td><td>82</td><td>149</td><td>0.268</td><td>0.168</td><td>0.206</td></tr><tr><td>Z</td><td>abu_nuwas</td><td>6</td><td>10</td><td>30</td><td>0.375</td><td>0.167</td><td>0.231</td></tr><tr><td>Z</td><td>other</td><td>24</td><td>72</td><td>119</td><td>0.250</td><td>0.168</td><td>0.201</td></tr><tr><td>A</td><td>overall</td><td>52</td><td>130</td><td>127</td><td>0.286</td><td>0.291</td><td>0.288</td></tr><tr><td>A</td><td>abu_nuwas</td><td>8</td><td>17</td><td>28</td><td>0.320</td><td>0.222</td><td>0.262</td></tr><tr><td>A</td><td>other</td><td>44</td><td>113</td><td>99</td><td>0.280</td><td>0.308</td><td>0.293</td></tr><tr><td>B</td><td>overall</td><td>55</td><td>124</td><td>124</td><td>0.307</td><td>0.307</td><td>0.307</td></tr><tr><td>B</td><td>abu_nuwas</td><td>11</td><td>15</td><td>25</td><td>0.423</td><td>0.306</td><td>0.355</td></tr><tr><td>B</td><td>other</td><td>44</td><td>109</td><td>99</td><td>0.288</td><td>0.308</td><td>0.297</td></tr><tr><td>C</td><td>overall</td><td>47</td><td>88</td><td>132</td><td>0.348</td><td>0.263</td><td>0.299</td></tr><tr><td>C</td><td>abu_nuwas</td><td>8</td><td>12</td><td>28</td><td>0.400</td><td>0.222</td><td>0.286</td></tr><tr><td>C</td><td>other</td><td>39</td><td>76</td><td>104</td><td>0.339</td><td>0.273</td><td>0.302</td></tr></tbody></table></div>
+<div data-criterion="verse"><h4>Claude Sonnet 4.6</h4>
+<table class="detail-table"><thead><tr><th>Set</th><th>Split</th><th>TP</th><th>FP</th><th>FN</th><th>P</th><th>R</th><th>F1</th></tr></thead><tbody><tr><td>Z</td><td>overall</td><td>39</td><td>41</td><td>88</td><td>0.487</td><td>0.307</td><td>0.377</td></tr><tr><td>Z</td><td>abu_nuwas</td><td>5</td><td>0</td><td>22</td><td>1.000</td><td>0.185</td><td>0.312</td></tr><tr><td>Z</td><td>other</td><td>34</td><td>41</td><td>66</td><td>0.453</td><td>0.340</td><td>0.389</td></tr><tr><td>A</td><td>overall</td><td>104</td><td>130</td><td>23</td><td>0.444</td><td>0.819</td><td>0.576</td></tr><tr><td>A</td><td>abu_nuwas</td><td>23</td><td>14</td><td>4</td><td>0.622</td><td>0.852</td><td>0.719</td></tr><tr><td>A</td><td>other</td><td>81</td><td>116</td><td>19</td><td>0.411</td><td>0.810</td><td>0.545</td></tr><tr><td>B</td><td>overall</td><td>94</td><td>123</td><td>33</td><td>0.433</td><td>0.740</td><td>0.547</td></tr><tr><td>B</td><td>abu_nuwas</td><td>20</td><td>14</td><td>7</td><td>0.588</td><td>0.741</td><td>0.656</td></tr><tr><td>B</td><td>other</td><td>74</td><td>109</td><td>26</td><td>0.404</td><td>0.740</td><td>0.523</td></tr><tr><td>C</td><td>overall</td><td>48</td><td>56</td><td>79</td><td>0.462</td><td>0.378</td><td>0.416</td></tr><tr><td>C</td><td>abu_nuwas</td><td>6</td><td>3</td><td>21</td><td>0.667</td><td>0.222</td><td>0.333</td></tr><tr><td>C</td><td>other</td><td>42</td><td>53</td><td>58</td><td>0.442</td><td>0.420</td><td>0.431</td></tr></tbody></table>
+<h4>GPT-5.4-mini</h4>
+<table class="detail-table"><thead><tr><th>Set</th><th>Split</th><th>TP</th><th>FP</th><th>FN</th><th>P</th><th>R</th><th>F1</th></tr></thead><tbody><tr><td>Z</td><td>overall</td><td>93</td><td>119</td><td>34</td><td>0.439</td><td>0.732</td><td>0.549</td></tr><tr><td>Z</td><td>abu_nuwas</td><td>17</td><td>16</td><td>10</td><td>0.515</td><td>0.630</td><td>0.567</td></tr><tr><td>Z</td><td>other</td><td>76</td><td>103</td><td>24</td><td>0.425</td><td>0.760</td><td>0.545</td></tr><tr><td>A</td><td>overall</td><td>86</td><td>105</td><td>41</td><td>0.450</td><td>0.677</td><td>0.541</td></tr><tr><td>A</td><td>abu_nuwas</td><td>15</td><td>12</td><td>12</td><td>0.556</td><td>0.556</td><td>0.556</td></tr><tr><td>A</td><td>other</td><td>71</td><td>93</td><td>29</td><td>0.433</td><td>0.710</td><td>0.538</td></tr><tr><td>B</td><td>overall</td><td>90</td><td>134</td><td>37</td><td>0.402</td><td>0.709</td><td>0.513</td></tr><tr><td>B</td><td>abu_nuwas</td><td>17</td><td>17</td><td>10</td><td>0.500</td><td>0.630</td><td>0.557</td></tr><tr><td>B</td><td>other</td><td>73</td><td>117</td><td>27</td><td>0.384</td><td>0.730</td><td>0.503</td></tr><tr><td>C</td><td>overall</td><td>52</td><td>59</td><td>75</td><td>0.468</td><td>0.409</td><td>0.437</td></tr><tr><td>C</td><td>abu_nuwas</td><td>7</td><td>8</td><td>20</td><td>0.467</td><td>0.259</td><td>0.333</td></tr><tr><td>C</td><td>other</td><td>45</td><td>51</td><td>55</td><td>0.469</td><td>0.450</td><td>0.459</td></tr></tbody></table>
+<h4>Gemini (served: gemini-3.6-flash)</h4>
+<table class="detail-table"><thead><tr><th>Set</th><th>Split</th><th>TP</th><th>FP</th><th>FN</th><th>P</th><th>R</th><th>F1</th></tr></thead><tbody><tr><td>Z</td><td>overall</td><td>47</td><td>65</td><td>80</td><td>0.420</td><td>0.370</td><td>0.393</td></tr><tr><td>Z</td><td>abu_nuwas</td><td>11</td><td>5</td><td>16</td><td>0.688</td><td>0.407</td><td>0.512</td></tr><tr><td>Z</td><td>other</td><td>36</td><td>60</td><td>64</td><td>0.375</td><td>0.360</td><td>0.367</td></tr><tr><td>A</td><td>overall</td><td>79</td><td>103</td><td>48</td><td>0.434</td><td>0.622</td><td>0.511</td></tr><tr><td>A</td><td>abu_nuwas</td><td>17</td><td>8</td><td>10</td><td>0.680</td><td>0.630</td><td>0.654</td></tr><tr><td>A</td><td>other</td><td>62</td><td>95</td><td>38</td><td>0.395</td><td>0.620</td><td>0.482</td></tr><tr><td>B</td><td>overall</td><td>78</td><td>101</td><td>49</td><td>0.436</td><td>0.614</td><td>0.510</td></tr><tr><td>B</td><td>abu_nuwas</td><td>16</td><td>10</td><td>11</td><td>0.615</td><td>0.593</td><td>0.604</td></tr><tr><td>B</td><td>other</td><td>62</td><td>91</td><td>38</td><td>0.405</td><td>0.620</td><td>0.490</td></tr><tr><td>C</td><td>overall</td><td>63</td><td>72</td><td>64</td><td>0.467</td><td>0.496</td><td>0.481</td></tr><tr><td>C</td><td>abu_nuwas</td><td>14</td><td>6</td><td>13</td><td>0.700</td><td>0.519</td><td>0.596</td></tr><tr><td>C</td><td>other</td><td>49</td><td>66</td><td>51</td><td>0.426</td><td>0.490</td><td>0.456</td></tr></tbody></table></div>
+</details>
+
+
+<details>
+<summary>e. Statistics</summary>
+<h3>Pairwise bootstrap 95% CIs (F1_i − F1_j)</h3>
+<h4>Claude Sonnet 4.6</h4>
+<table class="detail-table"><thead><tr><th>Pair (F1_i-F1_j)</th><th>verse</th><th>strict</th><th>token</th><th>strict per-poem signs (i&gt;j / j&gt;i / tied)</th></tr></thead><tbody><tr><td>Z-A</td><td class="cicell sig">-0.199 [-0.302, -0.100] <b>SIG</b></td><td class="cicell">-0.064 [-0.126, +0.010] ns</td><td class="cicell sig">-0.072 [-0.140, -0.000] <b>SIG</b></td><td>10/12/3</td></tr><tr><td>Z-B</td><td class="cicell sig">-0.170 [-0.280, -0.068] <b>SIG</b></td><td class="cicell sig">-0.070 [-0.133, -0.004] <b>SIG</b></td><td class="cicell">-0.069 [-0.145, +0.001] ns</td><td>7/12/6</td></tr><tr><td>Z-C</td><td class="cicell">-0.039 [-0.102, +0.036] ns</td><td class="cicell">-0.019 [-0.066, +0.043] ns</td><td class="cicell">-0.032 [-0.083, +0.030] ns</td><td>7/6/12</td></tr><tr><td>A-B</td><td class="cicell">+0.030 [-0.000, +0.065] ns</td><td class="cicell">-0.006 [-0.044, +0.025] ns</td><td class="cicell">+0.003 [-0.038, +0.034] ns</td><td>7/14/4</td></tr><tr><td>A-C</td><td class="cicell sig">+0.161 [+0.085, +0.248] <b>SIG</b></td><td class="cicell">+0.045 [-0.007, +0.101] ns</td><td class="cicell">+0.041 [-0.026, +0.111] ns</td><td>11/10/4</td></tr><tr><td>B-C</td><td class="cicell sig">+0.131 [+0.050, +0.225] <b>SIG</b></td><td class="cicell sig">+0.051 [+0.003, +0.114] <b>SIG</b></td><td class="cicell">+0.037 [-0.036, +0.122] ns</td><td>12/7/6</td></tr></tbody></table>
+<h4>GPT-5.4-mini</h4>
+<table class="detail-table"><thead><tr><th>Pair (F1_i-F1_j)</th><th>verse</th><th>strict</th><th>token</th><th>strict per-poem signs (i&gt;j / j&gt;i / tied)</th></tr></thead><tbody><tr><td>Z-A</td><td class="cicell">+0.008 [-0.045, +0.059] ns</td><td class="cicell">+0.002 [-0.049, +0.040] ns</td><td class="cicell">+0.012 [-0.031, +0.043] ns</td><td>8/9/8</td></tr><tr><td>Z-B</td><td class="cicell">+0.036 [-0.006, +0.071] ns</td><td class="cicell">+0.002 [-0.049, +0.040] ns</td><td class="cicell">+0.003 [-0.050, +0.041] ns</td><td>8/13/4</td></tr><tr><td>Z-C</td><td class="cicell sig">+0.112 [+0.038, +0.194] <b>SIG</b></td><td class="cicell sig">+0.059 [+0.013, +0.111] <b>SIG</b></td><td class="cicell sig">+0.054 [+0.007, +0.108] <b>SIG</b></td><td>13/6/6</td></tr><tr><td>A-B</td><td class="cicell">+0.028 [-0.012, +0.067] ns</td><td class="cicell">+0.000 [-0.040, +0.030] ns</td><td class="cicell">-0.009 [-0.052, +0.024] ns</td><td>12/8/5</td></tr><tr><td>A-C</td><td class="cicell sig">+0.104 [+0.028, +0.194] <b>SIG</b></td><td class="cicell sig">+0.057 [+0.013, +0.113] <b>SIG</b></td><td class="cicell">+0.042 [-0.002, +0.101] ns</td><td>13/7/5</td></tr><tr><td>B-C</td><td class="cicell sig">+0.076 [+0.004, +0.160] <b>SIG</b></td><td class="cicell sig">+0.057 [+0.004, +0.123] <b>SIG</b></td><td class="cicell">+0.051 [-0.006, +0.122] ns</td><td>16/6/3</td></tr></tbody></table>
+<h4>Gemini (served: gemini-3.6-flash)</h4>
+<table class="detail-table"><thead><tr><th>Pair (F1_i-F1_j)</th><th>verse</th><th>strict</th><th>token</th><th>strict per-poem signs (i&gt;j / j&gt;i / tied)</th></tr></thead><tbody><tr><td>Z-A</td><td class="cicell sig">-0.118 [-0.167, -0.073] <b>SIG</b></td><td class="cicell">-0.047 [-0.108, +0.023] ns</td><td class="cicell sig">-0.082 [-0.128, -0.027] <b>SIG</b></td><td>6/10/9</td></tr><tr><td>Z-B</td><td class="cicell sig">-0.116 [-0.185, -0.051] <b>SIG</b></td><td class="cicell sig">-0.083 [-0.137, -0.025] <b>SIG</b></td><td class="cicell sig">-0.101 [-0.150, -0.050] <b>SIG</b></td><td>6/12/7</td></tr><tr><td>Z-C</td><td class="cicell sig">-0.088 [-0.148, -0.033] <b>SIG</b></td><td class="cicell">-0.029 [-0.075, +0.020] ns</td><td class="cicell sig">-0.093 [-0.137, -0.050] <b>SIG</b></td><td>8/8/9</td></tr><tr><td>A-B</td><td class="cicell">+0.002 [-0.033, +0.037] ns</td><td class="cicell">-0.036 [-0.078, +0.000] ns</td><td class="cicell">-0.019 [-0.061, +0.016] ns</td><td>6/11/8</td></tr><tr><td>A-C</td><td class="cicell">+0.030 [-0.015, +0.078] ns</td><td class="cicell">+0.018 [-0.031, +0.062] ns</td><td class="cicell">-0.011 [-0.058, +0.028] ns</td><td>9/9/7</td></tr><tr><td>B-C</td><td class="cicell">+0.029 [-0.019, +0.085] ns</td><td class="cicell sig">+0.054 [+0.009, +0.101] <b>SIG</b></td><td class="cicell">+0.008 [-0.049, +0.065] ns</td><td>12/7/6</td></tr></tbody></table>
+<h3>Same-poet (أبو نواس) analysis</h3>
+<h4>E1 v2 — Same-Poet Check (Abu Nuwas vs. Other Poets)</h4>
+<p><strong>Question</strong>: do the few-shot example verses (sets A/B/C), all three of which are drawn from Abu Nuwas poems (<code>example_sets.json</code> source poems <code>16251</code>/<code>17234</code>/<code>21337</code>, all poet <code>أبو نواس</code>, all excluded from the eval pool), help more on *other Abu Nuwas poems* in the eval pool than on poems by other poets?</p>
+<p><strong>No new API calls.</strong> Everything below is recomputed from the already-complete E1 v2 results (<code>results/phase4_e1_v2/run_manifest.json</code>, <code>results/phase4_e1_v2/analysis_report.json</code>) using <code>experiments/phase4_e1_v2/scoring_v2.py</code>&#x27;s existing per-poem TP/FP/FN counts, plus a new bootstrap computed by <code>samepoet_analysis.py</code> (scratch script, not committed) and persisted to <code>results/phase4_e1_v2/samepoet_analysis.json</code>. No files in <code>pilot_3models/</code>, <code>phase3_*</code>, or E1 v1 (<code>phase4_e1/</code>) were touched.</p>
+<p><strong>Headline caveat, repeated throughout</strong>: the Abu Nuwas group is <strong>5 poems</strong>, scored with <strong>1 run per cell</strong> (no noise baseline, per CLAUDE.md rule 2). Every number below is indicative only. Most of the bootstrap CIs are wide enough to include zero — treat this as a &quot;no signal detected&quot; result, not evidence either for or against the hypothesis, except where stated otherwise.</p>
+<hr>
+<h5>1. Per-model, per-set TP/FP/FN/P/R/F1 — Abu Nuwas (5 poems) vs. Other (20 poems)</h5>
+<p>Pool: Abu Nuwas = 5 poems, 59 verses. Other = 20 poems, 268 verses. (327 total, matching the full pool.)</p>
+<p>Figures below are pulled directly from <code>results/phase4_e1_v2/analysis_report.json</code> (already computed by the main E1 v2 analysis — reproduced here for the same-poet comparison in one place).</p>
+<h6>Claude Sonnet 4.6 (anthropic)</h6>
+<div class="md-table-wrap"><table class="detail-table"><thead><tr><th>Set</th><th>Split</th><th>n poems</th><th>n verses</th><th>criterion</th><th>TP</th><th>FP</th><th>FN</th><th>P</th><th>R</th><th>F1</th></tr></thead><tbody><tr><td>Z</td><td>abu_nuwas</td><td>5</td><td>59</td><td>strict</td><td>3</td><td>2</td><td>33</td><td>0.600</td><td>0.083</td><td>0.146</td></tr><tr><td>Z</td><td>other</td><td>20</td><td>268</td><td>strict</td><td>22</td><td>53</td><td>121</td><td>0.293</td><td>0.154</td><td>0.202</td></tr><tr><td>Z</td><td>abu_nuwas</td><td>5</td><td>59</td><td>token</td><td>3</td><td>2</td><td>33</td><td>0.600</td><td>0.083</td><td>0.146</td></tr><tr><td>Z</td><td>other</td><td>20</td><td>268</td><td>token</td><td>24</td><td>51</td><td>119</td><td>0.320</td><td>0.168</td><td>0.220</td></tr><tr><td>A</td><td>abu_nuwas</td><td>5</td><td>59</td><td>strict</td><td>9</td><td>28</td><td>27</td><td>0.243</td><td>0.250</td><td>0.247</td></tr><tr><td>A</td><td>other</td><td>20</td><td>268</td><td>strict</td><td>44</td><td>153</td><td>99</td><td>0.223</td><td>0.308</td><td>0.259</td></tr><tr><td>A</td><td>abu_nuwas</td><td>5</td><td>59</td><td>token</td><td>10</td><td>27</td><td>26</td><td>0.270</td><td>0.278</td><td>0.274</td></tr><tr><td>A</td><td>other</td><td>20</td><td>268</td><td>token</td><td>48</td><td>149</td><td>95</td><td>0.244</td><td>0.336</td><td>0.282</td></tr><tr><td>B</td><td>abu_nuwas</td><td>5</td><td>59</td><td>strict</td><td>10</td><td>24</td><td>26</td><td>0.294</td><td>0.278</td><td>0.286</td></tr><tr><td>B</td><td>other</td><td>20</td><td>268</td><td>strict</td><td>42</td><td>141</td><td>101</td><td>0.230</td><td>0.294</td><td>0.258</td></tr><tr><td>B</td><td>abu_nuwas</td><td>5</td><td>59</td><td>token</td><td>11</td><td>23</td><td>25</td><td>0.324</td><td>0.306</td><td>0.314</td></tr><tr><td>B</td><td>other</td><td>20</td><td>268</td><td>token</td><td>44</td><td>139</td><td>99</td><td>0.240</td><td>0.308</td><td>0.270</td></tr><tr><td>C</td><td>abu_nuwas</td><td>5</td><td>59</td><td>strict</td><td>1</td><td>8</td><td>35</td><td>0.111</td><td>0.028</td><td>0.044</td></tr><tr><td>C</td><td>other</td><td>20</td><td>268</td><td>strict</td><td>29</td><td>66</td><td>114</td><td>0.305</td><td>0.203</td><td>0.244</td></tr><tr><td>C</td><td>abu_nuwas</td><td>5</td><td>59</td><td>token</td><td>1</td><td>8</td><td>35</td><td>0.111</td><td>0.028</td><td>0.044</td></tr><tr><td>C</td><td>other</td><td>20</td><td>268</td><td>token</td><td>33</td><td>62</td><td>110</td><td>0.347</td><td>0.231</td><td>0.277</td></tr></tbody></table></div>
+<h6>GPT-5.4-mini (openai)</h6>
+<div class="md-table-wrap"><table class="detail-table"><thead><tr><th>Set</th><th>Split</th><th>n poems</th><th>n verses</th><th>criterion</th><th>TP</th><th>FP</th><th>FN</th><th>P</th><th>R</th><th>F1</th></tr></thead><tbody><tr><td>Z</td><td>abu_nuwas</td><td>5</td><td>59</td><td>strict</td><td>8</td><td>25</td><td>28</td><td>0.242</td><td>0.222</td><td>0.232</td></tr><tr><td>Z</td><td>other</td><td>20</td><td>268</td><td>strict</td><td>40</td><td>139</td><td>103</td><td>0.223</td><td>0.280</td><td>0.248</td></tr><tr><td>Z</td><td>abu_nuwas</td><td>5</td><td>59</td><td>token</td><td>8</td><td>25</td><td>28</td><td>0.242</td><td>0.222</td><td>0.232</td></tr><tr><td>Z</td><td>other</td><td>20</td><td>268</td><td>token</td><td>43</td><td>136</td><td>100</td><td>0.240</td><td>0.301</td><td>0.267</td></tr><tr><td>A</td><td>abu_nuwas</td><td>5</td><td>59</td><td>strict</td><td>6</td><td>21</td><td>30</td><td>0.222</td><td>0.167</td><td>0.190</td></tr><tr><td>A</td><td>other</td><td>20</td><td>268</td><td>strict</td><td>39</td><td>125</td><td>104</td><td>0.238</td><td>0.273</td><td>0.254</td></tr><tr><td>A</td><td>abu_nuwas</td><td>5</td><td>59</td><td>token</td><td>7</td><td>20</td><td>29</td><td>0.259</td><td>0.194</td><td>0.222</td></tr><tr><td>A</td><td>other</td><td>20</td><td>268</td><td>token</td><td>39</td><td>125</td><td>104</td><td>0.238</td><td>0.273</td><td>0.254</td></tr><tr><td>B</td><td>abu_nuwas</td><td>5</td><td>59</td><td>strict</td><td>9</td><td>25</td><td>27</td><td>0.265</td><td>0.250</td><td>0.257</td></tr><tr><td>B</td><td>other</td><td>20</td><td>268</td><td>strict</td><td>40</td><td>150</td><td>103</td><td>0.211</td><td>0.280</td><td>0.240</td></tr><tr><td>B</td><td>abu_nuwas</td><td>5</td><td>59</td><td>token</td><td>10</td><td>24</td><td>26</td><td>0.294</td><td>0.278</td><td>0.286</td></tr><tr><td>B</td><td>other</td><td>20</td><td>268</td><td>token</td><td>42</td><td>148</td><td>101</td><td>0.221</td><td>0.294</td><td>0.252</td></tr><tr><td>C</td><td>abu_nuwas</td><td>5</td><td>59</td><td>strict</td><td>3</td><td>12</td><td>33</td><td>0.200</td><td>0.083</td><td>0.118</td></tr><tr><td>C</td><td>other</td><td>20</td><td>268</td><td>strict</td><td>24</td><td>72</td><td>119</td><td>0.250</td><td>0.168</td><td>0.201</td></tr><tr><td>C</td><td>abu_nuwas</td><td>5</td><td>59</td><td>token</td><td>4</td><td>11</td><td>32</td><td>0.267</td><td>0.111</td><td>0.157</td></tr><tr><td>C</td><td>other</td><td>20</td><td>268</td><td>token</td><td>26</td><td>70</td><td>117</td><td>0.271</td><td>0.182</td><td>0.218</td></tr></tbody></table></div>
+<h6>Gemini (served: gemini-3.6-flash)</h6>
+<div class="md-table-wrap"><table class="detail-table"><thead><tr><th>Set</th><th>Split</th><th>n poems</th><th>n verses</th><th>criterion</th><th>TP</th><th>FP</th><th>FN</th><th>P</th><th>R</th><th>F1</th></tr></thead><tbody><tr><td>Z</td><td>abu_nuwas</td><td>5</td><td>59</td><td>strict</td><td>6</td><td>10</td><td>30</td><td>0.375</td><td>0.167</td><td>0.231</td></tr><tr><td>Z</td><td>other</td><td>20</td><td>268</td><td>strict</td><td>25</td><td>71</td><td>118</td><td>0.260</td><td>0.175</td><td>0.209</td></tr><tr><td>Z</td><td>abu_nuwas</td><td>5</td><td>59</td><td>token</td><td>6</td><td>10</td><td>30</td><td>0.375</td><td>0.167</td><td>0.231</td></tr><tr><td>Z</td><td>other</td><td>20</td><td>268</td><td>token</td><td>24</td><td>72</td><td>119</td><td>0.250</td><td>0.168</td><td>0.201</td></tr><tr><td>A</td><td>abu_nuwas</td><td>5</td><td>59</td><td>strict</td><td>7</td><td>18</td><td>29</td><td>0.280</td><td>0.194</td><td>0.230</td></tr><tr><td>A</td><td>other</td><td>20</td><td>268</td><td>strict</td><td>40</td><td>117</td><td>103</td><td>0.255</td><td>0.280</td><td>0.267</td></tr><tr><td>A</td><td>abu_nuwas</td><td>5</td><td>59</td><td>token</td><td>8</td><td>17</td><td>28</td><td>0.320</td><td>0.222</td><td>0.262</td></tr><tr><td>A</td><td>other</td><td>20</td><td>268</td><td>token</td><td>44</td><td>113</td><td>99</td><td>0.280</td><td>0.308</td><td>0.293</td></tr><tr><td>B</td><td>abu_nuwas</td><td>5</td><td>59</td><td>strict</td><td>10</td><td>16</td><td>26</td><td>0.385</td><td>0.278</td><td>0.323</td></tr><tr><td>B</td><td>other</td><td>20</td><td>268</td><td>strict</td><td>43</td><td>110</td><td>100</td><td>0.281</td><td>0.301</td><td>0.291</td></tr><tr><td>B</td><td>abu_nuwas</td><td>5</td><td>59</td><td>token</td><td>11</td><td>15</td><td>25</td><td>0.423</td><td>0.306</td><td>0.355</td></tr><tr><td>B</td><td>other</td><td>20</td><td>268</td><td>token</td><td>44</td><td>109</td><td>99</td><td>0.288</td><td>0.308</td><td>0.297</td></tr><tr><td>C</td><td>abu_nuwas</td><td>5</td><td>59</td><td>strict</td><td>6</td><td>14</td><td>30</td><td>0.300</td><td>0.167</td><td>0.214</td></tr><tr><td>C</td><td>other</td><td>20</td><td>268</td><td>strict</td><td>32</td><td>83</td><td>111</td><td>0.278</td><td>0.224</td><td>0.248</td></tr><tr><td>C</td><td>abu_nuwas</td><td>5</td><td>59</td><td>token</td><td>8</td><td>12</td><td>28</td><td>0.400</td><td>0.222</td><td>0.286</td></tr><tr><td>C</td><td>other</td><td>20</td><td>268</td><td>token</td><td>39</td><td>76</td><td>104</td><td>0.339</td><td>0.273</td><td>0.302</td></tr></tbody></table></div>
+<hr>
+<h5>2. Confound check</h5>
+<p><strong>Verse counts per poem, per group</strong>: Abu Nuwas poems are short (9, 9, 12, 13, 16 verses — mean 11.8, median 12) vs. the &quot;other&quot; group, which spans 4 to 40 verses (mean 13.4, median 10) across 20 poets. The groups are roughly comparable on verse count, so verse count alone is not an obvious confound, but the Abu Nuwas group is a narrow, size-5 slice with no spread.</p>
+<p><strong>Ground-truth density</strong> (number of GT استعارة فعل spans per verse):</p>
+<div class="md-table-wrap"><table class="detail-table"><thead><tr><th>Group</th><th>n poems</th><th>total verses</th><th>total GT spans</th><th>density (spans/verse)</th></tr></thead><tbody><tr><td>abu_nuwas</td><td>5</td><td>59</td><td>36</td><td>0.610</td></tr><tr><td>other</td><td>20</td><td>268</td><td>143</td><td>0.534</td></tr></tbody></table></div>
+<p>Abu Nuwas poems have <strong>~14% higher GT density</strong> than the other-poet group — slightly more positive instances per verse, which would tend to make recall easier to achieve on Abu Nuwas poems regardless of examples.</p>
+<p><strong>F1 at Z (zero-shot, no extra examples) per group</strong> — this answers &quot;are Abu Nuwas poems simply easier or harder for the model with no help at all?&quot;:</p>
+<div class="md-table-wrap"><table class="detail-table"><thead><tr><th>Model</th><th>Criterion</th><th>Abu Nuwas F1</th><th>Other F1</th><th>Abu Nuwas easier?</th></tr></thead><tbody><tr><td>Claude</td><td>strict</td><td>0.146</td><td>0.202</td><td>No — harder</td></tr><tr><td>Claude</td><td>token</td><td>0.146</td><td>0.220</td><td>No — harder</td></tr><tr><td>GPT</td><td>strict</td><td>0.232</td><td>0.248</td><td>Slightly harder</td></tr><tr><td>GPT</td><td>token</td><td>0.232</td><td>0.267</td><td>Slightly harder</td></tr><tr><td>Gemini</td><td>strict</td><td>0.231</td><td>0.209</td><td>Slightly easier</td></tr><tr><td>Gemini</td><td>token</td><td>0.231</td><td>0.201</td><td>Slightly easier</td></tr></tbody></table></div>
+<p><strong>No consistent baseline-difficulty confound</strong>: Abu Nuwas poems are *harder* at Z for Claude, *slightly harder* for GPT, and *slightly easier* for Gemini. There&#x27;s no uniform &quot;Abu Nuwas poems are just easier/ harder&quot; effect across models that would by itself explain a differential gain from Abu-Nuwas-sourced examples — the baseline is roughly comparable (within ~0.03–0.07 F1) for 2 of 3 models, with Claude the outlier (its Z/abu_nuwas is noticeably low, driven by a single near-zero-recall poem, see §4).</p>
+<hr>
+<h5>3. Gain over Z (the key measure)</h5>
+<p>For each model/criterion/set (A/B/C), gain = F1(set) − F1(Z), computed separately within each group (poems resampled <strong>within</strong> that group only — Abu Nuwas poems never mixed into the &quot;other&quot; bootstrap sample and vice versa). <code>diff = gain(abu_nuwas) − gain(other)</code>: positive means the Abu-Nuwas-sourced examples helped Abu Nuwas poems *more* than they helped other poets&#x27; poems — the effect the question asks about. 2,000-resample bootstrap, 95% CI.</p>
+<h6>Claude Sonnet 4.6</h6>
+<div class="md-table-wrap"><table class="detail-table"><thead><tr><th>Set</th><th>Criterion</th><th>Gain abu_nuwas [CI]</th><th>Gain other [CI]</th><th>diff (abu−other) [CI]</th><th>Sig?</th></tr></thead><tbody><tr><td>A</td><td>strict</td><td>+0.100 [−0.141, +0.341]</td><td>+0.057 [−0.018, +0.120]</td><td>+0.043 [−0.215, +0.310]</td><td>ns</td></tr><tr><td>A</td><td>token</td><td>+0.128 [−0.141, +0.419]</td><td>+0.062 [−0.006, +0.118]</td><td>+0.066 [−0.218, +0.376]</td><td>ns</td></tr><tr><td>B</td><td>strict</td><td>+0.139 [−0.065, +0.384]</td><td>+0.056 [−0.012, +0.117]</td><td>+0.084 [−0.128, +0.333]</td><td>ns</td></tr><tr><td>B</td><td>token</td><td>+0.168 [−0.065, +0.451]</td><td>+0.050 [−0.020, +0.115]</td><td>+0.118 [−0.123, +0.414]</td><td>ns</td></tr><tr><td>C</td><td>strict</td><td><strong>−0.102</strong> [−0.300, +0.000]</td><td>+0.042 [−0.012, +0.090]</td><td><strong>−0.144</strong> [−0.340, −0.015]</td><td><strong>SIG</strong></td></tr><tr><td>C</td><td>token</td><td><strong>−0.102</strong> [−0.300, +0.000]</td><td>+0.057 [+0.007, +0.110]</td><td><strong>−0.159</strong> [−0.354, −0.031]</td><td><strong>SIG</strong></td></tr></tbody></table></div>
+<h6>GPT-5.4-mini</h6>
+<div class="md-table-wrap"><table class="detail-table"><thead><tr><th>Set</th><th>Criterion</th><th>Gain abu_nuwas [CI]</th><th>Gain other [CI]</th><th>diff (abu−other) [CI]</th><th>Sig?</th></tr></thead><tbody><tr><td>A</td><td>strict</td><td>−0.041 [−0.164, +0.142]</td><td>+0.006 [−0.028, +0.054]</td><td>−0.047 [−0.179, +0.133]</td><td>ns</td></tr><tr><td>A</td><td>token</td><td>−0.010 [−0.092, +0.145]</td><td>−0.013 [−0.042, +0.028]</td><td>+0.003 [−0.097, +0.163]</td><td>ns</td></tr><tr><td>B</td><td>strict</td><td>+0.025 [−0.085, +0.165]</td><td>−0.008 [−0.045, +0.046]</td><td>+0.034 [−0.086, +0.170]</td><td>ns</td></tr><tr><td>B</td><td>token</td><td>+0.054 [−0.008, +0.170]</td><td>−0.015 [−0.057, +0.043]</td><td>+0.069 [−0.024, +0.191]</td><td>ns</td></tr><tr><td>C</td><td>strict</td><td>−0.114 [−0.241, +0.053]</td><td>−0.048 [−0.102, −0.004]</td><td>−0.067 [−0.204, +0.096]</td><td>ns</td></tr><tr><td>C</td><td>token</td><td>−0.075 [−0.225, +0.060]</td><td>−0.050 [−0.113, −0.001]</td><td>−0.026 [−0.182, +0.130]</td><td>ns</td></tr></tbody></table></div>
+<h6>Gemini (served: gemini-3.6-flash)</h6>
+<div class="md-table-wrap"><table class="detail-table"><thead><tr><th>Set</th><th>Criterion</th><th>Gain abu_nuwas [CI]</th><th>Gain other [CI]</th><th>diff (abu−other) [CI]</th><th>Sig?</th></tr></thead><tbody><tr><td>A</td><td>strict</td><td>−0.001 [−0.055, +0.077]</td><td>+0.057 [−0.028, +0.131]</td><td>−0.059 [−0.156, +0.050]</td><td>ns</td></tr><tr><td>A</td><td>token</td><td>+0.031 [−0.024, +0.092]</td><td>+0.093 [+0.026, +0.149]</td><td>−0.061 [−0.143, +0.025]</td><td>ns</td></tr><tr><td>B</td><td>strict</td><td>+0.092 [−0.012, +0.229]</td><td>+0.081 [+0.014, +0.144]</td><td>+0.011 [−0.117, +0.161]</td><td>ns</td></tr><tr><td>B</td><td>token</td><td>+0.124 [+0.017, +0.244]</td><td>+0.097 [+0.036, +0.153]</td><td>+0.028 [−0.092, +0.160]</td><td>ns</td></tr><tr><td>C</td><td>strict</td><td>−0.017 [−0.102, +0.092]</td><td>+0.039 [−0.018, +0.090]</td><td>−0.055 [−0.154, +0.059]</td><td>ns</td></tr><tr><td>C</td><td>token</td><td>+0.055 [−0.015, +0.126]</td><td>+0.102 [+0.052, +0.156]</td><td>−0.047 [−0.136, +0.039]</td><td>ns</td></tr></tbody></table></div>
+<p><strong>18 of 18 model×criterion×set diff cells</strong>: 17 are not significant (CI straddles zero), and the one significant cell (Claude, set C, both criteria) is <strong>negative</strong> — the opposite sign from the hypothesis (C hurt Abu Nuwas poems significantly *more* than it hurt other poems, not less).</p>
+<hr>
+<h5>4. Per-poem table — the 5 Abu Nuwas poems individually</h5>
+<p>F1 per set, per model/criterion. These are exactly the numbers the pooled Abu Nuwas-group F1 in §1/§3 is built from — single-poem F1 is extremely noisy (poems have 9–16 verses each), shown here so the pooled number isn&#x27;t read as more stable than it is.</p>
+<div class="md-table-wrap"><table class="detail-table"><thead><tr><th>Poem ID</th><th>Verses</th><th>Model</th><th>Criterion</th><th>Z</th><th>A</th><th>B</th><th>C</th></tr></thead><tbody><tr><td>9078</td><td>13</td><td>Claude</td><td>strict</td><td>0.222</td><td>0.133</td><td>0.267</td><td>0.182</td></tr><tr><td>9078</td><td>13</td><td>Claude</td><td>token</td><td>0.222</td><td>0.133</td><td>0.267</td><td>0.182</td></tr><tr><td>9078</td><td>13</td><td>GPT</td><td>strict</td><td>0.267</td><td>0.167</td><td>0.308</td><td>0.000</td></tr><tr><td>9078</td><td>13</td><td>GPT</td><td>token</td><td>0.267</td><td>0.167</td><td>0.308</td><td>0.000</td></tr><tr><td>9078</td><td>13</td><td>Gemini</td><td>strict</td><td>0.000</td><td>0.000</td><td>0.364</td><td>0.000</td></tr><tr><td>9078</td><td>13</td><td>Gemini</td><td>token</td><td>0.000</td><td>0.000</td><td>0.364</td><td>0.000</td></tr><tr><td>13666</td><td>12</td><td>Claude</td><td>strict</td><td>0.000</td><td>0.533</td><td>0.571</td><td>0.000</td></tr><tr><td>13666</td><td>12</td><td>Claude</td><td>token</td><td>0.000</td><td>0.667</td><td>0.714</td><td>0.000</td></tr><tr><td>13666</td><td>12</td><td>GPT</td><td>strict</td><td>0.500</td><td>0.286</td><td>0.533</td><td>0.333</td></tr><tr><td>13666</td><td>12</td><td>GPT</td><td>token</td><td>0.500</td><td>0.429</td><td>0.533</td><td>0.500</td></tr><tr><td>13666</td><td>12</td><td>Gemini</td><td>strict</td><td>0.545</td><td>0.462</td><td>0.615</td><td>0.500</td></tr><tr><td>13666</td><td>12</td><td>Gemini</td><td>token</td><td>0.545</td><td>0.615</td><td>0.615</td><td>0.667</td></tr><tr><td>17233</td><td>16</td><td>Claude</td><td>strict</td><td>0.500</td><td>0.182</td><td>0.333</td><td>0.000</td></tr><tr><td>17233</td><td>16</td><td>Claude</td><td>token</td><td>0.500</td><td>0.182</td><td>0.333</td><td>0.000</td></tr><tr><td>17233</td><td>16</td><td>GPT</td><td>strict</td><td>0.286</td><td>0.182</td><td>0.133</td><td>0.000</td></tr><tr><td>17233</td><td>16</td><td>GPT</td><td>token</td><td>0.286</td><td>0.182</td><td>0.267</td><td>0.000</td></tr><tr><td>17233</td><td>16</td><td>Gemini</td><td>strict</td><td>0.167</td><td>0.154</td><td>0.143</td><td>0.000</td></tr><tr><td>17233</td><td>16</td><td>Gemini</td><td>token</td><td>0.167</td><td>0.154</td><td>0.286</td><td>0.182</td></tr><tr><td>31126</td><td>9</td><td>Claude</td><td>strict</td><td>0.000</td><td>0.133</td><td>0.000</td><td>0.000</td></tr><tr><td>31126</td><td>9</td><td>Claude</td><td>token</td><td>0.000</td><td>0.133</td><td>0.000</td><td>0.000</td></tr><tr><td>31126</td><td>9</td><td>GPT</td><td>strict</td><td>0.000</td><td>0.000</td><td>0.000</td><td>0.000</td></tr><tr><td>31126</td><td>9</td><td>GPT</td><td>token</td><td>0.000</td><td>0.000</td><td>0.000</td><td>0.000</td></tr><tr><td>31126</td><td>9</td><td>Gemini</td><td>strict</td><td>0.000</td><td>0.143</td><td>0.167</td><td>0.167</td></tr><tr><td>31126</td><td>9</td><td>Gemini</td><td>token</td><td>0.000</td><td>0.143</td><td>0.167</td><td>0.167</td></tr><tr><td>31384</td><td>9</td><td>Claude</td><td>strict</td><td>0.000</td><td>0.235</td><td>0.267</td><td>0.000</td></tr><tr><td>31384</td><td>9</td><td>Claude</td><td>token</td><td>0.000</td><td>0.235</td><td>0.267</td><td>0.000</td></tr><tr><td>31384</td><td>9</td><td>GPT</td><td>strict</td><td>0.000</td><td>0.333</td><td>0.308</td><td>0.200</td></tr><tr><td>31384</td><td>9</td><td>GPT</td><td>token</td><td>0.000</td><td>0.333</td><td>0.308</td><td>0.200</td></tr><tr><td>31384</td><td>9</td><td>Gemini</td><td>strict</td><td>0.400</td><td>0.364</td><td>0.333</td><td>0.364</td></tr><tr><td>31384</td><td>9</td><td>Gemini</td><td>token</td><td>0.400</td><td>0.364</td><td>0.333</td><td>0.364</td></tr></tbody></table></div>
+<p><strong>Individual-poem pattern</strong>: poem <code>9078</code> is the outlier driving Claude&#x27;s significant negative diff at C — Claude goes from F1=0.222 (Z) to 0.182 (A... wait, actually C=0.182) with GPT dropping to 0.000 at C on that same poem, and Gemini at 0.000 for Z/A/C but a one-off 0.364 at B. One poem (9078) swinging to near- zero for 2 of 3 models at set C is enough, with only 5 poems in the group, to move the pooled Abu Nuwas F1 sharply — exactly the single-poem sensitivity this table is meant to expose. Poems <code>31126</code> and <code>31384</code> start at F1=0.000 at Z for 2 of 3 models (small poems, very few GT positives), so any nonzero TP at A/B/C reads as a large relative &quot;gain&quot; that is really 1–2 additional hits on a 9-verse poem.</p>
+<hr>
+<h5>5. Plain answer</h5>
+<p><strong>No — this data does not show that Abu-Nuwas-sourced examples help more on Abu Nuwas poems than on other poets&#x27; poems.</strong></p>
+<ul>
+<li>Across all 3 models × 2 criteria × 3 example sets (18 comparisons), the gain-over-Z for the Abu Nuwas group is <strong>not significantly different</strong> from the gain-over-Z for the other-poets group in 17 of 18 cases — the 95% CIs on the difference are wide and straddle zero.</li>
+<li>The <strong>one significant case</strong> (Claude, set C, strict and token) goes in the <strong>opposite</strong> direction: set C hurt Abu Nuwas poems&#x27; F1 significantly *more* than it hurt other poems&#x27; F1, not less — and this is driven heavily by a single poem (<code>9078</code>) collapsing to F1=0 for 2 of 3 models at set C, not a broad same-poet pattern.</li>
+<li>The confound check (§2) rules out &quot;Abu Nuwas poems are just inherently easier, so any boost looks bigger&quot; as a confound in a consistent direction — Abu Nuwas is *harder* than average at zero-shot for Claude and GPT, easier only for Gemini, and GT density is only mildly higher (+14%) for Abu Nuwas, not enough to explain swings of the size seen in §4.</li>
+</ul>
+<p><strong>Why this should be read as &quot;no detectable effect,&quot; not &quot;proven absent&quot;</strong>: the Abu Nuwas group is only <strong>5 poems</strong>, every cell is <strong>1 run</strong> (no noise baseline per CLAUDE.md rule 2), and §4 shows single-poem swings of 0.1–0.3 F1 are common at this poem count — individual poems, not a same-poet effect, are doing most of the moving. The bootstrap CIs in §3 are correspondingly wide (often spanning ±0.15–0.35 F1), i.e. too wide to rule out a real but modest same-poet effect either. This check is <strong>indicative only</strong> and should not be treated as a settled finding; a same-poet effect, if real, would need a substantially larger Abu Nuwas sample (and ideally a 2nd run per cell) to detect reliably.</p>
+<hr>
+<p>*Underlying numeric data: <code>results/phase4_e1_v2/samepoet_analysis.json</code> (gain-over-Z bootstrap, GT density, per-poem table) and <code>results/phase4_e1_v2/analysis_report.json</code> (per-set/per-split TP/FP/FN/P/R/ F1, reused from the main E1 v2 analysis). No API calls were made for this check.*</p>
+</details>
+
+
+<details>
+<summary>f. Models and cost</summary>
+<table class="detail-table"><thead><tr><th>Model</th><th>Model ID (requested)</th><th>$/MTok in</th><th>$/MTok out</th><th>Real spend</th><th>Calls OK</th><th>Errors</th></tr></thead><tbody><tr><td>Claude Sonnet 4.6</td><td><code>claude-sonnet-4-6</code></td><td>$3.00</td><td>$15.00</td><td>$7.0920</td><td>1308</td><td>0</td></tr><tr><td>GPT-5.4-mini</td><td><code>gpt-5.4-mini</code></td><td>$0.75</td><td>$4.50</td><td>$1.2060</td><td>1308</td><td>0</td></tr><tr><td>Gemini (served: gemini-3.6-flash)</td><td><code>gemini-3.5-flash</code></td><td>$1.50</td><td>$9.00</td><td>$2.2700</td><td>1308</td><td>0</td></tr></tbody></table><p class="total-spend">Total real spend: <strong>$10.5680</strong> (3924 OK calls, 0 errors, across all 4 sets x 3 models x 327 verse-units = 3924 planned cells).</p>
+<h4>Completeness check</h4>
+<table class="detail-table"><thead><tr><th>Set</th><th>Model</th><th>Cells</th><th>Status</th></tr></thead><tbody><tr><td>Z</td><td>Claude</td><td>327/327</td><td class="ok">complete</td></tr><tr><td>Z</td><td>GPT</td><td>327/327</td><td class="ok">complete</td></tr><tr><td>Z</td><td>Gemini</td><td>327/327</td><td class="ok">complete</td></tr><tr><td>A</td><td>Claude</td><td>327/327</td><td class="ok">complete</td></tr><tr><td>A</td><td>GPT</td><td>327/327</td><td class="ok">complete</td></tr><tr><td>A</td><td>Gemini</td><td>327/327</td><td class="ok">complete</td></tr><tr><td>B</td><td>Claude</td><td>327/327</td><td class="ok">complete</td></tr><tr><td>B</td><td>GPT</td><td>327/327</td><td class="ok">complete</td></tr><tr><td>B</td><td>Gemini</td><td>327/327</td><td class="ok">complete</td></tr><tr><td>C</td><td>Claude</td><td>327/327</td><td class="ok">complete</td></tr><tr><td>C</td><td>GPT</td><td>327/327</td><td class="ok">complete</td></tr><tr><td>C</td><td>Gemini</td><td>327/327</td><td class="ok">complete</td></tr></tbody></table><p><strong>ALL_COMPLETE = True</strong></p>
+<h4>The Gemini model-id finding</h4>
+<p>The code requests <code>gemini-3.5-flash</code>, but Google's backend actually serves and bills
+<code>gemini-3.5-flash</code> — confirmed directly from the API
+response's own <code>model_version</code> field, and independently from the fact that
+<code>gemini-3.5-flash</code> is no longer listed on Google's current pricing/models pages.</p>
+<h4>The free-tier incident</h4>
+<p>The run initially hit <code>429 RESOURCE_EXHAUSTED</code> (Gemini free-tier quota, limit 5
+requests/window) 21 calls in, despite an earlier single-call smoke test having succeeded — one
+success under a small per-window allowance does not establish billing is enabled. After the user
+enabled billing, a retry hit <code>402</code> (prepaid credits depleted at $0); after the user topped
+up the prepaid balance, the same smoke test succeeded and the full run resumed to completion.</p>
+</details>
+
+
+<details>
+<summary>g. Caveats and limitations</summary>
+<ul>
+<li>Single run per (set, poem, verse, model) cell — <strong>no run-noise baseline</strong>. Every
+difference reported above is indicative only (CLAUDE.md rule 2: a prior 8x apparent gain on one run
+halved on a second run).</li>
+<li><strong>n=5</strong> <span dir="rtl" class="bidi">أبو نواس</span> poems in the same-poet split — too small to
+support a same-poet-vs-other-poet conclusion on its own.</li>
+<li>E1 <strong>v1</strong>'s numbers are not comparable to v2's: v1 reused Phase 1's whole-poem prompt
+with old terminology and TEST-poem-leaking examples; v2 is built on Phase 3's subtype-level prompt
+with a clean, non-leaking example pool. TEST-poem verses** (one per poem in the fixed order
+  Imru1→Imru2→Nabigha→Jarir→Abu_Tammam — TEST poems are Imru1, Jarir, Abu_Tammam). **This file is the
+  one every downstream builder below (including E1) inherits the leakage from**, either by importing
+  <code>data/elements/*.txt</code> directly or by calling this function.
+- <strong>23-subtype taxonomy?</strong> No — only the 4 top-level elements.
+- <strong>Output format</strong>: JSONL, o…</li>
+<li>1. <strong>Licensing/rights status of the Haifa/Dr. Ali Hussein ground-truth corpus is undocumented anywhere in the repo.</strong> A repo-wide search for license/rights/copyright/consent terms found nothing addressing this. This blocks writing a Data Availability statement (increasingly expected by DHQ per the 2026 Tarkka precedent) and must be resolved by asking the supervisor/Dr. Hussein directly before the paper can state what, if anything, can be shared. See <code>reviewer_risks.md</code> §7.</li>
+</ul>
+</details>
+
+
+<details>
+<summary>h. Provenance</summary>
+<ul>
+<li>Report generator: <code>scripts/build_e1v2_report.py</code> (this file is its output).</li>
+<li>Pool seed: <code>43</code> &middot; example-set seed: <code>42</code>
+(<code>experiments/phase4_e1/config/example_sets.json</code>, reused unchanged by v2).</li>
+<li>Source files read to build this report:
+<ul><li><code>results/phase4_e1_v2/analysis_report.json</code></li><li><code>results/phase4_e1_v2/run_manifest.json</code></li><li><code>experiments/phase4_e1_v2/config/eval_pool_25.json</code></li><li><code>experiments/phase4_e1/config/example_sets.json</code></li><li><code>experiments/phase4_e1_v2/config/prompt_preview_Z.txt</code></li><li><code>experiments/phase4_e1_v2/config/prompt_preview_A.txt</code></li><li><code>experiments/phase4_e1_v2/config/prompt_preview_B.txt</code></li><li><code>experiments/phase4_e1_v2/config/prompt_preview_C.txt</code></li><li><code>experiments/phase4_e1_v2/prompt_builder.py</code></li><li><code>experiments/phase4_e1_v2/e1v2_config.py</code></li><li><code>experiments/phase3_subelements/subtype_prompts.py</code></li><li><code>experiments/pilot_3models/config.py</code></li><li><code>experiments/pilot_3models/rtl_utils.py</code></li><li><code>docs/phase4/E1_V2_RESULTS.md</code></li><li><code>docs/phase4/PROMPT_INVENTORY.md</code></li><li><code>writing/paper_plan/TOP_5_BLOCKERS.md</code></li></ul></li>
+<li>To reproduce the figures: <code>python experiments/phase4_e1_v2/analyze_v2.py</code> (writes
+<code>results/phase4_e1_v2/analysis_report.json</code>), then
+<code>python scripts/build_e1v2_report.py</code> (writes this file). No API calls in either step —
+both read already-collected data.</li>
+</ul>
+</details>
+</section>
+
+
+<footer>
+  <p>Generated 2026-10-11 13:35 UTC.</p>
+  <p>Source files:</p>
+  <ul><li><code>results/phase4_e1_v2/analysis_report.json</code></li><li><code>results/phase4_e1_v2/run_manifest.json</code></li><li><code>experiments/phase4_e1_v2/config/eval_pool_25.json</code></li><li><code>experiments/phase4_e1/config/example_sets.json</code></li><li><code>experiments/phase4_e1_v2/config/prompt_preview_Z.txt</code></li><li><code>experiments/phase4_e1_v2/config/prompt_preview_A.txt</code></li><li><code>experiments/phase4_e1_v2/config/prompt_preview_B.txt</code></li><li><code>experiments/phase4_e1_v2/config/prompt_preview_C.txt</code></li><li><code>experiments/phase4_e1_v2/prompt_builder.py</code></li><li><code>experiments/phase4_e1_v2/e1v2_config.py</code></li><li><code>experiments/phase3_subelements/subtype_prompts.py</code></li><li><code>experiments/pilot_3models/config.py</code></li><li><code>experiments/pilot_3models/rtl_utils.py</code></li><li><code>docs/phase4/E1_V2_RESULTS.md</code></li><li><code>docs/phase4/PROMPT_INVENTORY.md</code></li><li><code>writing/paper_plan/TOP_5_BLOCKERS.md</code></li></ul>
+</footer>
+</main>
+<script>
+function toggleCriterion(target) {
+  document.querySelectorAll('[data-criterion]').forEach(function(el) {
+    el.style.display = (el.getAttribute('data-criterion') === target) ? '' : 'none';
+  });
+  document.querySelectorAll('.crit-btn').forEach(function(b) {
+    b.classList.toggle('active', b.getAttribute('data-target') === target);
+  });
+}
+function expandAll(open) {
+  document.querySelectorAll('details').forEach(function(d) { d.open = open; });
+}
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('.copy-btn');
+  if (!btn) return;
+  var id = btn.getAttribute('data-copy-target');
+  var el = document.getElementById(id);
+  if (!el) return;
+  var text = el.textContent;
+  var done = function() { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy'; }, 1500); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() { fallbackCopy(text, done); });
+  } else {
+    fallbackCopy(text, done);
+  }
+});
+function fallbackCopy(text, done) {
+  var ta = document.createElement('textarea');
+  ta.value = text; document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); done(); } catch (e) {}
+  document.body.removeChild(ta);
+}
+document.addEventListener('DOMContentLoaded', function() { toggleCriterion('strict'); });
+</script>
+</body>
+</html>

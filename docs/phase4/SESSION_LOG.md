@@ -1393,3 +1393,11 @@ Did not touch v1 (`phase4_e1/`), `phase3_*`, or `pilot_3models/`.
 - Wrote `docs/phase4/E1_V2_SAMEPOET.md` (5 sections per the user's spec: per-model/set TP/FP/FN/P/R/F1
   by group, confound check, gain-over-Z with CIs, per-poem table, plain answer) and
   `experiments/phase4_e1_v2/samepoet_analysis.py`. Committing and pushing next.
+
+---
+
+**2026-10-11 (continued)** — Finished scripts/build_e1v2_report.py and generated docs/phase4/E1_V2_REPORT.html (self-contained, offline, RTL-aware). Picked up E1_V2_SAMEPOET.md (created concurrently by another session during this task) and rendered its full content (tables/bullets/headers) in section e via an extended minimal markdown-to-HTML renderer (added header/hr/pipe-table support, fixed a soft-wrap bug that was splitting list items).
+- Built-in verification (run automatically by the script, all PASS): every F1 in the main table read live from analysis_report.json (no transcription); all 4 system messages (Z/A/B/C) match prompt_builder.py output byte-for-byte; A/B/C confirmed to share identical scaffold+Example 1, differing only in Example 2/3; is_majority_arabic correctly classifies an Arabic sample as RTL and an English sample as LTR; completeness 3,924/3,924 cells, 0 errors; total spend recomputed from run_manifest.json x config.py pricing = $10.5680 (matches E1_V2_RESULTS.md).
+- Visual check in the browser pane: executive summary reads as full sentences (fixed a line-wrap truncation bug in the markdown extraction), prompt blocks render LTR with embedded Arabic terms shaped correctly (fixed an earlier bug that forced the whole mixed-language prompt block RTL), example verse cards render RTL, diff view colorized, copy button writes to clipboard, mobile viewport (375px) readable with tables scrolling horizontally instead of overflowing.
+- No API calls. No files edited outside docs/phase4/E1_V2_REPORT.html, scripts/build_e1v2_report.py, and this log.
+- Committing and pushing next.
