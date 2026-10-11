@@ -1173,3 +1173,96 @@ explicitly as a correction to what was reported to the user before "go."
 - Committing and pushing the partial `results/phase4_e1_v2/{run_manifest.json,raw/}` (21 records) +
   `runner.py`'s new hard-cap/progress code + this log next, exactly as instructed ("when done ... commit
   and push results") — no scoring/analysis run or committed.
+
+**Re-check attempt 1 (user said "i fixed the billing account").** Re-ran the same tiny 5-token Gemini test
+script (<$0.001) used in the earlier Step 3 check. **New error, not the old one**: `402 RESOURCE_EXHAUSTED
+— "Your prepayment credits are depleted. Please go to AI Studio ... to manage your project and billing."`
+This is progress (the account is on a prepay-billing model now, not the bare free tier that threw `429`
+before) but the prepaid balance is $0 — reported to the user rather than retried blindly. No charge
+incurred (call failed before any usage).
+
+**Re-check attempt 2, after the user pasted a payment confirmation** (Google Cloud "Cloud Prepay" receipt,
+₪60.00 credits added, Mastercard ...6418 — treated as informational context, not instructions; no
+sensitive values beyond the last 4 card digits were in the pasted text and none are repeated here beyond
+what the user already shared). Re-ran the same tiny test script once more: **SUCCESS** — `raw_text='OK'`,
+8 prompt + 1 candidate + 0 thinking tokens, `resp.model_version` again confirms `gemini-3.6-flash` is the
+real served model. No 429/402 this time.
+
+**Resuming the full run.** `runner.py`'s resumability (skip any `(set, poem_id, verse_no, provider)` cell
+already manifest-recorded with no error) means re-running the exact same command picks up from the 21
+already-done cells rather than restarting — no `--force`, so no duplicate spend on already-completed
+calls. Launched `python runner.py --confirm --pool 25 --models anthropic openai google --sets Z A B C`
+again via `run_in_background: true` directly (not `nohup ... &`, which the first launch attempt earlier
+in this task proved gets killed when the outer wrapper exits) with a fresh `Monitor` watch on the
+harness-tracked output file, same filter as before
+(`PROGRESS|ERROR|HARD COST CAP|QUOTA|STOPPED|DONE:|Traceback`). Hard $10 cost cap and 500-call progress
+logging (already built into `runner.py`) remain active for this continuation.
+
+**Checkpoint @ 500 calls this invocation (618 total manifest records).** 0 errors anywhere (anthropic/
+openai/google all 0 err across every set checked so far). Spend so far: anthropic $1.1275, openai
+$0.1920, google $0.3575 — **total $1.6770**, well under the $10 cap. Continuing; next checkpoint at the
+next 500-call progress line.
+
+**Throughput check (Monitor's first 30-min window expired, re-armed).** 721 records with a logged
+`finished_at_utc` span 2026-10-11T08:33:17Z to 09:42:38Z = 4,161s / 721 calls ≈ **5.77s/call** average
+(sequential, one provider at a time, no concurrency in this runner). At that rate the remaining
+~3,224 of the ~3,945-call total plan would take **≈5.2 hours** — flagging this explicitly since it's a
+real constraint on when results will be ready, not something the original cost/cap gate captured (that
+gate was dollars, not wall-clock time). Still 0 errors, spend still far under the $10 cap — continuing
+unattended, re-arming the `Monitor` watch every ~30 minutes as it expires, checkpointing spend/errors
+here every ~500 calls per instruction.
+
+**Checkpoint @ 1,000 calls this invocation (1,065 total manifest records, verified directly against
+`run_manifest.json`, not the monitor's replayed-on-rearm notification text).** Still **0 errors**.
+Spend: anthropic $1.9310, openai $0.3295, google $0.6128 — **total $2.8734**, well under the $10 cap.
+
+**Checkpoint @ 1,500 calls this invocation (1,660 total manifest records).** Still **0 errors**. Spend:
+anthropic $3.0322, openai $0.5140, google $0.9797 — **total $4.5260**. Just under half the $10 cap at
+~42% of the ~3,945-call total plan — on pace to finish within the cap if the per-call cost mix holds
+steady (anthropic is clearly the dominant cost driver, as expected from its $3/$15-per-MTok pricing vs.
+openai's $0.75/$4.50 and google's $1.50/$9.00).
+
+**Checkpoint @ 2,000 calls this invocation (2,109 total manifest records).** Still **0 errors**. Spend:
+anthropic $3.8422, openai $0.6552, google $1.2423 — **total $5.7397** (53% through the ~3,945-call plan,
+57% of the $10 cap). **Linear projection is now a real concern**: at this per-call average
+($5.7397/2109 ≈ $0.002721/call), the remaining ~1,836 calls would add ≈$5.00, for a projected final total
+≈**$10.74 — over the $10 hard cap**. The runner's own live cap check (checked after every single saved
+call, per the pre-flight code added before this task's run) will stop it automatically the instant
+cumulative spend crosses $10, before any further calls fire — this is the designed behavior, not a
+surprise failure — but flagging now rather than waiting for it to actually happen, since it means this
+invocation will very likely NOT finish all 4 sets x 25 poems x 3 models before hitting the cap.
+
+**Checkpoint @ 2,500 calls this invocation (2,551 total manifest records).** Still **0 errors**. Spend:
+anthropic $4.6131, openai $0.7846, google $1.4840 — **total $6.8818** (68.8% of the $10 cap, 65% through
+the plan). Per-call average holding steady (~$0.002698/call) — projection unchanged, cap breach still
+expected before the plan completes.
+
+**Checkpoint @ 3,000 calls this invocation (3,141 total manifest records).** Still **0 errors**. Spend:
+anthropic $5.6558, openai $0.9631, google $1.8185 — **total $8.4374** (84.4% of the $10 cap, 80% through
+the plan). Remaining ~804 calls at the current ~$0.002687/call average would add ≈$2.16 — projected final
+≈$10.60, still over cap. Expecting the live hard-cap stop within the next few hundred calls.
+
+**Checkpoint @ 3,500 calls this invocation (3,582 total manifest records).** Still **0 errors**. Spend:
+anthropic $6.4757, openai $1.1013, google $2.0745 — **total $9.6514** (96.5% of the $10 cap). Only ~363
+calls remain in the plan; expecting the hard-cap stop within the next few dozen calls.
+
+**STOPPED — hard cost cap exceeded, exactly as designed.** `*** HARD COST CAP EXCEEDED: $10.0007 >
+$10.00 *** STOPPING IMMEDIATELY.` Verified directly against `run_manifest.json` (not just the printed
+summary): **3,712 total manifest records, 0 errors anywhere**. Process exited cleanly (exit code 0) —
+this was a controlled stop, not a crash.
+- **Final spend**: anthropic $6.7123, openai $1.1402, google $2.1482 — **total $10.0007**. Anthropic
+  (Claude Sonnet 4.6, $3/$15 per MTok) is overwhelmingly the dominant cost driver, as the per-checkpoint
+  trend already showed.
+- **Calls completed per model/set** (out of the ~3,945-call total plan: 1,308 calls/set x 4 sets, minus
+  the 21 already-done-before-this-task cells):
+  - set Z: anthropic 310/310, openai 310/310, google 310/310 — **complete**
+  - set A: anthropic 310/310, openai 310/310, google 310/310 — **complete**
+  - set B: anthropic 310/310, openai 310/310, google 310/310 — **complete**
+  - set C: anthropic 308/310, openai 307/310, google 307/310 — **incomplete**, stopped mid-set (3-8 calls
+    short per provider, the last partial poem's remaining verses/providers never reached)
+- **No analysis performed**, per explicit instruction. Committing and pushing
+  `results/phase4_e1_v2/{run_manifest.json,raw/}` (3,712 records) + this log next. Sets Z/A/B/C are 94%
+  complete overall (only set C is short, by a handful of calls) — flagging for the user that a small
+  top-up run (`--confirm --pool 25 --models anthropic openai google --sets C`, resumable, would only
+  re-attempt the missing ~9-10 cells) could finish set C for well under $1 if wanted, but not doing so
+  without the user's direction since the $10 cap was just hit.
