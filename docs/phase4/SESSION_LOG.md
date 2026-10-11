@@ -1266,3 +1266,80 @@ this was a controlled stop, not a crash.
   top-up run (`--confirm --pool 25 --models anthropic openai google --sets C`, resumable, would only
   re-attempt the missing ~9-10 cells) could finish set C for well under $1 if wanted, but not doing so
   without the user's direction since the $10 cap was just hit.
+
+---
+
+## Task: top up set C only ($1 cap), verify cell counts, then write E1_V2_RESULTS.md analysis (no more API calls)
+
+**2026-10-11** — User asked for a 3-step follow-up: (1) complete only the missing set-C cells
+(`--sets C`, resumable, skips the 3,702 already-done cells) with an explicit $1 extra hard cap, same
+stop-on-429/quota-or-cap-exceeded discipline, logged here; (2) verify every set has exactly the same cell
+count per model; (3) write `docs/phase4/E1_V2_RESULTS.md` (no more API calls) with per-model/per-set
+verse-level-exists + span-level-strict + span-level-token-overlap TP/FP/FN/P/R/F1 (overall and
+abu_nuwas/other split), pairwise bootstrap CIs across all 6 set-pairs, and 3 named questions (few-shot
+help? example-choice sensitivity? model comparison?); then commit+push.
+
+**Step 1 — top-up run.**
+- **Found and corrected a real reporting error before running anything**: the previous task's final
+  report claimed sets Z/A/B were "fully complete" at 310/310 per provider — but 310 was never the real
+  target. The true target is 327 (= total verse-units in the persisted 25-poem pool, `eval_pool_25.json`)
+  per set per provider; 310 vs 310 was comparing sets to EACH OTHER, not to the pool's own verse count.
+  Recomputed directly: Z/A/B each missing 17 calls/provider (51/set), C missing 19-20/provider (59) —
+  **212 calls missing in total**, not 59. Flagged this to the user explicitly (did not silently fix and
+  move on) and asked whether to top up all 4 sets or just C as literally instructed; user chose **top up
+  all 4 sets**.
+- Added `--max-additional-usd` to `runner.py` (new): without it, the existing `HARD_COST_CAP_USD=10.00`
+  absolute check would trip on the very first call this invocation, since the manifest's total spend is
+  already $10.0007 from the prior task — the user's "$1 extra" means a cap of (spend already in manifest)
+  + $1, not an absolute $1 total. `run()` now computes `baseline_spend` from the manifest at start and an
+  `effective_cap` (baseline + `max_additional_usd` when given, else the absolute default) used for every
+  subsequent check and progress print.
+- Dry-listed first (no `--confirm`): `--sets C` alone → 59 planned; `--sets Z A B C` → **212 planned**,
+  confirming the corrected gap count exactly. `python -m py_compile runner.py` clean.
+- Ran for real: `runner.py --confirm --pool 25 --models anthropic openai google --sets Z A B C
+  --max-additional-usd 1.0` (effective cap $11.0007). Launched via `run_in_background: true` directly
+  (not `nohup &`, the same lesson from earlier in this session), `Monitor` watch with `tail -n 0 -f` on
+  the harness output file (not `-n +1`, to avoid the earlier replay-duplicate issue), same filter as
+  before.
+- **Completed, 0 errors.** 3,924/3,924 total manifest records. Final spend: anthropic $7.0920, openai
+  $1.2060, google $2.2700 — **total $10.5680** (within the $11.0007 effective cap for this invocation:
+  $10.0007 baseline + $1 extra).
+- **Verified every set has exactly the same cell count per model** (Step 1's explicit requirement): all
+  12 (set x provider) combinations = **327/327**, matching the 25-poem pool's real total verse count
+  exactly. `ALL MATCH: True`. The dataset is now genuinely complete and balanced across Z/A/B/C x
+  anthropic/openai/google — ready for analysis.
+
+**Step 2 — analysis (no more API calls).** Added a verse-level "exists vs ground truth" scoring mode to
+`scoring_v2.score_poem` (new `criterion == "verse"` branch: TP/FP/FN from the model's binary `exists` flag
+vs. whether the verse has any GT span at all, no span-text matching at all) alongside the existing
+span-level strict/token-overlap modes — explicitly commented as a supplementary diagnostic only, per
+CLAUDE.md rule 4's standing warning that plain verse-level exists/not-exists alone produces artifacts
+(the already-documented Periphrasis/كناية case); strict+token remain the primary span-level metrics,
+reported alongside it, never replaced. Built `analyze_v2.py`: runs `scoring_v2.analyze()` for all 3
+models x all 3 criteria (verse/strict/token) over the persisted 25-poem pool, writes the full numeric
+report to `results/phase4_e1_v2/analysis_report.json`, and prints per-set/per-split TP/FP/FN/P/R/F1 +
+all 6 pairwise bootstrap CIs + per-poem diff-sign counts per model/criterion. `python -m py_compile` on
+both edited/new files — clean.
+- Ran `analyze_v2.py` (fixed one import-order bug found in the process: `scoring_v2`'s own module-level
+  `sys.path.insert(0, E1V1_DIR)` shadowed this directory's `runner.py` with `phase4_e1/runner.py`'s,
+  which has no `spend_so_far` — fixed by importing `runner` before `scoring_v2`). Full report written to
+  `results/phase4_e1_v2/analysis_report.json`. Wrote `docs/phase4/E1_V2_RESULTS.md`: per-model/per-set
+  overall+abu_nuwas+other TP/FP/FN/P/R/F1 for all 3 criteria (verse-supplementary, strict-primary,
+  token-primary), all 6 pairwise bootstrap 95% CIs + per-poem diff signs per model/criterion, and the 3
+  requested questions answered directly from the computed numbers:
+  - **Q1 (does fewshot help at all)**: model-dependent, not uniform — helps Gemini clearly (Z sig. worse
+    than A/B/C on verse+token), helps Claude for A/B only (not C), and does **not** help GPT (Z vs C is
+    significantly *better* for Z on every criterion — fewshot Set C actively hurt GPT).
+  - **Q2 (example-choice sensitivity)**: A vs B is never significant for any model/criterion (9/9 `ns`).
+    C is where the spread is: A-C/B-C significant for Claude and GPT (both criteria groups), but mostly
+    not significant for Gemini (only B-C/strict) — sensitivity is real but concentrated on Set C, not a
+    uniform "any two sets differ" effect. Noted Set C's two examples share the same root ع-ق-ل (التعقيل)
+    per `example_sets.json`, consistent with (not proof of) that homogeneity driving Claude/GPT's C
+    underperformance; Gemini's relative insensitivity to it is itself a model-dependent finding.
+  - **Q3 (model comparison)**: GPT-5.4-mini best at zero-shot (Z) and cheapest; Gemini overtakes on every
+    fewshot set (A/B/C) on token-overlap and ties/leads on strict for B/C; Claude competitive on A/B but
+    drops on C, at ~3x Gemini's cost with no corresponding performance edge.
+  - Stated plainly: no run-noise baseline (1 run/cell, all differences indicative only per CLAUDE.md rule
+    2), أبو نواس split (n=5) indicative only, verse-level criterion supplementary/diagnostic only per
+    CLAUDE.md rule 4, actual served Gemini model (`gemini-3.6-flash`) and actual total cost ($10.5680)
+    both stated explicitly.

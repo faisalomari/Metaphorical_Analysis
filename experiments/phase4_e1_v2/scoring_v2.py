@@ -53,12 +53,24 @@ def load_verse_result(out_dir: Path, set_name: str, poem_id: str, verse_no: int,
 
 def score_poem(out_dir: Path, set_name: str, poem_id: str, provider: str, n_verses: int,
                gt_spans: dict, criterion: str) -> dict:
+    """criterion: "strict"/"token" (span-level, CLAUDE.md rule 4's required primary metric) or
+    "verse" (plain verse-level exists-vs-ground-truth, no span match at all -- CLAUDE.md rule 4
+    explicitly warns this alone produces artifacts, so it is reported ONLY as a supplementary
+    diagnostic alongside strict/token, never as a substitute for them)."""
     tp = fp = fn = 0
     for verse_no in range(1, n_verses + 1):
         parsed = load_verse_result(out_dir, set_name, poem_id, verse_no, provider)
         gt_texts = gt_spans[verse_no]
         if parsed is None or parsed["exists"] is None:
             continue  # no cell / parse error: excluded, not counted as FN or FP
+        if criterion == "verse":
+            if parsed["exists"] and gt_texts:
+                tp += 1
+            elif parsed["exists"] and not gt_texts:
+                fp += 1
+            elif not parsed["exists"] and gt_texts:
+                fn += 1
+            continue
         if not parsed["exists"]:
             fn += len(gt_texts)
             continue

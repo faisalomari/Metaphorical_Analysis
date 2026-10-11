@@ -96,7 +96,12 @@ def is_quota_error(msg: str) -> bool:
     return any(m in msg for m in QUOTA_ERROR_MARKERS)
 
 
-def run(sets=None, models=None, pool_name="full", out_dir=None, force=False, dry_run=True):
+def run(sets=None, models=None, pool_name="full", out_dir=None, force=False, dry_run=True,
+        max_additional_usd=None):
+    """max_additional_usd: if set, the hard cap for THIS invocation is (spend already in the
+    manifest at start) + max_additional_usd, instead of the absolute HARD_COST_CAP_USD total --
+    needed for a small top-up run after a prior invocation already spent close to (or at) the
+    absolute cap."""
     sets = sets or SET_NAMES
     models = models or RUN_MODELS
     pool = load_pool(pool_name)
@@ -107,6 +112,12 @@ def run(sets=None, models=None, pool_name="full", out_dir=None, force=False, dry
     manifest_path = out_dir / "run_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else []
     done = {cell_key(r) for r in manifest if r.get("error") is None} if not force else set()
+
+    baseline_spend = spend_so_far(manifest)["_total"]
+    effective_cap = (baseline_spend + max_additional_usd) if max_additional_usd is not None else HARD_COST_CAP_USD
+    print(f"Baseline spend already in manifest: ${baseline_spend:.4f}. Effective cap for this "
+          f"invocation: ${effective_cap:.4f}"
+          + (f" (= baseline + ${max_additional_usd:.2f} extra)" if max_additional_usd is not None else ""))
 
     poem_cache = {}
     plan = []
@@ -176,8 +187,8 @@ def run(sets=None, models=None, pool_name="full", out_dir=None, force=False, dry
         calls_made_this_run += 1
 
         spend = spend_so_far(manifest)
-        if spend["_total"] > HARD_COST_CAP_USD:
-            print(f"\n*** HARD COST CAP EXCEEDED: ${spend['_total']:.4f} > ${HARD_COST_CAP_USD:.2f} *** "
+        if spend["_total"] > effective_cap:
+            print(f"\n*** HARD COST CAP EXCEEDED: ${spend['_total']:.4f} > ${effective_cap:.4f} *** "
                   f"STOPPING IMMEDIATELY.")
             _print_summary(manifest, error_counts, sets, models, "STOPPED: hard cost cap exceeded")
             return manifest
@@ -187,7 +198,7 @@ def run(sets=None, models=None, pool_name="full", out_dir=None, force=False, dry
                   f"({len(manifest)} total manifest records) ---")
             print(f"    spend so far: openai=${spend['openai']:.4f}  google=${spend['google']:.4f}  "
                   f"anthropic=${spend['anthropic']:.4f}  TOTAL=${spend['_total']:.4f} "
-                  f"(cap ${HARD_COST_CAP_USD:.2f})")
+                  f"(cap ${effective_cap:.2f})")
             print(f"    errors so far: {error_counts}\n")
 
     _print_summary(manifest, error_counts, sets, models, "DONE: plan exhausted")
@@ -243,9 +254,13 @@ def main():
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--confirm", action="store_true",
                          help="Required to actually spend money / make API calls.")
+    parser.add_argument("--max-additional-usd", type=float, default=None,
+                         help="Cap THIS invocation at (spend already in manifest) + this amount, "
+                              "instead of the absolute HARD_COST_CAP_USD total. For a small top-up "
+                              "run after a prior invocation already spent near/at the absolute cap.")
     args = parser.parse_args()
     run(sets=args.sets, models=args.models, pool_name=args.pool, out_dir=args.out_dir,
-        force=args.force, dry_run=not args.confirm)
+        force=args.force, dry_run=not args.confirm, max_additional_usd=args.max_additional_usd)
 
 
 if __name__ == "__main__":
