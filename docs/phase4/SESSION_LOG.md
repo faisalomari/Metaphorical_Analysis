@@ -738,3 +738,49 @@ Re-read `CLAUDE.md` first per instruction.
   but E1's extra emphasis is subtype-scoped.
 - Wrote `docs/phase4/PROMPT_ANATOMY.md` (7 sections as specified). No API calls, no code changes anywhere
   in this task. Committing and pushing next.
+
+---
+
+**2026-10-11 — New task: full prompt-inventory audit, read-only.** Task: the user noticed E1 reused
+`pilot_3models.prompts.build_system_message()` (old terminology, TEST-leaking examples) and expected the
+newest Phase 2/3 prompt design instead. Output: `docs/phase4/PROMPT_INVENTORY.md`. No API calls, no code
+changes anywhere in this task.
+
+- Read `CLAUDE.md`, `GLOSSARY.md`, `NEW_SESSION_HANDOFF.md`, and `PROJECT_STATE.md` in full (both pages,
+  offset 0-311 and 312-465) for standing rules and current project state.
+- Noticed immediately: `PROJECT_STATE.md`'s last entry is "Phase 2 §7, 2026-07-26" — it never mentions
+  Phase 3 (`phase3_subelements`, `phase3_crossmodel`) or Phase 4 (`phase4_e1`) anywhere. Confirmed via
+  `git log --oneline --all` that Phase 3's commit (`9a9365f`) and every Phase 4 commit are dated
+  2026-10-10 — three months after `PROJECT_STATE.md`'s own stated last-update date. This is a real
+  docs-vs-code staleness gap, not a misreading.
+- Listed every file under `experiments/{pilot_3models,phase2_chatlike,phase3_subelements,
+  phase3_crossmodel,phase4_e1}/` (`ls`) and pulled `git log -1 --format="%ai %h %s"` for each candidate
+  prompt-building file to get exact last-commit dates.
+- Read, in full, the actual prompt-building code: `pilot_3models/prompts.py`, `prompt_variants.py`,
+  `phase2_chatlike/prompt_config_b.py`, `prompt_config_c.py`, `phase3_subelements/subtype_prompts.py`,
+  `fewshot_prompts.py`, `subtype_defs.py` (all 25 subtype entries), `phase3_crossmodel/
+  crossmodel_config.py`, `phase4_e1/e1_config.py`, `fewshot_examples.py`, `runner.py`, and
+  `docs/phase4/PROMPT_ANATOMY.md` (already-verified verbatim E1 system message from the earlier task in
+  this session) — confirmed byte-for-byte that `fewshot_examples.build_system_message_e1()` calls
+  `pilot_3models.prompts.build_system_message()` unmodified, i.e. E1 ships with "Kenning"/"Antonymy" and
+  the TEST-poem-leaking element-file examples exactly as PROMPT_ANATOMY.md already showed.
+- Grepped `phase3_subelements/run_subtype_check.py`, `run_fewshot_check.py`, and `phase3_config.py` to
+  confirm model routing (Gemini 3.5 Flash only for Phase 3's own subtype run, via `providers_fixed.
+  call_google_fixed`; Phase 3's crossmodel step adds Claude Sonnet 4.6 + GPT-5.4-mini re-scoring the same
+  prompt, not a new prompt).
+- Ran a targeted grep on `docs/phase4/E1_RESULTS.md` for the actual cost figure (confirmed: GPT-5.4-mini
+  150/150 calls, $1.28, 0 errors; Gemini partial) and read the first part of this session log to confirm
+  the append format used so far.
+- Wrote `docs/phase4/PROMPT_INVENTORY.md`: §1 all 7 prompt-building code paths (file, function, commit
+  date, models, terminology, element-definition source/leakage, 23-subtype-taxonomy use, output format,
+  scope); §2 newest-by-commit-date vs. what the docs call canonical, and why they disagree (the three
+  docs never name Phase 3's subtype prompt, which is the best "newest canonical" candidate, because
+  `PROJECT_STATE.md` itself predates Phase 3/4 by three months); §3 the newest prompt's full verbatim
+  system+user message (Phase 3's single-subtype template, filled with a placeholder poem) with its
+  output schema; §4 concrete recommendation for injecting E1's existing A/B/C few-shot example sets into
+  Phase 3's subtype-level prompt instead of Phase 1's whole-poem prompt, and the specific changes needed
+  in `e1_config.py`/`fewshot_examples.py`/`runner.py`/`scoring.py` (none applied — read-only task); §5
+  explicit answer that the existing $1.28 GPT E1 result is usable only if labeled as run on Phase 1's old
+  prompt, not as evidence about the corrected-prompt design.
+- No code changes, no files touched besides this log and `PROMPT_INVENTORY.md`. Committing and pushing
+  next.
