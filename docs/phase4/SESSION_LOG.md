@@ -1110,3 +1110,66 @@ not just on a cap breach — doing so here. Awaiting the user's explicit "go" be
 `experiments/phase4_e1_v2/runner.py --confirm --pool 25 --models anthropic openai google --sets Z A B C`.
 Committing and pushing `experiments/phase4_e1_v2/{providers_v2.py,build_pool_25.py,runner.py,dryrun_v2.py,
 e1v2_config.py,config/eval_pool_25.json}` + this log next.
+
+---
+
+## Task: "go" — run the confirmed 25-poem/3-model/4-set E1 v2 call, hard $10 cap, progress every ~500 calls
+
+**2026-10-11** — User said "go" and gave explicit run/monitoring instructions: run
+`runner.py --confirm --pool 25 --models anthropic openai google --sets Z A B C`; stop immediately and
+report if actual spend exceeds $10 or on any 429/quota error; log progress + spend per model every ~500
+calls in this file; when done, print actual spend/errors/calls-completed per model/set WITHOUT analyzing,
+then commit and push results only (not analysis).
+
+**Pre-flight: added a live hard-cost-cap safety net to `runner.py`** (did not exist before — v1/v2's
+runner only ever stopped on a 429/quota-shaped error message or 5 consecutive errors, never on a
+dollar-spend ceiling). Added `call_cost(provider, usage)` (real logged usage x `config.py` `MODELS`
+pricing — conservative, since `config.py`'s rate is the highest of the 3 Gemini pricing scenarios
+`dryrun_v2.py` considers) and `spend_so_far(manifest)` (sums every error-free record's real cost, not an
+estimate), checked after **every single saved call** — stops immediately the instant cumulative spend
+exceeds `HARD_COST_CAP_USD = 10.00`, before any further calls fire. Also added a `_print_summary()` helper
+(spend per model, error counts, per-set/per-provider ok/error counts) called on every exit path (quota
+stop, 5-consecutive-errors stop, cost-cap stop, or normal completion) and a progress print every
+`PROGRESS_EVERY = 500` calls made in the current invocation. Unit-tested `call_cost`/`spend_so_far` against
+a 4-row fake manifest (3 providers + 1 errored record) with no API calls — errored record correctly
+excluded from spend, per-provider sums correct. `python -m py_compile runner.py` — clean.
+
+**Launch.** Ran in the background (output to a scratchpad log file), with a `Monitor` watch filtered to
+`PROGRESS|ERROR|HARD COST CAP|QUOTA|STOPPED|DONE:|Traceback` so only the lines that matter surface as
+notifications rather than all ~3,924 per-call lines. (First launch attempt used `nohup ... &` inside a
+`run_in_background` Bash call — the outer wrapper exited immediately and silently killed the detached
+child with it, 0 bytes written; re-launched by passing the plain `python runner.py ...` command directly
+to `run_in_background: true` instead, which the harness itself kept alive and tracked correctly.)
+
+**STOPPED — Gemini 429/quota error, exactly as designed.** 21 calls in, the runner hit
+`ClientError: 429 RESOURCE_EXHAUSTED ... Quota exceeded for metric:
+generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 5, model: gemini-3.6-flash`
+on poem 3200 (the first poem in the 25-poem pool), set Z, verse 7, Google — and stopped immediately with
+no retry, per its own (and this task's) design. **This contradicts the earlier Step-3 single-call test's
+inference** ("the key is no longer stuck on the free tier") — one call succeeding under a tiny per-minute
+free-tier allowance (limit 5) is not the same as the key being on a billing-enabled tier; running enough
+calls back-to-back to exceed 5 in the window reproduces the same free-tier wall E1 v1 hit in
+`E1_RESULTS.md`. The single-call test was necessary but not sufficient evidence — flagging this
+explicitly as a correction to what was reported to the user before "go."
+- **Calls completed per model/set** (21 manifest records total, all from poem 3200 only — the plan is
+  poem-major/set-second/verse-third/provider-fourth, so a provider's quota wall on poem 1 blocks before
+  any other poem is reached):
+  - set Z: anthropic 7 ok / 0 err, openai 7 ok / 0 err, google 6 ok / 1 err
+  - sets A, B, C: 0/0 for all 3 providers (never reached)
+- **Actual spend, computed from real logged usage x `config.py` pricing (`runner.spend_so_far`, same
+  function the live hard-cap check uses)**: anthropic $0.034032, openai $0.00567, google $0.0090045 —
+  **total $0.0487** (well under the $10 cap; the cap was never the binding constraint here, the free-tier
+  429 was).
+- No cost-cap breach. No 5-consecutive-error stop (only 1 error total, immediately recognized as a
+  quota-shaped error and halted on its own path). No analysis performed, per explicit instruction.
+- **Flagging for the user, not deciding unilaterally**: the Gemini key's free-tier rate limit (5
+  requests/some-short-window) makes a same-sitting 1,308-call Google run infeasible without either (a)
+  enabling billing on this key so it actually leaves the free tier (the Step-3 test's single success does
+  not establish this already happened), (b) spacing Google calls out to stay under ~5/window (slow, and
+  the exact window — per-minute vs per-day — isn't stated in this error body, unlike v1's which explicitly
+  said "requests/day"), or (c) running anthropic+openai to completion now and backfilling google separately
+  once (a) or (b) is resolved — the same resolution path the user chose for E1 v1's identical wall. Not
+  proceeding on any of these without the user's direction.
+- Committing and pushing the partial `results/phase4_e1_v2/{run_manifest.json,raw/}` (21 records) +
+  `runner.py`'s new hard-cap/progress code + this log next, exactly as instructed ("when done ... commit
+  and push results") — no scoring/analysis run or committed.

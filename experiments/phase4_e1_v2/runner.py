@@ -52,6 +52,30 @@ if str(PILOT_DIR) not in sys.path:
 from config import MODELS  # noqa: E402
 
 QUOTA_ERROR_MARKERS = ("429", "RESOURCE_EXHAUSTED", "quota")
+HARD_COST_CAP_USD = 10.00
+PROGRESS_EVERY = 500
+
+
+def call_cost(provider: str, usage: dict) -> float:
+    """Worst-case cost for one call, using config.py's MODELS pricing table
+    (confirmed the highest of the 3 Gemini pricing scenarios considered in
+    dryrun_v2.py, so this is the conservative/safe figure for a live hard-cap
+    check, not an attempt to predict the real invoice exactly)."""
+    spec = MODELS[provider]
+    in_tok = (usage or {}).get("input_tokens") or 0
+    out_tok = (usage or {}).get("output_tokens") or 0
+    return (in_tok / 1e6) * spec["price_in"] + (out_tok / 1e6) * spec["price_out"]
+
+
+def spend_so_far(manifest: list) -> dict:
+    """{provider: cost} + "_total", computed from every error-free manifest
+    record's real logged usage (not an estimate)."""
+    spend = {p: 0.0 for p in ("anthropic", "openai", "google")}
+    for r in manifest:
+        if r.get("error") is None:
+            spend[r["provider"]] += call_cost(r["provider"], r.get("usage"))
+    spend["_total"] = sum(v for k, v in spend.items() if k != "_total")
+    return spend
 
 
 def load_pool(which: str) -> list:
@@ -109,6 +133,8 @@ def run(sets=None, models=None, pool_name="full", out_dir=None, force=False, dry
 
     system_messages = {s: build_messages(s, "placeholder")[0] for s in sets}  # system doesn't depend on verse
     consecutive_errors = 0
+    error_counts = {"anthropic": 0, "openai": 0, "google": 0}
+    calls_made_this_run = 0
 
     for set_name, poem, verse_no, verse_text, provider in plan:
         poem_id = poem["poem_id"]
@@ -126,24 +152,61 @@ def run(sets=None, models=None, pool_name="full", out_dir=None, force=False, dry
         except Exception as e:
             result = {"raw_text": "", "model_id": spec["model_id"], "usage": {}}
             error = f"{type(e).__name__}: {e}"
+            error_counts[provider] += 1
             print(f"  ERROR: {error}")
             if is_quota_error(error):
                 print("  QUOTA/429 ERROR — stopping immediately per task instruction (no retry loop).")
-                _save(manifest, poem, set_name, poem_id, verse_no, provider, run_result=result,
+                manifest = _save(manifest, poem, set_name, poem_id, verse_no, provider, run_result=result,
                       error=error, started=started, raw_dir=raw_dir, manifest_path=manifest_path,
                       spec=spec)
+                _print_summary(manifest, error_counts, sets, models, "STOPPED: quota/429 error")
                 return manifest
             consecutive_errors += 1
             if consecutive_errors >= 5:
                 print("  5 consecutive errors — stopping per task instruction.")
+                manifest = _save(manifest, poem, set_name, poem_id, verse_no, provider, run_result=result,
+                      error=error, started=started, raw_dir=raw_dir, manifest_path=manifest_path,
+                      spec=spec)
+                _print_summary(manifest, error_counts, sets, models, "STOPPED: 5 consecutive errors")
                 return manifest
         finished = datetime.now(timezone.utc).isoformat()
         manifest = _save(manifest, poem, set_name, poem_id, verse_no, provider, run_result=result,
                           error=error, started=started, finished=finished, raw_dir=raw_dir,
                           manifest_path=manifest_path, spec=spec)
+        calls_made_this_run += 1
 
-    print(f"\nDone. {len(manifest)} records in manifest: {manifest_path}")
+        spend = spend_so_far(manifest)
+        if spend["_total"] > HARD_COST_CAP_USD:
+            print(f"\n*** HARD COST CAP EXCEEDED: ${spend['_total']:.4f} > ${HARD_COST_CAP_USD:.2f} *** "
+                  f"STOPPING IMMEDIATELY.")
+            _print_summary(manifest, error_counts, sets, models, "STOPPED: hard cost cap exceeded")
+            return manifest
+
+        if calls_made_this_run % PROGRESS_EVERY == 0:
+            print(f"\n--- PROGRESS: {calls_made_this_run} calls made this invocation "
+                  f"({len(manifest)} total manifest records) ---")
+            print(f"    spend so far: openai=${spend['openai']:.4f}  google=${spend['google']:.4f}  "
+                  f"anthropic=${spend['anthropic']:.4f}  TOTAL=${spend['_total']:.4f} "
+                  f"(cap ${HARD_COST_CAP_USD:.2f})")
+            print(f"    errors so far: {error_counts}\n")
+
+    _print_summary(manifest, error_counts, sets, models, "DONE: plan exhausted")
     return manifest
+
+
+def _print_summary(manifest, error_counts, sets, models, headline):
+    spend = spend_so_far(manifest)
+    print(f"\n{'=' * 70}\n{headline}\n{'=' * 70}")
+    print(f"Total manifest records: {len(manifest)}")
+    print(f"Spend per model: openai=${spend['openai']:.4f}  google=${spend['google']:.4f}  "
+          f"anthropic=${spend['anthropic']:.4f}")
+    print(f"TOTAL SPEND: ${spend['_total']:.4f}  (cap ${HARD_COST_CAP_USD:.2f})")
+    print(f"Error counts this invocation: {error_counts}")
+    for s in sets:
+        for p in models:
+            ok = sum(1 for r in manifest if r["set_name"] == s and r["provider"] == p and r.get("error") is None)
+            err = sum(1 for r in manifest if r["set_name"] == s and r["provider"] == p and r.get("error") is not None)
+            print(f"  set {s} / {p}: {ok} ok, {err} error")
 
 
 def _save(manifest, poem, set_name, poem_id, verse_no, provider, run_result, error, started,
