@@ -39,15 +39,13 @@ import tiktoken
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from e1v2_config import (  # noqa: E402
     ALL_MODELS, CHEAP_VARIANT_ABU_NUWAS_N, CHEAP_VARIANT_OTHER_N, E1V1_DIR,
-    E1V1_EVAL_POOL_PATH, PILOT_DIR, RUN_MODELS, SET_NAMES,
-    build_cheap_variant_pool,
+    E1V1_EVAL_POOL_PATH, EVAL_POOL_25_PATH, PILOT_DIR, RUN_MODELS, SET_NAMES,
 )
 from prompt_builder import build_messages  # noqa: E402
 
 if str(E1V1_DIR) not in sys.path:
     sys.path.insert(0, str(E1V1_DIR))
 from ali_poems_io import load_poem_json  # noqa: E402
-from build_pool import build_candidate_pool  # noqa: E402
 
 if str(PILOT_DIR) not in sys.path:
     sys.path.insert(0, str(PILOT_DIR))
@@ -122,18 +120,25 @@ def cost_table(label: str, pool: list, cell_tokens: dict):
     print(f"  Claude Sonnet 4.6 (costed, not run)  calls={total_calls_per_model:>6}  "
           f"cost=${cost_for_anthropic():,.2f}")
 
-    gemini_mid = cost_for_google(*GEMINI_PRICE_SCENARIOS["gemini-3.6-flash ESTIMATE_LOW (intro pricing thru 2026-12-31)"])
-    print(f"\n  CONFIRMED PAIR TOTAL (GPT-5.4-mini + Gemini @ 3.6-flash ESTIMATE_LOW): "
-          f"${cost_for_openai() + gemini_mid:,.2f}")
+    gemini_low = cost_for_google(*GEMINI_PRICE_SCENARIOS["gemini-3.6-flash ESTIMATE_LOW (intro pricing thru 2026-12-31)"])
+    gemini_high = cost_for_google(*GEMINI_PRICE_SCENARIOS["gemini-3.6-flash ESTIMATE_HIGH (one cached page / one aggregator)"])
     gemini_cfg = cost_for_google(*GEMINI_PRICE_SCENARIOS["project config.py (gemini-3.5-flash, legacy/estimate)"])
+    print(f"\n  CONFIRMED PAIR TOTAL (GPT-5.4-mini + Gemini @ 3.6-flash ESTIMATE_LOW): "
+          f"${cost_for_openai() + gemini_low:,.2f}")
     print(f"  CONFIRMED PAIR TOTAL (GPT-5.4-mini + Gemini @ project config.py rate): "
           f"${cost_for_openai() + gemini_cfg:,.2f}")
+    print(f"\n  3-MODEL TOTAL (GPT-5.4-mini + Gemini + Claude Sonnet 4.6), Gemini @ 3.6-flash ESTIMATE_LOW: "
+          f"${cost_for_openai() + gemini_low + cost_for_anthropic():,.2f}")
+    print(f"  3-MODEL TOTAL (GPT-5.4-mini + Gemini + Claude Sonnet 4.6), Gemini @ 3.6-flash ESTIMATE_HIGH: "
+          f"${cost_for_openai() + gemini_high + cost_for_anthropic():,.2f}")
+    print(f"  3-MODEL TOTAL (GPT-5.4-mini + Gemini + Claude Sonnet 4.6), Gemini @ project config.py rate: "
+          f"${cost_for_openai() + gemini_cfg + cost_for_anthropic():,.2f}")
 
     return {
         "n_poems": n_poems, "n_verses": n_verses, "calls_per_model": total_calls_per_model,
         "total_input_tokens": total_input_tokens, "total_output_tokens_est": total_output_tokens_est,
-        "cost_openai": cost_for_openai(),
-        "cost_google_cfg": gemini_cfg, "cost_google_est_low": gemini_mid,
+        "cost_openai": cost_for_openai(), "cost_anthropic": cost_for_anthropic(),
+        "cost_google_cfg": gemini_cfg, "cost_google_est_low": gemini_low, "cost_google_est_high": gemini_high,
     }
 
 
@@ -145,14 +150,31 @@ def main():
     full_tokens = build_cell_input_tokens(full_pool)
     full_result = cost_table("50-POEM EVAL POOL (unchanged from phase4_e1 v1, seed=43)", full_pool, full_tokens)
 
-    candidate_pool = build_candidate_pool()
-    cheap_pool = build_cheap_variant_pool(candidate_pool)
-    cheap_tokens = build_cell_input_tokens(cheap_pool)
-    cheap_result = cost_table(
-        f"CHEAPER VARIANT: {CHEAP_VARIANT_ABU_NUWAS_N} abu_nuwas + {CHEAP_VARIANT_OTHER_N} other "
-        f"= 25 poems (seed=43, drawn fresh from the same 158-poem candidate pool)",
-        cheap_pool, cheap_tokens,
+    pool_25 = json.loads(EVAL_POOL_25_PATH.read_text(encoding="utf-8"))["poems"]
+    tokens_25 = build_cell_input_tokens(pool_25)
+    result_25 = cost_table(
+        f"25-POEM POOL: {CHEAP_VARIANT_ABU_NUWAS_N} abu_nuwas + {CHEAP_VARIANT_OTHER_N} other "
+        f"(seed=43, persisted at config/eval_pool_25.json)",
+        pool_25, tokens_25,
     )
+
+    hard_cap = 10.00
+    three_model_low = result_25["cost_openai"] + result_25["cost_google_est_low"] + result_25["cost_anthropic"]
+    three_model_est_high = result_25["cost_openai"] + result_25["cost_google_est_high"] + result_25["cost_anthropic"]
+    three_model_cfg = result_25["cost_openai"] + result_25["cost_google_cfg"] + result_25["cost_anthropic"]
+    worst_case = max(three_model_low, three_model_est_high, three_model_cfg)
+    print(f"\n{'=' * 78}\nHARD CAP CHECK (25-poem pool, 3 models: GPT-5.4-mini + Gemini + Claude Sonnet 4.6)\n{'=' * 78}")
+    print(f"  Gemini @ ESTIMATE_LOW:          ${three_model_low:,.2f}")
+    print(f"  Gemini @ ESTIMATE_HIGH:         ${three_model_est_high:,.2f}")
+    print(f"  Gemini @ project config.py rate: ${three_model_cfg:,.2f}")
+    print(f"  Worst case across all 3 Gemini pricing scenarios: ${worst_case:,.2f}")
+    print(f"  User hard cap: ${hard_cap:,.2f}")
+    if worst_case > hard_cap:
+        print(f"  *** WORST CASE EXCEEDS HARD CAP (${worst_case:,.2f} > ${hard_cap:,.2f}) *** "
+              f"STOP — must ask user before proceeding.")
+    else:
+        print(f"  Worst case is within the hard cap — OK to proceed to step 3/4 without re-asking "
+              f"on cost grounds alone.")
 
     print(f"\n{'=' * 78}\nCOMPARISON WITH docs/phase4/FULL_COST_MODEL.md\n{'=' * 78}")
     print("FULL_COST_MODEL.md's D4a (23 subtypes, 1 call/poem, no reasoning) priced the FULL")

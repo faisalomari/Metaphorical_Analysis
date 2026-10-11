@@ -1016,3 +1016,97 @@ this session, re-confirmed here).
 `runner.py --confirm`. Appending this entry, then committing and pushing `experiments/phase4_e1_v2/` +
 this log (v1's files and results in `experiments/phase4_e1/` and `results/phase4_e1/` left untouched;
 `phase3_subelements/` and `pilot_3models/` left untouched).
+
+---
+
+## Task: E1 v2 — 25-poem variant, THREE models (GPT-5.4-mini, Gemini, Claude Sonnet 4.6), sets Z/A/B/C, 1 run each, no repeat
+
+**2026-10-11** — New task, 4 steps, explicit no-API-call gate at the end of each of steps 1-2, exactly one
+tiny bounded-cost API call permitted in step 3 (5-token Gemini prompt, cost < $0.001, to verify the Gemini
+key's tier and the real served model id), then STOP for the user's explicit "go" before `runner.py
+--confirm`. Re-read `CLAUDE.md`, this log (both pages), and every file in `experiments/phase4_e1_v2/` (all
+9 files: `e1v2_config.py`, `runner.py`, `dryrun_v2.py`, `prompt_builder.py`, `gt_v2.py`, `parsing_v2.py`,
+`scoring_v2.py`, `unit_checks.py`, `config/prompt_preview_{A,B,C,Z}.txt`) before starting, per instruction.
+
+**Step 1 (no API calls).**
+- Confirmed the requested "25-poem variant (5 abu_nuwas + 20 other, seed=43)" is exactly
+  `e1v2_config.CHEAP_VARIANT_*` / `build_cheap_variant_pool()`, already defined in v2's config — not a new
+  sampling design, just needs to be persisted to a named file with poem ids logged (previously only
+  regenerated on the fly inside `dryrun_v2.py`/`runner.py --pool cheap`, never written to disk).
+- Read `experiments/pilot_3models/providers.py` (`call_anthropic` — `max_tokens=16000` already explicit;
+  `call_openai`) and `experiments/phase3_subelements/providers_fixed.py` directly. Found a real, documented
+  cost bug in `providers.py`'s plain `call_google`: it reads only `usage.candidates_token_count` as output
+  tokens and silently drops Gemini's separate `thoughts_token_count` (internal thinking tokens, billed at
+  the same output rate) — `providers_fixed.py`'s own docstring ties this exactly to a real incident this
+  project already hit (computed cost $0.96, actual AI Studio balance drop ≈$7.5-8). `providers_fixed.
+  call_google_fixed` also sets `thinking_level="minimal"` to keep that hidden-token cost near zero. Decision:
+  for this task's Google calls, use `call_google_fixed` (reused unmodified), not the plain `call_google` —
+  reusing a known fix rather than reintroducing an already-diagnosed bug.
+- Built `experiments/phase4_e1_v2/providers_v2.py` — thin re-export only, no reimplementation: `CALLERS =
+  {"anthropic": providers.call_anthropic, "openai": providers.call_openai, "google":
+  providers_fixed.call_google_fixed}`. This is what makes Claude "runnable" in the v2 runner per the task's
+  instruction — Anthropic's call path already had an explicit `max_tokens=16000` in `providers.py` from
+  Phase 1; nothing provider-specific needed to change, only the runner's import source.
+- Edited `runner.py`: `from providers_v2 import CALLERS` (was `from providers import CALLERS`).
+- Built `build_pool_25.py`: calls `build_candidate_pool()` (reused from `phase4_e1.build_pool`, unchanged)
+  + `build_cheap_variant_pool()` (reused from `e1v2_config`, unchanged), writes
+  `experiments/phase4_e1_v2/config/eval_pool_25.json` with the same shape as v1's `eval_pool.json` (sizes,
+  seed, abu_nuwas/other split, and the full `poems` list with every poem_id/poet_name/title/verse_count/tag)
+  plus an explicit `poem_ids` list for quick auditing.
+- Added `EVAL_POOL_25_PATH` to `e1v2_config.py` and a `"25"` choice to `runner.py`'s `--pool` argument
+  (reads the saved file directly, like `"full"` already does for v1's `eval_pool.json` — not regenerated
+  live on each run, so the exact pool used is fixed and auditable on disk).
+- Updated `dryrun_v2.py` to read the same saved `eval_pool_25.json` file (instead of calling
+  `build_cheap_variant_pool()` live) for its "cheaper variant" table, and added a 3-model
+  (GPT-5.4-mini + Gemini + Claude) total line next to the existing confirmed-pair-only total, since this
+  task's actual run uses all 3 models, not the usual 2-model confirmed pair.
+- `python -m py_compile` on every new/edited module — compiles clean.
+- Verified `runner.py` (no `--confirm`) with `--pool 25 --models anthropic openai google --sets Z A B C`:
+  printed `Planned calls: 3924` (327 verse-units x 4 sets x 3 models) and made **0** API calls, confirming
+  the gate still holds with the new pool/caller wiring.
+
+**Step 2 (no API calls).** Ran `dryrun_v2.py` (edited to read the persisted `eval_pool_25.json` instead of
+regenerating the pool live, and to print a 3-model total + an automated hard-cap check against $10):
+- **25-poem pool, 4 sets (Z/A/B/C), 3 models, 1 run each — 1,308 calls/model, 3,924 calls total.**
+  Total input tokens (1 model, all sets x all verse-units, tiktoken `cl100k_base` approximation, no
+  offline tokenizer exists for any of the 3 real models in this environment — same caveat already flagged
+  in v1/v2's dry-run docstrings): 1,029,105. Output estimated @ Phase 3's real logged 106.2 tokens/decision
+  (GPT-5.4-mini average, applied uniformly per the script's existing, already-flagged methodology):
+  138,910.
+  - GPT-5.4-mini: $1.40
+  - Gemini: $1.29 (ESTIMATE_LOW, 3.6-flash intro pricing) / $2.59 (ESTIMATE_HIGH) / $2.79 (project
+    `config.py` legacy rate)
+  - Claude Sonnet 4.6: $5.17
+  - **3-model total: $7.86 (low) / $9.15 (ESTIMATE_HIGH) / $9.36 (config.py rate) — worst case $9.36,
+    under the user's $10 hard cap.** Proceeding to step 3 without stopping to ask, per the task's own
+    stated threshold (same pattern as the 2026-10-10 E1 v1 $7.95-under-$9 precedent).
+  - For comparison, the unchanged 50-poem pool's 3-model total would be $24.22-$28.85 — well over $10,
+    confirming the 25-poem variant (not the 50-poem one) is the only pool size compatible with this task's
+    cap.
+
+**Step 3 (the ONE permitted API call before confirmation).** Wrote a scratch script (not committed) calling
+`providers_v2.CALLERS["google"]` (i.e. `providers_fixed.call_google_fixed`, reused) with a 5-token system+
+user prompt (`"Reply with exactly: OK"` / `"ping"`), `temperature=0.0`. Purpose: confirm the Gemini API key
+is not still capped at the 20-requests/day free tier that stopped E1 v1 cold (`E1_RESULTS.md`), and capture
+which model id Google's backend actually serves/bills under the `"gemini-3.5-flash"` string this project's
+code requests (per `FULL_COST_MODEL.md`/`dryrun_v2.py`'s existing finding that `gemini-3.5-flash` doesn't
+exist on Google's current pricing page and the string resolves server-side to `gemini-3.6-flash`).
+- **Result: SUCCESS, no 429/quota error.** 8 prompt tokens + 1 candidate token + 0 thinking tokens = 9
+  total — cost ≈$0.00001 at any of the 3 pricing scenarios, negligible. The response object's own
+  `model_version` field reads **`gemini-3.6-flash`**, confirming `FULL_COST_MODEL.md`/`dryrun_v2.py`'s
+  prior inference directly from the API's own metadata (not just from a past error body): the code
+  requests `"gemini-3.5-flash"`, Google's backend actually serves and bills `gemini-3.6-flash`. Separately,
+  the call succeeding at all (no `RESOURCE_EXHAUSTED`/`429`) is itself evidence the key is no longer
+  capped at the 20-req/day free tier that stopped E1 v1's Google calls after 8/150 — i.e. the key now
+  appears to be on a billing-enabled tier, consistent with what this task asked to verify. Scratch test
+  script was written to the session scratchpad (not committed — one-off verification, no new reusable
+  module needed since `providers_v2.CALLERS["google"]` already does the same call for the real run; the
+  only addition the scratch script needed was reading `resp.model_version`, which `call_google_fixed`
+  itself doesn't surface since it only needs tokens, not the model id, for Phase 3's own purposes).
+
+**Step 4 — STOP.** No further API calls made. Cost table printed above (step 2); hard-cap check passed
+($9.36 worst case, within the $10 cap) but the user's instruction was to stop and print the table regardless,
+not just on a cap breach — doing so here. Awaiting the user's explicit "go" before running
+`experiments/phase4_e1_v2/runner.py --confirm --pool 25 --models anthropic openai google --sets Z A B C`.
+Committing and pushing `experiments/phase4_e1_v2/{providers_v2.py,build_pool_25.py,runner.py,dryrun_v2.py,
+e1v2_config.py,config/eval_pool_25.json}` + this log next.

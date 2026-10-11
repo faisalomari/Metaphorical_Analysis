@@ -9,7 +9,13 @@ much larger; see dryrun_v2.py before running this for real.
 Usage:
     python runner.py                  # dry listing only (no API calls)
     python runner.py --confirm        # REAL API CALLS - requires --confirm
-    python runner.py --confirm --pool cheap   # use the 25-poem cheaper variant
+    python runner.py --confirm --pool 25      # use the persisted 25-poem pool
+                                               # (config/eval_pool_25.json, poem
+                                               # ids logged there; built by
+                                               # build_pool_25.py)
+    python runner.py --confirm --pool cheap   # same 25-poem design, but
+                                               # regenerated on the fly instead
+                                               # of read from disk (legacy)
     python runner.py --confirm --sets Z A
 
 Resumability: a cell already in run_manifest.json with no error is skipped
@@ -27,10 +33,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from e1v2_config import (  # noqa: E402
-    E1V1_EVAL_POOL_PATH, E1V1_DIR, PILOT_DIR, RESULTS_DIR, ROOT, RUN_MODELS,
-    SET_NAMES, TEMPERATURE, build_cheap_variant_pool,
+    E1V1_EVAL_POOL_PATH, E1V1_DIR, EVAL_POOL_25_PATH, PILOT_DIR, RESULTS_DIR,
+    ROOT, RUN_MODELS, SET_NAMES, TEMPERATURE, build_cheap_variant_pool,
 )
 from prompt_builder import build_messages  # noqa: E402
+from providers_v2 import CALLERS  # noqa: E402
 
 from dotenv import load_dotenv  # noqa: E402
 load_dotenv(ROOT / ".env")
@@ -42,7 +49,6 @@ from build_pool import build_candidate_pool  # noqa: E402
 
 if str(PILOT_DIR) not in sys.path:
     sys.path.insert(0, str(PILOT_DIR))
-from providers import CALLERS  # noqa: E402
 from config import MODELS  # noqa: E402
 
 QUOTA_ERROR_MARKERS = ("429", "RESOURCE_EXHAUSTED", "quota")
@@ -51,6 +57,8 @@ QUOTA_ERROR_MARKERS = ("429", "RESOURCE_EXHAUSTED", "quota")
 def load_pool(which: str) -> list:
     if which == "full":
         return json.loads(E1V1_EVAL_POOL_PATH.read_text(encoding="utf-8"))["poems"]
+    if which == "25":
+        return json.loads(EVAL_POOL_25_PATH.read_text(encoding="utf-8"))["poems"]
     if which == "cheap":
         return build_cheap_variant_pool(build_candidate_pool())
     raise ValueError(which)
@@ -167,7 +175,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--sets", nargs="+", default=None, choices=SET_NAMES)
     parser.add_argument("--models", nargs="+", default=None, choices=["anthropic", "openai", "google"])
-    parser.add_argument("--pool", default="full", choices=["full", "cheap"])
+    parser.add_argument("--pool", default="full", choices=["full", "cheap", "25"])
     parser.add_argument("--out-dir", default=None)
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--confirm", action="store_true",

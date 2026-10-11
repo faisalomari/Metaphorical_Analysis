@@ -30,6 +30,9 @@ RESULTS_DIR = ROOT / "results" / "phase4_e1_v2"
 E1V1_EVAL_POOL_PATH = E1V1_DIR / "config" / "eval_pool.json"
 E1V1_EXAMPLE_SETS_PATH = E1V1_DIR / "config" / "example_sets.json"
 
+# This module's own persisted 25-poem pool (build_pool_25.py writes this).
+EVAL_POOL_25_PATH = CONFIG_DIR / "eval_pool_25.json"
+
 POET_NAME = "أبو نواس"
 SUBTYPE_FOCUS = "استعارة فعل"  # exact match against poem_json["annotations"][i]["subtype"]
 PARENT_ELEMENT = "مجاز (Trope) — فرع الاستعارة"  # subtype_defs.SUBTYPE_DEFS[SUBTYPE_FOCUS]["parent"]
