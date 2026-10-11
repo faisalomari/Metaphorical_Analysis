@@ -1343,3 +1343,53 @@ both edited/new files — clean.
     2), أبو نواس split (n=5) indicative only, verse-level criterion supplementary/diagnostic only per
     CLAUDE.md rule 4, actual served Gemini model (`gemini-3.6-flash`) and actual total cost ($10.5680)
     both stated explicitly.
+
+---
+
+**2026-10-11 (new task)** — Build a single self-contained HTML report (docs/phase4/E1_V2_REPORT.html) consolidating E1 v2 results, prompts, examples, stats, cost, caveats. No API calls, no edits outside new report files.
+- Read CLAUDE.md, docs/phase4/E1_V2_RESULTS.md, SESSION_LOG.md tail, results/phase4_e1_v2/analysis_report.json (structure + spot-checked numbers), run_manifest.json (schema), experiments/phase4_e1_v2/{prompt_builder.py,e1v2_config.py,config/example_sets.json,config/prompt_preview_{Z,A,B,C}.txt}.
+- Confirmed docs/phase4/E1_V2_SAMEPOET.md does NOT exist (will note as pending in the report).
+- Confirmed example_sets.json reused from experiments/phase4_e1/config/example_sets.json (v1), not a v2-local file; prompt_preview_A/B/C.txt byte-match the Example 2/3 text built from it.
+- Confirmed FULL_COST_MODEL.md pricing: Claude Sonnet 4.6 $3/$15 per MTok, GPT-5.4-mini $0.75/$4.50, Gemini $1.50/$9.00 (config.py rate, the one actually used for billing/cap checks); gemini-3.5-flash requested but served+billed as gemini-3.6-flash (confirmed via response.model_version); free-tier 429 incident and later 402 prepay-depleted incident both documented in SESSION_LOG.md.
+- Current HEAD: adf7fdd (top up E1 v2 to full 3,924/3,924 cells; add E1_V2_RESULTS.md analysis).
+- Next: write scripts/build_e1v2_report.py to generate docs/phase4/E1_V2_REPORT.html from these sources, then verify numbers/prompts/RTL, then commit+push.
+
+---
+
+**2026-10-11 (new task) — same-poet check (Abu Nuwas vs. other poets), using ONLY existing E1 v2
+results, no API calls.** Read CLAUDE.md, docs/phase4/E1_V2_RESULTS.md, this log's tail, and
+experiments/phase4_e1_v2/{scoring_v2.py,analyze_v2.py,e1v2_config.py,gt_v2.py,config/eval_pool_25.json}.
+Did not touch v1 (`phase4_e1/`), `phase3_*`, or `pilot_3models/`.
+- Confirmed the premise: all three few-shot example sets (A/B/C, `experiments/phase4_e1/config/
+  example_sets.json`, reused unchanged by v2) are sourced from poems `16251`/`17234`/`21337`, all by
+  poet أبو نواس (verified via `ali_poems_io.load_poem_json` — `poet_name` field), all excluded from the
+  25-poem eval pool. So "examples drawn from Abu Nuwas" is accurate, not an assumption.
+- `results/phase4_e1_v2/analysis_report.json` already contains per-poem TP/FP/FN for every
+  (model, criterion, set) cell and the overall/abu_nuwas/other pooled splits — reused directly for
+  report §1 rather than rescoring. Wrote a new scratch script (`experiments/phase4_e1_v2/
+  samepoet_analysis.py`, no API calls, reads only the existing manifest/report + `gt_v2.py` for GT
+  density) to compute what the existing report does NOT have: (a) GT-span density per group, (b) a
+  bootstrap 95% CI for gain-over-Z computed by resampling poems WITHIN each group only (not the full
+  pool), and (c) a bootstrap CI for the difference of those two gains (abu_nuwas gain minus other gain)
+  — the actual same-poet-effect test. Output persisted to `results/phase4_e1_v2/
+  samepoet_analysis.json`. `python -m py_compile` clean; script re-run after copying into the repo
+  (path made relative via `Path(__file__)`, no change in output) to confirm reproducibility.
+- **Caught and fixed a transcription error before finalizing**: when first hand-drafting §1's markdown
+  table I pasted the strict-criterion row's TP/FP/FN into 2 of the 24 token-criterion rows (openai set C
+  abu_nuwas/other, google set A abu_nuwas/other). Caught it by regenerating the whole table
+  programmatically straight from `analysis_report.json` instead of trusting the hand-copy, and diffed
+  the two — corrected values: openai/token/C/abu_nuwas TP=4,FP=11,FN=32,F1=0.157 (not 3/12/33/0.118,
+  which was the strict row); google/token/A/abu_nuwas TP=8,FP=17,FN=28,F1=0.262 (not 7/18/29/0.230,
+  also the strict row), plus their matching `other`-split rows. Verified the gain-over-Z numbers in §3
+  were unaffected (computed by the script directly from the real per-poem dicts, never from the
+  hand-table), and the per-poem table in §4 (also script-generated) was unaffected too.
+- **Result**: 17 of 18 model×criterion×set (A/B/C) comparisons of gain(abu_nuwas) vs. gain(other) are
+  not significant (bootstrap 95% CI straddles zero); the one significant cell (Claude, set C, strict
+  and token) is negative — opposite the hypothesis, and traced to one poem (`9078`) collapsing to F1=0
+  for 2 of 3 models at set C. Confound check: GT density only +14% higher for Abu Nuwas (0.610 vs 0.534
+  spans/verse); baseline Z-set F1 is actually *lower* for Abu Nuwas on Claude/GPT and *higher* on
+  Gemini — no consistent easier/harder confound. Plain answer: **no evidence that Abu-Nuwas-sourced
+  examples help more on Abu Nuwas poems**, stated as indicative-only given n=5 poems, 1 run/cell.
+- Wrote `docs/phase4/E1_V2_SAMEPOET.md` (5 sections per the user's spec: per-model/set TP/FP/FN/P/R/F1
+  by group, confound check, gain-over-Z with CIs, per-poem table, plain answer) and
+  `experiments/phase4_e1_v2/samepoet_analysis.py`. Committing and pushing next.
