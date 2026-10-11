@@ -888,3 +888,131 @@ final output asks for.
 **Step 6 — wrote `docs/phase4/FULL_COST_MODEL.md`** (Tables 1-4 + full assumption/estimate-vs-verified
 labeling throughout, per the task's explicit "mark every number" instruction). No API calls anywhere in
 this task. Committing and pushing next.
+
+---
+
+## Task: rebuild E1 as E1 v2 on the Phase 3 subtype-level prompt, build + dry-run only, STOP before any API call
+
+**2026-10-11** — New task: `docs/phase4/PROMPT_INVENTORY.md` established that E1 v1
+(`experiments/phase4_e1/`) reused `pilot_3models.prompts.build_system_message()` unmodified — old
+terminology ("Kenning"/"Antonymy"), TEST-poem-leaking element examples. Rebuild it as a new,
+separate design (E1 v2) on top of Phase 3's subtype-level prompt instead. Explicit instructions: v1's
+files/results stay untouched (its $1.28 GPT result is labeled "run on old Phase 1 prompt", not
+reinterpreted); do not edit `phase3_subelements/` or `pilot_3models/` — only import from them; new code
+goes under `experiments/phase4_e1_v2/` and `results/phase4_e1_v2/`; **no real API calls anywhere in this
+task** — build, unit-check, dry-run cost, then STOP at the cost gate. Re-read `CLAUDE.md`, `GLOSSARY.md`,
+`docs/phase4/{PROMPT_INVENTORY,E1_RESULTS,FULL_COST_MODEL}.md`, and all of `experiments/phase4_e1/` +
+the 6 named `phase3_subelements/` files in full before writing anything (all already read earlier in
+this session, re-confirmed here).
+
+**Design decisions made/confirmed before coding** (per the task's own agreed design, not improvised):
+- Subtype: استعارة فعل (parent مجاز/Trope) — same subtype E1 v1 already focused on, continuity with the
+  existing example sets.
+- Base prompt: `phase3_subelements.subtype_prompts.SYSTEM_TEMPLATE` + `ANALYSIS_INSTRUCTIONS`, schema
+  `{exists, appearance, reasoning}`, **one call per verse-unit** (a single verse — the same per-verse
+  granularity `phase4_e1/scoring.py`'s own `majority_exists_and_appearance` already keys on, not a
+  multi-verse annotation span) — a real shape change from v1's one-call-per-whole-poem design, confirmed
+  explicitly in `runner.py`'s own docstring rather than silently kept the same.
+- Example sets A/B/C: reuse the SAME 3 sets from `experiments/phase4_e1/config/example_sets.json`
+  (2 examples each, seed=42) unchanged — not redrawn — injected as "Example 2"/"Example 3" slots in
+  `fewshot_prompts.SYSTEM_TEMPLATE_FEWSHOT`'s exact shape, Example 1 = the original `subtype_defs`
+  definition example (same for all of A/B/C/Z). An example verse carrying >1 annotation span (e.g. set
+  B's verse 4 has 3) is joined into one note per slot (`prompt_builder._format_example_verse`) since the
+  fewshot template has exactly one note slot per example verse — a necessary adaptation, not a silent
+  drop of data.
+- New set Z: Phase 3's *original* 1-example prompt (`SYSTEM_TEMPLATE`, no fewshot block at all) — the
+  zero-extra-examples baseline the task asked for, to see whether the fewshot examples help at all versus
+  not having them.
+- Eval pool: reuse `experiments/phase4_e1/config/eval_pool.json` unchanged (50 poems = 10 abu_nuwas + 40
+  other, seed=43, already excludes the 3 example-source poems, the 5 frozen Phase 1 poems, and the
+  no-text poem 28601).
+- Ground truth: exact match on `poem_json["annotations"][i]["subtype"] == "استعارة فعل"`, verse-level
+  (`gt_v2.gt_spans_for_subtype`), scored both span-strict and token-overlap on `appearance`
+  (`pilot_3models.span_matching.best_match`, reused unchanged) — precision AND recall AND F1 are all
+  well-defined here (unlike `phase3_subelements/score_subtypes.py`'s recall-only design, since every row
+  fed there was already a known GT-positive; this pilot asks about every verse, GT-positive or not).
+- Models: Gemini + GPT-5.4-mini (same confirmed pair as v1); Claude Sonnet 4.6 costed in the dry-run only,
+  not run. 1 run per set per model (no second run, same frozen-design limitation v1 had, flagged the same
+  way).
+
+**Step 1 — built the modules** (`experiments/phase4_e1_v2/`, nothing in `phase3_subelements/` or
+`pilot_3models/` touched):
+- `e1v2_config.py` — frozen constants + `build_cheap_variant_pool()` (the 25-poem cheaper-variant sampler,
+  5 abu_nuwas + 20 other, seed=43, drawn fresh from the same 158-poem candidate pool v1's `build_pool.py`
+  already builds — imported via `phase4_e1.build_pool.build_candidate_pool`, not reimplemented).
+- `gt_v2.py` — verse-level ground truth for exactly one subtype, reusing `phase4_e1.ali_poems_io.
+  load_poem_json` unchanged.
+- `prompt_builder.py` — `build_system_message(set_name)` for Z/A/B/C (Z = `subtype_prompts.SYSTEM_TEMPLATE`
+  filled with the subtype's own definition; A/B/C = `fewshot_prompts.SYSTEM_TEMPLATE_FEWSHOT` with Example
+  2/3 drawn from v1's `example_sets.json`); `build_user_message(verse_text)` = `subtype_prompts.
+  ANALYSIS_INSTRUCTIONS.format(verse=...)`, identical across all 4 sets.
+- `parsing_v2.py` — parses the new single-JSON-object-per-call schema (`{"exists","appearance",
+  "reasoning"}`), distinct from `pilot_3models.parsing.parse_response`'s 9-key-JSONL schema (that parser
+  does not apply to v2's call shape at all).
+- `scoring_v2.py` — span-level strict + token-overlap scoring (raw TP/FP/FN, `pilot_3models.analyze.prf1`
+  + `span_matching.best_match`, both reused unchanged), pooled overall/abu_nuwas/other, bootstrap 95% CI
+  over poems (2,000 resamples) for every pairwise `(F1_set_i - F1_set_j)` across Z/A/B/C (6 pairs, not
+  just A/B/C's 3), and per-poem paired-difference sign counts — same CLAUDE.md-rule-2 noise check v1's
+  scoring.py already did, extended to the 4th set.
+- `runner.py` — resumable (skip any `(set, poem_id, verse_no, provider)` cell already manifest-recorded
+  with no error, `--force` to redo), `--pool {full,cheap}` to pick the 50- or 25-poem design, refuses any
+  API call without `--confirm` (dry listing only otherwise), `load_dotenv(ROOT / ".env")` at import time
+  (v1's own dotenv bug, already fixed there, replicated correctly here from the start rather than
+  reintroducing it), stops immediately (no retry loop) on a 429/quota-shaped error message or 5
+  consecutive errors of any kind, per the explicit task instruction.
+- `dryrun_v2.py` — the cost gate itself (below).
+
+**Step 2 — unit checks, NO API calls** (`unit_checks.py` + `prompt_builder.py`'s own `__main__`):
+- Rendered the full system message for all 4 sets and diffed A vs B and A vs C — confirmed the only
+  difference between A/B/C is the 2 example-verse lines (Example 2/3), everything else byte-identical;
+  printed in this log's companion chat output.
+- Verified **0 overlap** between the 50-poem eval pool and the 3 example-source poems (16251/17234/21337).
+- Verified GT parsing reproduces the exact per-poem استعارة فعل verse sets already confirmed independently
+  in this session's 2026-10-10T19:15 entry (16251: {1,2,3,5}; 17234: {3,4}; 21337: {1,2,4,6}) — matches
+  exactly. Also confirmed all 50 eval-pool poems' GT parses cleanly with no size mismatch (422 total
+  استعارة فعل GT instances across the pool).
+- Ran the scorer on 3 fake verse-unit responses (a true hit matching the real GT span at poem 16251 verse
+  1, a true-but-wrong-span miss, and an exists=false) against `span_matching.best_match` directly —
+  confirmed TP/FP/FN logic resolves correctly without any `run_manifest.json` or API call.
+- `python -m py_compile` on every new module — all compile clean.
+
+**Step 3 — DRY RUN cost (`dryrun_v2.py`), no API calls**:
+- Real input-token count (tiktoken `cl100k_base`, flagged as an approximation, same caveat v1's
+  `dryrun.py` already used) for every real (set, poem, verse) prompt — 1,010 verse-units x 4 sets = 4,040
+  distinct prompts over the unchanged 50-poem pool.
+- **Gemini model-id finding** (the task's explicit question): `pilot_3models.config.MODELS["google"]
+  ["model_id"]` = `"gemini-3.5-flash"` — and `providers.py`/`providers_fixed.py` both call exactly that
+  string, no divergence in the code. But E1 v1's real 429 quota-error body (`E1_RESULTS.md`, this log's
+  own 2026-10-10 Step-2 entry) reported the quota wall under `generativelanguage.googleapis.com/
+  generate_content_free_tier_requests ... for model gemini-3.6-flash` — Google's backend served/billed
+  the request under the **3.6-flash** identity, not 3.5-flash's, even though the code asked for
+  "gemini-3.5-flash" by name (consistent with `FULL_COST_MODEL.md` §0.1's independent finding that
+  `gemini-3.5-flash` doesn't exist on Google's current official pricing/models pages at all — "3.5-flash"
+  has become an alias Google resolves to 3.6-flash server-side). **Answer: the code requests
+  gemini-3.5-flash; the model actually served and billed is gemini-3.6-flash; gemini-3.6-flash's pricing
+  applies, not the legacy 3.5-flash estimate this project's `config.py` has used throughout.**
+  A `WebSearch` this session for gemini-3.6-flash's current rate found genuinely conflicting cached
+  copies of Google's own pricing page: $0.75/$3.75 per MTok (intro pricing through 2026-12-31, several
+  independent sources) vs. $1.50/$7.50 (one cached copy + one aggregator) — reported both as
+  ESTIMATE_LOW/ESTIMATE_HIGH in the dry-run output rather than picking one, alongside `config.py`'s
+  existing $1.50/$9.00 legacy figure for continuity with every prior Phase 4 cost doc.
+- **Calls**: 1,010 verse-units x 4 sets x 2 models = **8,080 calls** (50-poem pool); 327 verse-units x 4 x
+  2 = **2,616 calls** (25-poem cheaper variant, 5 abu_nuwas + 20 other, seed=43, drawn fresh from the same
+  158-poem candidate pool).
+- **Cost, 50-poem pool** (confirmed pair, 1 run each): GPT-5.4-mini $4.30; Gemini $3.98-$8.61 depending on
+  which of the 3 pricing scenarios above is real; **confirmed-pair total $8.29-$12.91** — both the
+  low-Gemini-estimate total ($8.29) and the legacy-config-rate total ($12.91) bracket the user's
+  previously-stated $9 hard cap from v1's run, flagged explicitly rather than picked silently. Claude
+  Sonnet 4.6 costed only: $15.93.
+- **Cost, 25-poem cheaper variant**: GPT-5.4-mini $1.40; Gemini $1.29-$2.79; confirmed-pair total
+  $2.69-$4.19; Claude (costed only) $5.17.
+- Compared against `docs/phase4/FULL_COST_MODEL.md`'s D4a/D4b (23-subtype, all-verse-taxonomy, full-poem
+  calls): D4a priced ALL 23 subtypes at ~49,000 output tokens/poem ($36.38 GPT-5.4-mini, 161 poems); this
+  design prices ONE subtype at Phase 3's real 106.2-token/decision output size, per-verse — not directly
+  comparable to D4a (different scope and granularity), stated explicitly in the script's own output
+  rather than implying a false apples-to-apples comparison.
+
+**STOP** — no API call made anywhere in this task. Awaiting the user's explicit go-ahead before running
+`runner.py --confirm`. Appending this entry, then committing and pushing `experiments/phase4_e1_v2/` +
+this log (v1's files and results in `experiments/phase4_e1/` and `results/phase4_e1/` left untouched;
+`phase3_subelements/` and `pilot_3models/` left untouched).
