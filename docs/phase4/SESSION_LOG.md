@@ -784,3 +784,107 @@ changes anywhere in this task.
   prompt, not as evidence about the corrected-prompt design.
 - No code changes, no files touched besides this log and `PROMPT_INVENTORY.md`. Committing and pushing
   next.
+
+---
+
+## Task: `docs/phase4/FULL_COST_MODEL.md` — decision-ready full cost model, no API calls
+
+**2026-10-11** — New task: a comprehensive, decision-ready cost model covering (1) current, verified
+provider pricing, (2) real token-usage facts from this project's own logs, (3) cost per call/poem/design
+over the full eligible-poem pool, and (4) the one-shot/few-shot/current/full-taxonomy design comparison
+(D1-D4). Explicit instruction: **no LLM API calls** — local files, arithmetic, and public pricing pages
+only. Re-read `CLAUDE.md` first per instruction.
+
+**Step 1 — reading.** Read `docs/phase4/{COST_PLAN.md,INFO_REPORT.md,E1_RESULTS.md,SESSION_LOG.md}` in
+full (SESSION_LOG required two `Read` calls, 703 lines total), `PROJECT_STATE.md` in full (two calls, 465
+lines), `data/ali_poems/manifest.csv` (167 rows), `results/phase3_crossmodel/summary.md` (the 25-subtype
+taxonomy table), and `experiments/phase4_e1/e1_config.py`.
+
+**Step 2 — pool arithmetic (local, `csv` module).** Computed exact poem/verse counts for every exclusion
+combination from `manifest.csv` directly (not transcribed from `COST_PLAN.md`): 167 total scraped poems
+(3,470 verses) -> 166 after dropping poem 28601 (no verse text; verse_count for that poem is already 0, so
+the verse total doesn't change) -> 161 after also dropping the 5 already-used Phase 1 poems (3,246 verses)
+-> 158 after also dropping the 3 E1 example-source poems (3,228 verses). Adopted **161 poems / 3,246
+verses** as the default "eligible pool" for designs that don't need few-shot examples (D3, D4a, D4b) and
+**158 poems / 3,228 verses** for designs that do (D1, D2) — stated as an explicit, overridable assumption
+in the doc rather than silently picking one.
+
+**Step 3 — pricing verification (web, public pages only, no API calls).** `WebSearch` + `WebFetch` against
+each provider's own pricing/model pages:
+- OpenAI (`developers.openai.com/api/docs/models/gpt-5.4-mini` via WebSearch synthesis; direct WebFetch of
+  `openai.com/api/pricing/` returned **HTTP 403**, so the model-page route was used instead): $0.75/$4.50
+  per MTok confirmed, matches this project's own `config.py`. Tier 1 rate limits (500 RPM / 500,000 TPM /
+  5,000,000-token batch queue) came back from the same official model-page route — treated as
+  **verified**. Cached-input ($0.075/MTok) and Batch (~50% off) figures came only from third-party
+  aggregators, not a fetched OpenAI page in this session — marked **unverified/estimate**.
+- Google (`WebFetch` on `ai.google.dev/gemini-api/docs/pricing` and `.../docs/models`): **real, reportable
+  finding — `gemini-3.5-flash` is not listed on either current official page.** The current Flash lineup
+  is 3.5 Flash-Lite, 3.6 Flash (stable), 3.8 Flash (stable, newest), 3-flash-preview, and 2.5-flash
+  (legacy/grandfathered). `gemini-3.5-flash`'s $1.50/$9.00 pricing (this project's `config.py` value,
+  repeated by every third-party aggregator found) **could not be confirmed against a live official page
+  this session** — flagged prominently rather than guessed forward. Confirmed from the pricing page: Batch
+  = 50% off standard rates (official, general paid-tier feature); the free-tier 20-requests/day cap this
+  project's own E1 run actually hit (`E1_RESULTS.md`) is the strongest-possible verification of that one
+  number, since it's from the project's own failed API responses, not a page.
+- Anthropic (`WebFetch` on `anthropic.com/pricing` -> 301 redirect -> `claude.com/pricing`, followed):
+  Claude Sonnet 4.6 confirmed **$3/$15 per MTok**, listed under "Legacy models" (i.e. still priced and
+  billable, not removed). Prompt caching (5-min TTL): read $0.30/MTok, write $3.75/MTok — confirmed on the
+  same page. 1-hour cache tier: not listed on this page, not confirmed. Batch: "save 50%" confirmed on the
+  same page.
+- Reasoning/thinking-token billing: grepped the whole repo for `reasoning_tokens`/`thinking_tokens`-shaped
+  fields — found in exactly 2 files (`phase3_subelements/providers_fixed.py`, `run_subtype_check.py`), and
+  neither actually logs a numeric reasoning-token count anywhere in this project's stored manifests/JSON
+  (confirmed by a second grep over `results/**/*.json` — zero hits). This project has **never actually
+  billed or measured a reasoning/thinking-token line item for any of the 3 models** — stated explicitly in
+  the doc rather than assumed. Billing convention (reasoning tokens counted as ordinary output tokens) is
+  each provider's own well-documented general practice, not something re-verified against a live page this
+  session for these 3 specific model IDs — marked accordingly.
+- Rate-limit search for Gemini's paid tier (tier 1 RPM/RPD) came back inconclusive (conflicting forum
+  posts, no authoritative number retrieved) — stated as "not retrieved, check AI Studio console" rather
+  than guessed.
+
+**Step 4 — real token facts from local logs/code (no network, no API calls).**
+- Pulled `INFO_REPORT.md`'s already-computed 5-poem-per-provider (verses, in_tokens, out_tokens) table and
+  fit `tokens = a + b*n_verses` (NumPy `polyfit`, not the dollar-denominated fit `COST_PLAN.md` used) for
+  all 3 providers, separately for input and output — this isolates the frozen whole-poem design's **fixed
+  per-call token overhead** (4 element definitions + 19 baked-in examples + instructions) from its
+  **per-verse marginal token cost**, directly from real logged usage.
+- Computed real averages from `results/phase4_e1/run_manifest.json` over all error-free records: GPT-5.4-mini
+  (150/150 succeeded) avg 2,772 in / 1,438 out per call; Gemini (only 8/150 succeeded, free-tier wall) avg
+  2,886 in / 1,978 out — both on E1's actual pool (avg 20.2 verses/poem), both include the base 4-element
+  system message **plus** the 2-example few-shot addition.
+- Measured exact token sizes of real prompt components with `tiktoken`'s `cl100k_base` encoding (the only
+  local-tokenizer option available — explicitly not a true tokenizer for any of the 3 real models, flagged
+  as an approximation in the doc, same caveat `experiments/phase4_e1/dryrun.py` already logged for this
+  exact limitation): `pilot_3models.prompts.build_system_message()` output = 2,226 tokens (4 elements + 19
+  examples); `fewshot_examples.build_fewshot_block()` for sets A/B/C = 283/358/291 tokens (avg 311); 
+  `phase3_subelements.subtype_prompts.SYSTEM_TEMPLATE` filled per subtype, averaged over all 25 entries in
+  `SUBTYPE_DEFS` = 313 tokens (227-428 range), of which 126 tokens is the shared scaffold (measured with an
+  empty definition) and therefore ~187 tokens is the average per-subtype definition content alone;
+  `ANALYSIS_INSTRUCTIONS` boilerplate = 245 tokens; Phase 3's real logged average output per
+  (subtype,verse) decision (`summary_openai.json`: 121,119 output tokens / 1,140 calls) = **106.2
+  tokens/decision**, GPT-5.4-mini only, includes the required 1-3-sentence Arabic reasoning field.
+- For the D4 reasoning-token mid-scenario: confirmed via grep that no Phase 2/3/4 manifest anywhere has a
+  literal `reasoning_tokens` field, but Phase 2 Config C's real logged `stage1_output_tokens` IS a
+  real measured cost of one full free-form Arabic reasoning pass per verse (Fable 5, no schema
+  constraint) — averaged `(39306+38030)/2/23 verses` = **1,681 tokens/verse**, used as the mid-scenario
+  anchor per the task's explicit instruction to base it on Config C's logs.
+- Noted the taxonomy-size discrepancy rather than silently resolving it: the task's instruction says "23
+  subtypes"; this project's own code has 25 entries in `subtype_defs.SUBTYPE_DEFS` and 28 files under
+  `data/ground_truth/by_subtype/` (23 "tested" + ~5 thin/extra, per `INFO_REPORT.md`'s own framing). Used
+  **23** throughout per the explicit task instruction, flagged this discrepancy in the doc itself.
+
+**Step 5 — built the 5 design cost models (D1/D2/D3/D4a/D4b)** from the measured component sizes above (a
+local Python script, not hand arithmetic) — full method, every fixed assumption (per-poem granularity for
+D1/D2 rather than per-verse; D3 reinterpreted as "the current, actually-run whole-poem/all-4-elements
+design" rather than literally decomposed to one element, flagged explicitly as a reinterpretation of the
+task's D3 wording; D4b's 23-subtype split across the 4 element families as an approximate 8/6/5/4
+apportionment) stated in the doc itself, not just here. **Single biggest finding**: D4's literal
+all-23-subtypes x all-verses output token volume (106.2 tokens/decision x 23 subtypes x ~20 verses/poem
+=~49,000 output tokens per poem, before any reasoning-token addition) dominates every other cost term in
+the entire model by roughly 1-2 orders of magnitude — this is the "single biggest cost driver" the task's
+final output asks for.
+
+**Step 6 — wrote `docs/phase4/FULL_COST_MODEL.md`** (Tables 1-4 + full assumption/estimate-vs-verified
+labeling throughout, per the task's explicit "mark every number" instruction). No API calls anywhere in
+this task. Committing and pushing next.
