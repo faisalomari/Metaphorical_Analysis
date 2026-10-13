@@ -1557,3 +1557,86 @@ Dry-listed `runner.py --pool 25 --models anthropic openai google --sets D` (no `
 planned 981 calls (327 x 3), `already_done=3924` -- confirms D is additive-only, Z/A/B/C
 untouched. **STOPPING per CLAUDE.md rule 5 -- awaiting the user's explicit "go" and a hard cap
 (`--max-additional-usd`) before any Step 3 API call.** Committing and pushing Steps 1-2 now.
+Committed `7b87d89`, pushed.
+
+**User go-ahead received**: run **D + D2** (not D alone), hard cap **$6** (estimate $5.2840 for
+654 calls/model; chosen over D-only because D2 is the clean root-diversity-only control given
+the note-completeness confound found in Step 1). Proceeding to Step 3:
+`runner.py --confirm --pool 25 --models anthropic openai google --sets D D2
+--max-additional-usd 6.0` (effective cap = $10.5680 baseline + $6 = $16.5680).
+
+**Step 3 done.** Dry-listed first (no `--confirm`): `--sets D D2` -> 1,962 planned calls
+(654 x 3), `already_done=3924` -- confirmed additive-only before spending anything. Ran for
+real in the background (`run_in_background`, output to a scratch log + a separate polling
+loop watching `run_manifest.json`'s record count against the expected total of 5,886).
+**Completed, 0 errors.** `DONE: plan exhausted`. Final spend this invocation: openai $1.8353,
+google $3.4440, anthropic $10.7338 -- wait, that's cumulative-to-date per `_print_summary`
+(includes Z/A/B/C's prior spend) -- **grand total $16.0131** (within the $16.5680 effective
+cap: $10.5680 baseline + $6 extra). D/D2-only incremental spend = $16.0131 - $10.5680 =
+**$5.4451** (slightly above the $5.2840 dry-run estimate -- real per-call cost varies a bit
+from the Z/A/B/C average the estimate was anchored on, as flagged in `dryrun_D.py`'s
+docstring).
+- **Verified exactly 327/327 cells for every (set, provider)** across all 6 sets (Z/A/B/C/D/D2)
+  x 3 providers = 18 combinations, all 327/327, 0 errors.
+- **Verified identical (poem, verse) coverage**: computed the expected 327-cell
+  `{(poem_id, verse_no)}` set from `config/eval_pool_25.json` + `load_poem_json`, confirmed
+  every one of the 18 (set, provider) combinations' real cells match that expected set exactly
+  -- `ALL MATCH: True`.
+Proceeding to Step 4 (analysis, no further API calls).
+
+**Step 4 done (no API calls).** Wrote `experiments/phase4_e1_v2/analyze_D.py`: scores Z/A/B/C/D/D2
+via `scoring_v2.score_set` (reused unchanged), writes the full report to
+`results/phase4_e1_v2/analysis_report_D.json` (a NEW file -- did not touch the existing
+`analysis_report.json`, which stays Z/A/B/C-only, matching `E1_V2_RESULTS.md`). Computed, per
+model x criterion (verse/strict/token): overall TP/FP/FN/P/R/F1 for all 6 sets, and bootstrap
+95% CIs (per-poem resampling, same `bootstrap_ci_pairwise` as the existing report) for
+D-vs-{A,B,C,Z}, D2-vs-{A,B,C,Z}, and D-vs-D2.
+
+Key numbers (strict/token primary criteria, F1):
+
+| Model | Z | A | B | C | D | D2 |
+|---|---|---|---|---|---|---|
+| Claude strict | 0.193 | 0.257 | 0.263 | 0.212 | 0.251 | **0.297** |
+| Claude token | 0.208 | 0.281 | 0.278 | 0.240 | 0.298 | **0.323** |
+| GPT strict | 0.246 | 0.243 | 0.243 | 0.186 | 0.238 | 0.236 |
+| GPT token | 0.261 | 0.249 | 0.258 | 0.207 | **0.271** | 0.257 |
+| Gemini strict | 0.213 | 0.260 | 0.296 | 0.242 | **0.287** | 0.267 |
+| Gemini token | 0.206 | 0.288 | 0.307 | **0.299** | 0.310 | 0.267 |
+
+D-vs-C (the hypothesis's direct test) is SIG for GPT (both criteria) and Gemini (strict only);
+`ns` for Claude (both) and Gemini (token). D-vs-A and D-vs-B are `ns` for all 3
+models/criteria (6/6) -- D is never statistically distinguishable from A or B, consistent
+with, not proof of, "D restores performance to A/B level." D2-vs-C/A/B is mostly `ns` except
+for Claude, where D2 significantly beats A and C on both criteria and is numerically the best
+set of all 6 for Claude. D-vs-D2 is significant only for Claude/strict (D2 > D), suggesting
+the note-completeness confound inherited from A may be suppressing D's Claude performance
+specifically. Full per-pair CIs and per-poem diff signs in `analysis_report_D.json`.
+
+Writing `docs/phase4/E1_V2_SET_D.md` next with the full tables, plain-language answer, and
+caveats, then committing and pushing.
+
+Wrote `docs/phase4/E1_V2_SET_D.md`: full strict/token/verse tables for all 6 sets per model
+(generated programmatically from `analysis_report_D.json` into a scratch script, not
+hand-transcribed, to avoid the same transcription-error class already documented once in this
+project's history), all D-vs-{A,B,C,Z}/D2-vs-{A,B,C,Z}/D-vs-D2 bootstrap CIs, gain-over-Z
+summary table, the direct D-vs-C hypothesis test, and a plain-language answer: **partial,
+model-dependent support** -- GPT shows D significantly beating C on both criteria (closest to a
+clean confirmation); Gemini shows D beating C on strict only; Claude's D itself never beats C,
+but the confound-free D2 control is the single best-performing set of all 6 for Claude
+(significantly ahead of A/C/Z) -- the opposite pattern from D, pointing at the inherited
+unannotated-span confound as a likely suppressor of Claude's D result specifically. D/D2 are
+never significantly worse than A or B for any model/criterion (12/12 `ns`), but are also not
+uniformly, significantly better either -- not a clean "yes, diversity restores performance."
+Caveats stated explicitly: 1 run/cell/no noise baseline, the example-2 note confound, 25-poem
+pool / wide CIs, n=2-examples-per-set (tests only the 2 specific swaps defined, not a general
+"any diverse pair" claim), TEST corpus unaffected.
+
+**Session complete.** Files touched/added this task: `e1v2_config.py`, `prompt_builder.py`,
+`runner.py` (all edited, additive-only -- see Step 1's diff-verification), `preview_and_diff_D.py`,
+`dryrun_D.py`, `analyze_D.py` (new scripts), `config/prompt_preview_D.txt`,
+`config/prompt_preview_D2.txt` (new previews), `results/phase4_e1_v2/run_manifest.json` (grown
+from 3,924 to 5,886 records, Z/A/B/C's existing 3,924 untouched/unmodified),
+`results/phase4_e1_v2/analysis_report_D.json` (new file; existing `analysis_report.json`
+untouched), `docs/phase4/E1_V2_SET_D.md` (new), this log. No file in `phase4_e1/` (v1),
+`phase3_*`, or `pilot_3models/` was edited. Total project-to-date E1 v2 spend across all 6 sets:
+**$16.0131** (within the user-approved cap). Committing and pushing now.
