@@ -1473,3 +1473,87 @@ traceability), `docs/phase4/_cost_model_v2_step4.json` (Step 4 numbers). This lo
 `docs/phase4/SESSION_LOG.md`. No files outside `docs/phase4/` were created or modified. No code in
 `experiments/` or `results/` was edited. No API call was made to Anthropic, OpenAI, or Google at any point
 in this session.
+
+---
+
+**2026-10-13 (new task) — Set D hypothesis test: does replacing one of Set C's two
+التعقيل (ع-ق-ل root) examples with a different-root example restore performance toward
+A/B?** Read CLAUDE.md, `docs/phase4/E1_V2_RESULTS.md`, this log's tail, all files in
+`experiments/phase4_e1_v2/`, and `experiments/phase4_e1/config/example_sets.json`. Will NOT edit v1
+(`phase4_e1/`), `phase3_*`, `pilot_3models/`, or the existing Z/A/B/C results in
+`results/phase4_e1_v2/run_manifest.json`.
+
+**Set D definition (declared here, fixed before any run)** — built by reading
+`experiments/phase4_e1/config/example_sets.json` programmatically (never retyped):
+- Example 1 = Set C's `examples[0]` (poem 21337, verse 1: «ومترَّفٍ عقل الحَياءُُ لِسانَه
+  فكَلامُه بالوَحْي والإِيماءِ», span «عقل لِسانَه الحَياءُُ», note "استعار \"العقل\" (الربط)
+  للحياء").
+- Example 2 = Set A's `examples[1]` (poem 16251, verse 5: «إِذا امتحن الدُّنْيا لَبيبٌ
+  تكشَّفتْ له عن عَدُوّ في ثِياب صَديقِ», spans «الدُّنْيا لَبيبٌ امتحن» [no analysis note] and
+  «تكشَّفتْ له» [note "تكشف الدنيا"]).
+
+**Set D2 (control, OFF by default, `--include-d2` flag)**:
+- Example 1 = same as D (Set C `examples[0]`).
+- Example 2 = Set B's `examples[1]` (poem 17234, verse 4: «أَكبرُ الأَشياء في أَصـ ـغر عَفْوِ
+  الله يصغَرْ», 3 spans/notes, all "استعارة ميتة" variants).
+
+**Confound noted before running anything**: Set A's example 2 (poem 16251 v5) has ONE span
+(«الدُّنْيا لَبيبٌ امتحن») with an EMPTY analysis note (`"analysis": ""`) — unlike every other
+example across A/B/C, which all carry a non-empty note. So Set D's example 2 is the only
+example in A/B/C/D that is partially unannotated. Exact per-set note-completeness count to be
+computed and reported in Step 1 below (every example has >=1 span; "has a note" means every
+span on that example carries non-empty `analysis`).
+
+**Plan**: Step 1 (no API) — add D/D2 to prompt_builder/config, prove Z/A/B/C previews are
+byte-identical to the existing committed preview files, write `prompt_preview_D.txt`, diff D
+vs A/B/C, report the note-completeness confound count. Step 2 (no API) — dry-run cost for D
+only and D+D2 using the real average cost/call from the existing run_manifest.json (not a
+tiktoken estimate), print options, STOP for explicit "go" + `--max-additional-usd` cap. Step 3
+(after go) — run `--confirm --sets D` (and D2 only if told to), same pool_25/providers_v2/3
+models, stop on 429/quota, verify 327/327 cells per model matching the other sets' poem/verse
+coverage. Step 4 (no API) — `docs/phase4/E1_V2_SET_D.md`: F1/P/R/TP/FP/FN strict+token per
+model for D (and D2) next to Z/A/B/C, bootstrap 95% CI for D-vs-{A,B,C,Z}, gain over Z, plain
+answer to the hypothesis with explicit caveats (1 run, no noise baseline, example-2 note
+confound, 25 poems).
+
+**Step 1 done (no API calls).** Added `SUPPLEMENTARY_SET_NAMES=["D","D2"]` + `ALL_SET_NAMES` +
+`SET_D_SOURCE`/`SET_D2_SOURCE` to `e1v2_config.py` (SET_NAMES/FEWSHOT_SET_NAMES, used by
+`scoring_v2.analyze`/`dryrun_v2`/the original preview generation, left untouched -- D/D2 are
+reachable only through the new names). Extended `prompt_builder.build_system_message` with a
+`_examples_for_set` helper that assembles D's/D2's 2 fewshot examples from the already-loaded
+`v1_sets` dict by `(set, index)` lookup (`D` = C's `examples[0]` + A's `examples[1]`; `D2` = C's
+`examples[0]` + B's `examples[1]`) -- no example text/annotation was retyped anywhere. Widened
+`runner.py`'s `--sets` argparse `choices` from `SET_NAMES` to `ALL_SET_NAMES` (its *default*
+when `--sets` is omitted is still literally `SET_NAMES`, i.e. Z/A/B/C only -- D/D2 need an
+explicit `--sets D`/`--sets D2`).
+
+Wrote `experiments/phase4_e1_v2/preview_and_diff_D.py` and ran it (`--include-d2`):
+- **Verified byte-for-byte**: regenerating Z/A/B/C via `build_system_message` and diffing
+  against the committed `config/prompt_preview_{Z,A,B,C}.txt` -> all 4 "OK...byte-identical".
+  Adding D/D2 did not change A/B/C/Z's prompts.
+- Wrote `config/prompt_preview_D.txt` and `config/prompt_preview_D2.txt`.
+- **Diffs D vs A/B/C**: in every case only the Example 2 and Example 3 lines differ (scaffold,
+  Example 1, and ANALYSIS_INSTRUCTIONS all identical), as designed.
+- **Confound reported**: note-completeness per set's 2 fewshot examples (every span's
+  `analysis` field non-empty) -- **A: 1/2** (poem 16251 v5's span «الدُّنْيا لَبيبٌ امتحن» has
+  `"analysis": ""`), **B: 2/2**, **C: 2/2**, **D: 1/2** (D inherits A's unannotated example
+  verbatim as its Example 2), **D2: 2/2**. So D is NOT a clean swap-one-variable test: it
+  changes both the root-diversity variable (the hypothesis under test) AND introduces a
+  partially-unannotated example that C/B didn't have. D2 (C's example-1 + B's fully-annotated
+  example-2) is the cleaner root-diversity-only control and should be weighted accordingly when
+  interpreting D's result.
+`python -m py_compile` on `e1v2_config.py`, `prompt_builder.py`, `runner.py`,
+`preview_and_diff_D.py`, `dryrun_D.py` -- clean.
+
+**Step 2 done (no API calls).** Wrote `experiments/phase4_e1_v2/dryrun_D.py`: computes REAL
+avg cost/call per provider from `results/phase4_e1_v2/run_manifest.json` (3,924 calls, sets
+Z/A/B/C, 0 errors) -- anthropic $0.005422/call, openai $0.000922/call, google $0.001735/call --
+then projects cost for 327 verse-units x 3 models (the 25-poem pool, same pool as Z/A/B/C):
+- **Option 1 (Set D only)**: anthropic $1.7730, openai $0.3015, google $0.5675 -> **total
+  $2.6420**. New grand total (Z/A/B/C + D): **$13.2100**.
+- **Option 2 (Set D + D2)**: anthropic $3.5460, openai $0.6030, google $1.1350 -> **total
+  $5.2840**. New grand total (Z/A/B/C + D + D2): **$15.8520**.
+Dry-listed `runner.py --pool 25 --models anthropic openai google --sets D` (no `--confirm`):
+planned 981 calls (327 x 3), `already_done=3924` -- confirms D is additive-only, Z/A/B/C
+untouched. **STOPPING per CLAUDE.md rule 5 -- awaiting the user's explicit "go" and a hard cap
+(`--max-additional-usd`) before any Step 3 API call.** Committing and pushing Steps 1-2 now.

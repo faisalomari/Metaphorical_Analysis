@@ -21,7 +21,9 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from e1v2_config import E1V1_EXAMPLE_SETS_PATH, PHASE3_DIR, SUBTYPE_FOCUS  # noqa: E402
+from e1v2_config import (  # noqa: E402
+    E1V1_EXAMPLE_SETS_PATH, PHASE3_DIR, SUBTYPE_FOCUS, SET_D_SOURCE, SET_D2_SOURCE,
+)
 
 if str(PHASE3_DIR) not in sys.path:
     sys.path.insert(0, str(PHASE3_DIR))
@@ -50,6 +52,22 @@ def _format_example_verse(example: dict) -> dict:
     return {"verse_text": example["text"], "note": "; ".join(parts) if parts else "the sub-element is present in this verse"}
 
 
+_SUPPLEMENTARY_SOURCES = {"D": SET_D_SOURCE, "D2": SET_D2_SOURCE}
+
+
+def _examples_for_set(set_name: str, v1_sets: dict) -> tuple:
+    """Returns the (example2_dict, example3_dict) pair for set_name, exactly as
+    build_system_message's fewshot slots need. For A/B/C, straight from v1_sets.
+    For D/D2, assembled from the (set, index) sources in e1v2_config -- i.e. the
+    exact same example dicts v1_sets already holds for C/A/B, never retyped."""
+    if set_name in _SUPPLEMENTARY_SOURCES:
+        src = _SUPPLEMENTARY_SOURCES[set_name]
+        s1, i1 = src["example1"]
+        s2, i2 = src["example2"]
+        return v1_sets[s1]["examples"][i1], v1_sets[s2]["examples"][i2]
+    return tuple(v1_sets[set_name]["examples"])
+
+
 def build_system_message(set_name: str) -> str:
     d = SUBTYPE_DEFS[SUBTYPE_FOCUS]
     if set_name == "Z":
@@ -57,7 +75,8 @@ def build_system_message(set_name: str) -> str:
             parent=d["parent"], name=SUBTYPE_FOCUS, definition_ar=d["definition_ar"], example=d["example"],
         )
     v1_sets = load_v1_example_sets()
-    ex2, ex3 = (_format_example_verse(e) for e in v1_sets[set_name]["examples"])
+    ex2_raw, ex3_raw = _examples_for_set(set_name, v1_sets)
+    ex2, ex3 = _format_example_verse(ex2_raw), _format_example_verse(ex3_raw)
     return SYSTEM_TEMPLATE_FEWSHOT.format(
         parent=d["parent"], name=SUBTYPE_FOCUS, definition_ar=d["definition_ar"], example=d["example"],
         ex2_verse=ex2["verse_text"], ex2_note=ex2["note"],

@@ -46,6 +46,26 @@ EXAMPLE_POEM_IDS = ["16251", "17234", "21337"]
 SET_NAMES = ["Z", "A", "B", "C"]  # Z = zero-extra-examples baseline (Phase 3's original prompt)
 FEWSHOT_SET_NAMES = ["A", "B", "C"]
 
+# Set D (Ta'qeel-homogeneity hypothesis test, added after Z/A/B/C's run was already
+# complete/frozen) and D2 (its control variant). Declared here BEFORE any run, per
+# CLAUDE.md rule 2/6 — kept OUT of SET_NAMES/FEWSHOT_SET_NAMES above so existing code
+# that iterates those two lists (scoring_v2.analyze, dryrun_v2, the original prompt_
+# builder previews) is completely unaffected by D/D2 existing. D/D2 are additive-only:
+# reachable via SUPPLEMENTARY_SET_NAMES / ALL_SET_NAMES and runner.py's --sets flag,
+# never included unless explicitly requested.
+#
+# Example sourcing (built programmatically from phase4_e1 (v1)'s example_sets.json,
+# never retyped -- see prompt_builder.build_system_message):
+#   D  example 1 = Set C's examples[0] (poem 21337 v1, root ع-ق-ل)
+#      example 2 = Set A's examples[1] (poem 16251 v5, different root -- diversity probe)
+#   D2 example 1 = same as D (Set C's examples[0])
+#      example 2 = Set B's examples[1] (poem 17234 v4) -- control for "any 2nd example
+#      from a non-C source helps," not just A's specific verse.
+SUPPLEMENTARY_SET_NAMES = ["D", "D2"]
+ALL_SET_NAMES = SET_NAMES + SUPPLEMENTARY_SET_NAMES
+SET_D_SOURCE = {"example1": ("C", 0), "example2": ("A", 1)}
+SET_D2_SOURCE = {"example1": ("C", 0), "example2": ("B", 1)}
+
 RUN_MODELS = ["google", "openai"]
 ALL_MODELS = ["anthropic", "openai", "google"]
 N_RUNS = 1

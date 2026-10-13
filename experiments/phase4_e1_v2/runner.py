@@ -33,8 +33,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from e1v2_config import (  # noqa: E402
-    E1V1_EVAL_POOL_PATH, E1V1_DIR, EVAL_POOL_25_PATH, PILOT_DIR, RESULTS_DIR,
-    ROOT, RUN_MODELS, SET_NAMES, TEMPERATURE, build_cheap_variant_pool,
+    ALL_SET_NAMES, E1V1_EVAL_POOL_PATH, E1V1_DIR, EVAL_POOL_25_PATH, PILOT_DIR,
+    RESULTS_DIR, ROOT, RUN_MODELS, SET_NAMES, TEMPERATURE, build_cheap_variant_pool,
 )
 from prompt_builder import build_messages  # noqa: E402
 from providers_v2 import CALLERS  # noqa: E402
@@ -247,7 +247,7 @@ def _save(manifest, poem, set_name, poem_id, verse_no, provider, run_result, err
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--sets", nargs="+", default=None, choices=SET_NAMES)
+    parser.add_argument("--sets", nargs="+", default=None, choices=ALL_SET_NAMES)
     parser.add_argument("--models", nargs="+", default=None, choices=["anthropic", "openai", "google"])
     parser.add_argument("--pool", default="full", choices=["full", "cheap", "25"])
     parser.add_argument("--out-dir", default=None)
