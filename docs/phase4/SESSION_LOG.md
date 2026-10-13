@@ -1401,3 +1401,75 @@ Did not touch v1 (`phase4_e1/`), `phase3_*`, or `pilot_3models/`.
 - Visual check in the browser pane: executive summary reads as full sentences (fixed a line-wrap truncation bug in the markdown extraction), prompt blocks render LTR with embedded Arabic terms shaped correctly (fixed an earlier bug that forced the whole mixed-language prompt block RTL), example verse cards render RTL, diff view colorized, copy button writes to clipboard, mobile viewport (375px) readable with tables scrolling horizontally instead of overflowing.
 - No API calls. No files edited outside docs/phase4/E1_V2_REPORT.html, scripts/build_e1v2_report.py, and this log.
 - Committing and pushing next.
+
+---
+
+**2026-10-13** — Task: write `docs/phase4/FULL_COST_MODEL_V2.md` (English) and
+`docs/phase4/FULL_COST_SUMMARY_AR.md` (Arabic), building on the real E1 v2 run
+(`results/phase4_e1_v2/run_manifest.json`, 3,924 calls, 0 errors) instead of E1 v2's own dry-run
+estimate. **No API calls.**
+
+1. Read `CLAUDE.md`, `docs/phase4/FULL_COST_MODEL.md`, `docs/phase4/E1_V2_RESULTS.md`,
+   `results/phase4_e1_v2/run_manifest.json` (too large for a direct Read — queried with a Python script
+   instead), `experiments/phase4_e1_v2/{e1v2_config,providers_v2,dryrun_v2,prompt_builder}.py`,
+   `data/ali_poems/manifest.csv`, `experiments/phase3_subelements/{subtype_defs,subtype_prompts}.py`.
+
+2. **Step 1 — real per-call facts from the manifest.** Wrote a scratch script (in the session
+   scratchpad, not the repo) that loads all 3,924 records, groups by `(provider, set_name)`, and
+   computes mean input/output tokens and cost per call/total, using `pilot_3models/config.py`'s `MODELS`
+   prices. Confirmed `google` usage records carry `thoughts_tokens` separately from `candidates_tokens`,
+   and that **all 1,308 Gemini calls in this real run billed `thoughts_tokens=0`** — the thinking-token
+   risk `providers_fixed.py`'s docstring warns about did not materialize this time. Grand total at the
+   project's "cfg" Gemini rate ($1.50/$9.00) reproduced `E1_V2_RESULTS.md`'s $10.5680 exactly — real
+   evidence that this API key is actually billed at that rate, not either `gemini-3.6-flash` scenario
+   `dryrun_v2.py`'s docstring flagged as more likely.
+
+3. Ran `experiments/phase4_e1_v2/dryrun_v2.py` unmodified (already a no-API-call script) to get its
+   25-poem-pool dry-run estimate, then reproduced its tiktoken input-token total and 106.2-token/decision
+   output assumption inside the scratch script to compute the real-vs-dry-run cost ratio per model on the
+   same 1,308-call basis: Claude 1.37x over, GPT 0.86x, Gemini(cfg) 0.81x.
+
+4. **Step 2 — per-subtype template sizes.** Measured all 25 `SUBTYPE_DEFS` entries' rendered system
+   messages with `tiktoken` `cl100k_base`. Confirmed the 23-vs-25 discrepancy `FULL_COST_MODEL.md`
+   flagged: 2 of the 25 keys (`كناية بسيطة`, `كناية فنية`) share byte-identical generic definition text,
+   leaving 23 substantively distinct definitions.
+
+5. Derived a provider-specific real/tiktoken scale factor per model (real avg input at set Z ÷ tiktoken
+   count of the same prompt), applied to the other 24 subtypes' tiktoken sizes to estimate real-token-
+   equivalent input per subtype (flagged ESTIMATE — anchored on one real subtype, extrapolated to 24
+   never actually sent to any API). Did the same for the few-shot (set B) absolute token overhead per
+   provider, applied uniformly across subtypes (also flagged ESTIMATE).
+
+6. Counted real ground-truth instance counts per subtype from `data/ground_truth/by_subtype/*.xlsx` (28
+   files; 3 have no `SUBTYPE_DEFS` entry and are excluded, consistent with existing code). Found 4
+   subtypes with fewer than 4 ground-truth instances — too few to hold out 2 few-shot examples and still
+   have eval instances left.
+
+7. Recomputed the eligible-poem-pool counts (166/161/158 poems, 3,470/3,246/3,228 verses) fresh from
+   `data/ali_poems/manifest.csv`'s 167 rows — reproduced `FULL_COST_MODEL.md`'s own numbers exactly.
+
+8. **Step 3** — scaled S1 (all-subtype zero-shot) and S2 (all-subtype few-shot-B) to the full pool by
+   summing each subtype's own per-decision cost (not a flat mean x count) over all 25 subtypes x the
+   pool's verse count, per model. Sanity-checked against the mean-x-25 shortcut — matched to float
+   rounding.
+
+9. **Step 4** — computed N>=20/50/100 ground-truth-instance subtype subsets (10/4/1 subtypes), 50- and
+   100-poem stratified samples, and batch API at the already-verified 50% discount. Did not attempt a new
+   live-page price check this session (no API calls, and `FULL_COST_MODEL.md`'s checks were from the
+   previous day) — carried those figures forward with an explicit "not re-checked this session" flag.
+
+10. Assembled 5 packages (cheapest/balanced/thorough/supervisors' full request/budget-fit cuts for $100
+    and $300) from the Step 3/4 numbers, then wrote both deliverables.
+
+11. **Mistake and correction**: the first `Write` call for this log entry replaced this file's entire
+    1,403-line prior history instead of appending, because `Write` always overwrites. Caught immediately
+    before committing (`git status`/`git diff` showed a 1,403-line deletion). Restored the original
+    content from `git show HEAD:docs/phase4/SESSION_LOG.md` and re-applied this entry as an `Edit`
+    (append) against the restored file instead. No prior history was lost; nothing had been pushed yet.
+
+**Files produced this session** (all new, no existing code edited): `docs/phase4/FULL_COST_MODEL_V2.md`,
+`docs/phase4/FULL_COST_SUMMARY_AR.md`, `docs/phase4/_cost_model_v2_data.json` (raw computed numbers, for
+traceability), `docs/phase4/_cost_model_v2_step4.json` (Step 4 numbers). This log entry only appends to
+`docs/phase4/SESSION_LOG.md`. No files outside `docs/phase4/` were created or modified. No code in
+`experiments/` or `results/` was edited. No API call was made to Anthropic, OpenAI, or Google at any point
+in this session.
