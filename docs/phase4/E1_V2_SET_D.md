@@ -49,16 +49,58 @@ on every span / total examples):
 **D2 is the clean root-diversity-only control** (both its examples are fully annotated, like
 B/C) — D's result should be read alongside D2's, not in isolation.
 
+## 0.5 PRIMARY-metric (verse) verdict — 2026-10-14 update
+
+**The user has switched the project's primary metric for conclusions to the verse criterion**
+(plain `exists` vs. whether the verse has any GT span; strict/token-overlap are now secondary
+columns — recorded in `docs/phase4/SESSION_LOG.md`, not a CLAUDE.md change). **CLAUDE.md rule 4
+still flags verse-level exists/not-exists as a supplementary diagnostic prone to rewarding
+`exists=True` regardless of span correctness** — this verdict is reported under that explicit
+caveat, not as an endorsement that verse is more "correct" than the span-level metrics.
+
+**D-vs-C, the hypothesis's direct test, on verse (primary)**:
+
+| Model | verse (primary) | strict (secondary) | token (secondary) |
+|---|---|---|---|
+| Claude | **+0.146 SIG** | +0.039 ns | +0.057 ns |
+| GPT | **+0.096 SIG** | **+0.052 SIG** | **+0.065 SIG** |
+| Gemini | +0.028 ns | **+0.045 SIG** | +0.011 ns |
+
+**This changes the headline verdict.** Under strict/token (§3 below, the original write-up), only
+GPT showed a clear, criterion-consistent D-beats-C result, with Gemini significant on strict only
+and Claude never significant. **Under the primary verse metric, D significantly beats C for 2 of
+3 models — Claude AND GPT — while Gemini's D-vs-C flips to not-significant.** This is the single
+largest criterion disagreement in this report: Claude's verse D−Z gain is also significant
+(+0.185 SIG; strict ns, token SIG) and D2−Z/D2−C are significant too (+0.191 / +0.153, both SIG),
+so on the primary metric Claude shows the clearest, most consistent support for the
+root-diversity hypothesis of all three models — the opposite ranking from the secondary-metric
+read, where Claude's D never beat C and Gemini looked like the strongest case. Gemini's D-vs-Z
+remains significant on verse (+0.116 SIG) — few-shot (including D) still beats zero-shot for
+Gemini — but D is no longer distinguishable from C specifically.
+
+**D-vs-A and D-vs-B remain `ns` for every model on verse too** (same as strict/token) — D is
+never statistically worse than A or B under any criterion, reinforcing that the swap never
+backfires, on the primary metric as much as the secondary ones.
+
+**Revised plain answer (primary metric)**: diversifying Set C's root-homogeneous examples
+significantly improves performance over C itself for **2 of 3 models (Claude, GPT)** on the
+metric now used for conclusions — stronger, more direct support for the hypothesis than the
+secondary-metric picture gave. Gemini is the one model where the swap does not show a detectable
+C-specific effect on the primary metric (though few-shot generally still beats zero-shot for it).
+See §6 for the full caveat list, which still applies in full — this is 1 run/cell with no noise
+baseline, and the confound from §0 (D's inherited unannotated span) is unresolved by switching
+metrics.
+
 ## 1. Results by model
 
-(Scoring: `experiments/phase4_e1_v2/scoring_v2.py`, reused unchanged — strict span-match and
-token-overlap span-match are the primary criteria per CLAUDE.md rule 4; verse-level
-exists-vs-ground-truth is a supplementary diagnostic only. Full report:
-`results/phase4_e1_v2/analysis_report_D.json`.)
+(Scoring: `experiments/phase4_e1_v2/scoring_v2.py`, reused unchanged. Per the 2026-10-14 user
+decision in §0.5, **verse is now the PRIMARY metric**; strict span-match and token-overlap
+span-match are secondary. CLAUDE.md rule 4's standing caveat about the verse criterion applies —
+see §0.5. Full report: `results/phase4_e1_v2/analysis_report_D.json`.)
 
 ## Claude Sonnet 4.6 (anthropic)
 
-### criterion: strict (primary)
+### criterion: strict (secondary)
 
 | Set | TP | FP | FN | P | R | F1 |
 |---|---|---|---|---|---|---|
@@ -83,7 +125,7 @@ Bootstrap 95% CI (F1_probe − F1_baseline), per-poem diff signs:
 | D2-Z | +0.1044 | [+0.0278, +0.1709] | **SIG** | 14 / 7 / 4 |
 | D-D2 | -0.0468 | [-0.0844, -0.0098] | **SIG** | 3 / 13 / 9 |
 
-### criterion: token (primary)
+### criterion: token (secondary)
 
 | Set | TP | FP | FN | P | R | F1 |
 |---|---|---|---|---|---|---|
@@ -108,7 +150,7 @@ Bootstrap 95% CI (F1_probe − F1_baseline), per-poem diff signs:
 | D2-Z | +0.1146 | [+0.0408, +0.1846] | **SIG** | 14 / 7 / 4 |
 | D-D2 | -0.0254 | [-0.0568, +0.0053] | ns | 5 / 12 / 8 |
 
-### criterion: verse (supplementary)
+### criterion: verse (PRIMARY as of 2026-10-14 — see §0.5)
 
 | Set | TP | FP | FN | P | R | F1 |
 |---|---|---|---|---|---|---|
@@ -135,7 +177,7 @@ Bootstrap 95% CI (F1_probe − F1_baseline), per-poem diff signs:
 
 ## GPT-5.4-mini (openai)
 
-### criterion: strict (primary)
+### criterion: strict (secondary)
 
 | Set | TP | FP | FN | P | R | F1 |
 |---|---|---|---|---|---|---|
@@ -160,7 +202,7 @@ Bootstrap 95% CI (F1_probe − F1_baseline), per-poem diff signs:
 | D2-Z | -0.0099 | [-0.0572, +0.0498] | ns | 8 / 9 / 8 |
 | D-D2 | +0.0025 | [-0.0399, +0.0368] | ns | 8 / 13 / 4 |
 
-### criterion: token (primary)
+### criterion: token (secondary)
 
 | Set | TP | FP | FN | P | R | F1 |
 |---|---|---|---|---|---|---|
@@ -185,7 +227,7 @@ Bootstrap 95% CI (F1_probe − F1_baseline), per-poem diff signs:
 | D2-Z | -0.0043 | [-0.0509, +0.0585] | ns | 8 / 9 / 8 |
 | D-D2 | +0.0149 | [-0.0355, +0.0543] | ns | 9 / 12 / 4 |
 
-### criterion: verse (supplementary)
+### criterion: verse (PRIMARY as of 2026-10-14 — see §0.5)
 
 | Set | TP | FP | FN | P | R | F1 |
 |---|---|---|---|---|---|---|
@@ -212,7 +254,7 @@ Bootstrap 95% CI (F1_probe − F1_baseline), per-poem diff signs:
 
 ## Gemini (served: gemini-3.6-flash)
 
-### criterion: strict (primary)
+### criterion: strict (secondary)
 
 | Set | TP | FP | FN | P | R | F1 |
 |---|---|---|---|---|---|---|
@@ -237,7 +279,7 @@ Bootstrap 95% CI (F1_probe − F1_baseline), per-poem diff signs:
 | D2-Z | +0.0540 | [+0.0022, +0.1006] | **SIG** | 14 / 4 / 7 |
 | D-D2 | +0.0195 | [-0.0317, +0.0693] | ns | 9 / 9 / 7 |
 
-### criterion: token (primary)
+### criterion: token (secondary)
 
 | Set | TP | FP | FN | P | R | F1 |
 |---|---|---|---|---|---|---|
@@ -262,7 +304,7 @@ Bootstrap 95% CI (F1_probe − F1_baseline), per-poem diff signs:
 | D2-Z | +0.0609 | [+0.0134, +0.1022] | **SIG** | 14 / 3 / 8 |
 | D-D2 | +0.0434 | [-0.0131, +0.0991] | ns | 11 / 7 / 7 |
 
-### criterion: verse (supplementary)
+### criterion: verse (PRIMARY as of 2026-10-14 — see §0.5)
 
 | Set | TP | FP | FN | P | R | F1 |
 |---|---|---|---|---|---|---|
@@ -287,31 +329,36 @@ Bootstrap 95% CI (F1_probe − F1_baseline), per-poem diff signs:
 | D2-Z | +0.1067 | [+0.0483, +0.1676] | **SIG** | 17 / 4 / 4 |
 | D-D2 | +0.0088 | [-0.0616, +0.0635] | ns | 9 / 10 / 6 |
 
-## 2. Gain over Z (summary)
+## 2. Gain over Z (summary) — secondary metrics (see §0.5 for the primary verse-based verdict)
 
-| Model | D vs Z (strict) | D vs Z (token) | D2 vs Z (strict) | D2 vs Z (token) |
-|---|---|---|---|---|
-| Claude | +0.058 ns | **+0.089 SIG** | **+0.104 SIG** | **+0.115 SIG** |
-| GPT | -0.007 ns | +0.011 ns | -0.010 ns | -0.004 ns |
-| Gemini | **+0.074 SIG** | **+0.104 SIG** | **+0.054 SIG** | **+0.061 SIG** |
+| Model | D vs Z (verse, primary) | D vs Z (strict) | D vs Z (token) | D2 vs Z (verse) | D2 vs Z (strict) | D2 vs Z (token) |
+|---|---|---|---|---|---|---|
+| Claude | **+0.185 SIG** | +0.058 ns | **+0.089 SIG** | **+0.191 SIG** | **+0.104 SIG** | **+0.115 SIG** |
+| GPT | -0.016 ns | -0.007 ns | +0.011 ns | -0.046 ns | -0.010 ns | -0.004 ns |
+| Gemini | **+0.116 SIG** | **+0.074 SIG** | **+0.104 SIG** | **+0.107 SIG** | **+0.054 SIG** | **+0.061 SIG** |
 
-Both D and D2 beat zero-shot for Claude and Gemini on at least one criterion each (D2 on both,
-for Claude); neither beats zero-shot for GPT — consistent with `E1_V2_RESULTS.md`'s Q1 finding
-that few-shot does not help GPT on this subtype, regardless of which examples are used.
+On the primary verse metric, Claude's D/D2 both clear Z significantly (strengthening the
+secondary-metric picture, where strict alone missed it); GPT's D/D2 still never clear Z on any
+metric, consistent with `E1_V2_RESULTS.md`'s Q1 finding that few-shot does not help GPT on this
+subtype regardless of which examples are used; Gemini clears Z on every metric for both D and D2.
 
-## 3. Does D restore performance toward A/B? (the hypothesis's direct test)
+## 3. Does D restore performance toward A/B? (the hypothesis's direct test) — secondary metrics
+
+**See §0.5 for the primary (verse) verdict — summarized again here for comparison.**
 
 **D vs C** (the most direct test — same example-1, swapped example-2):
 
-| Model | strict | token |
-|---|---|---|
-| Claude | +0.039 ns | +0.057 ns |
-| GPT | **+0.052 SIG** | **+0.065 SIG** |
-| Gemini | **+0.045 SIG** | +0.011 ns |
+| Model | verse (primary) | strict (secondary) | token (secondary) |
+|---|---|---|---|
+| Claude | **+0.146 SIG** | +0.039 ns | +0.057 ns |
+| GPT | **+0.096 SIG** | **+0.052 SIG** | **+0.065 SIG** |
+| Gemini | +0.028 ns | **+0.045 SIG** | +0.011 ns |
 
-D beats C significantly in 3 of 6 model×criterion cells (GPT both, Gemini strict), and is
-statistically indistinguishable from C in the other 3 (Claude both, Gemini token). **No model
-shows D significantly *worse* than C** — the swap never backfires.
+On the **primary** metric, D beats C significantly for 2 of 3 models (Claude, GPT) — see §0.5.
+On the secondary metrics alone, D beats C significantly in 3 of 6 model×criterion cells (GPT
+both, Gemini strict), and is statistically indistinguishable from C in the other 3 (Claude both,
+Gemini token). **No model shows D significantly *worse* than C on any metric** — the swap never
+backfires, regardless of which metric is used.
 
 **D vs A and D vs B** (does D reach the A/B level?): **every single one of the 12
 model×criterion×baseline comparisons (D-A and D-B, strict and token, 3 models) is `ns`** — D is
@@ -335,9 +382,11 @@ significant D-vs-D2 gap, strict, D2 > D). For GPT and Gemini, D2 sits statistica
 A/B/C/Z on both criteria (all `ns`) — diversifying did not clearly move the needle either
 direction for those two models when the confound is removed.
 
-## 4. Plain answer
+## 4. Plain answer, secondary metrics (see §0.5 for the current primary-metric plain answer)
 
-**Partial, model-dependent support — not a clean "yes."**
+**Partial, model-dependent support — not a clean "yes."** (This was written before the metric
+switch; §0.5 above supersedes it as the project's current conclusion, and the two disagree on
+Claude specifically — read both.)
 
 - For **GPT-5.4-mini**, D is a real, significant improvement over C (both criteria) — closest
   to a clean confirmation of the hypothesis, though D never clears Z either, so the ceiling it's
@@ -345,19 +394,29 @@ direction for those two models when the confound is removed.
 - For **Gemini**, D beats C on strict but not token, and beats Z on both — some support, but
   weaker and criterion-dependent; D2 (the cleaner control) only clears Z, not C/A/B, undercutting
   "diversity specifically helps" versus "any few-shot helps a bit."
-- For **Claude**, D itself never significantly beats C — no support from D's own numbers. But D2
-  (the clean control) is the best-performing set of all 6, significantly ahead of A, C, and Z —
-  the opposite pattern from D, and the clearest sign that root-diversity-style editing *can* help
-  Claude, just not with D's specific borrowed (partially unannotated) example.
+- For **Claude**, D itself never significantly beats C **on the secondary metrics** — no support
+  from D's own secondary-metric numbers. But D2 (the clean control) is the best-performing set of
+  all 6 on strict/token, significantly ahead of A, C, and Z — the opposite pattern from D, and the
+  clearest sign that root-diversity-style editing *can* help Claude, just not with D's specific
+  borrowed (partially unannotated) example. **On the primary verse metric (§0.5), D itself also
+  beats C significantly for Claude** — the secondary-metric "D itself shows nothing for Claude"
+  read does not hold once verse is the metric of record.
 
-**Taken together**: diversifying away from Set C's root-homogeneity never hurts, and helps on at
-least one criterion for 2 of 3 models (GPT, Gemini) via D, and helps Claude strongly via D2. It
-does not uniformly "restore" performance to A/B's exact level in a statistically confirmable way
-for any model — D/D2 land in the same broad, overlapping-CI neighborhood as A/B/C, which is
-consistent with the hypothesis without being proof of it.
+**Taken together (secondary metrics)**: diversifying away from Set C's root-homogeneity never
+hurts, and helps on at least one criterion for 2 of 3 models (GPT, Gemini) via D, and helps
+Claude strongly via D2. It does not uniformly "restore" performance to A/B's exact level in a
+statistically confirmable way for any model on strict/token alone — D/D2 land in the same broad,
+overlapping-CI neighborhood as A/B/C, which is consistent with the hypothesis without being proof
+of it. **§0.5's primary-metric answer is stronger: Claude and GPT both show D significantly
+beating C**, which is the more direct confirmation of the hypothesis as tested.
 
 ## 5. What this does NOT prove (caveats)
 
+- **Verse is the PRIMARY metric by explicit user decision (2026-10-14), not a project-rule
+  change** — CLAUDE.md rule 4's standing warning still applies in full: plain exists/not-exists
+  rewards `exists=True` regardless of whether the pointed-at span is correct, and §0.5's verdict
+  (especially Claude's flip from "no support" to "clear support") is the concrete cost/benefit of
+  that choice, not a more objectively "correct" result than the secondary metrics.
 - **1 run per cell, no noise baseline** (CLAUDE.md rule 2) — every point estimate and CI above
   reflects a single run; a second run could shift set rankings, exactly as the documented
   Kenning/Periphrasis 8×→½ precedent shows for this kind of design.

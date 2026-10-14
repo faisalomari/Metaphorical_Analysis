@@ -16,6 +16,53 @@ cell** (no noise baseline, per CLAUDE.md rule 2). Every number below is indicati
 bootstrap CIs are wide enough to include zero — treat this as a "no signal detected" result, not
 evidence either for or against the hypothesis, except where stated otherwise.
 
+**2026-10-14 update — PRIMARY metric is now verse** (user methodological decision, recorded in
+`docs/phase4/SESSION_LOG.md`; CLAUDE.md is unedited and its rule 4 still flags plain verse-level
+exists/not-exists as a supplementary diagnostic prone to rewarding `exists=True` regardless of span
+correctness). §0 below adds the verse-criterion version of this same-poet check, computed fresh by
+`experiments/phase4_e1_v2/samepoet_verse.py` (reuses `samepoet_analysis.py`'s bootstrap helpers
+unchanged) and persisted to `results/phase4_e1_v2/samepoet_verse.json`. §1-§5 below are the original
+strict/token-based write-up, kept as the secondary-metric view; §0's plain answer is now the
+headline one.
+
+---
+
+## 0. Verse-criterion version (PRIMARY) — gain over Z per group
+
+F1 at Z per group (verse criterion):
+
+| Model | Abu Nuwas F1 | Other F1 |
+|---|---|---|
+| Claude | 0.312 | 0.389 |
+| GPT | 0.567 | 0.545 |
+| Gemini | 0.512 | 0.367 |
+
+Gain over Z (verse), per model/set, with 95% CI, resampling poems **within** each group independently
+(same method as §3's strict/token version):
+
+| Model | Set | Gain abu_nuwas [CI] | Gain other [CI] | diff (abu−other) [CI] | Sig? |
+|---|---|---|---|---|---|
+| Claude | A | +0.406 [+0.047, +0.759] | +0.157 [+0.065, +0.247] | +0.249 [−0.125, +0.633] | ns |
+| Claude | B | +0.343 [−0.063, +0.768] | +0.134 [+0.039, +0.226] | +0.209 [−0.192, +0.656] | ns |
+| Claude | C | +0.021 [−0.270, +0.292] | +0.042 [−0.023, +0.101] | −0.021 [−0.336, +0.247] | ns |
+| GPT | A | −0.011 [−0.059, +0.062] | −0.007 [−0.069, +0.051] | −0.004 [−0.084, +0.090] | ns |
+| GPT | B | −0.009 [−0.057, +0.041] | −0.041 [−0.085, +0.007] | +0.032 [−0.034, +0.099] | ns |
+| GPT | C | **−0.233** [−0.353, −0.079] | **−0.086** [−0.177, −0.015] | −0.148 [−0.295, +0.037] | ns |
+| Gemini | A | +0.142 [+0.048, +0.287] | +0.115 [+0.060, +0.170] | +0.027 [−0.094, +0.176] | ns |
+| Gemini | B | +0.092 [−0.054, +0.338] | +0.123 [+0.054, +0.194] | −0.031 [−0.199, +0.207] | ns |
+| Gemini | C | +0.084 [−0.069, +0.262] | +0.089 [+0.030, +0.155] | −0.004 [−0.165, +0.180] | ns |
+
+**All 9 diff cells are `ns` on verse** — same headline conclusion as the strict/token version (no
+detectable same-poet effect). **One notable disagreement with §3**: the strict/token write-up's single
+significant cell (Claude, set C, both criteria: diff ≈ −0.14 to −0.16, SIG) is **not significant on
+verse** (diff = −0.021, CI [−0.336, +0.247] — much wider, straddling zero). That one significant
+finding in the whole strict/token analysis does not survive the switch to the primary metric; it was
+driven by a single poem (`9078`) going to 0 TP on span-matching at set C for 2 of 3 models (§4 below),
+which does not move the *verse-level* exists/not-exists count the same way (the model can still have
+said `exists=True` on that poem's verses even while pointing at the wrong span). **Plain answer under
+the primary metric**: no evidence of a same-poet effect, and the one exception found under the
+secondary metrics turns out not to replicate on the metric now being used for conclusions.
+
 ---
 
 ## 1. Per-model, per-set TP/FP/FN/P/R/F1 — Abu Nuwas (5 poems) vs. Other (20 poems)
@@ -224,7 +271,7 @@ reads as a large relative "gain" that is really 1–2 additional hits on a 9-ver
 
 ---
 
-## 5. Plain answer
+## 5. Plain answer (secondary metrics — see §0 for the current primary-metric answer)
 
 **No — this data does not show that Abu-Nuwas-sourced examples help more on Abu Nuwas poems than on
 other poets' poems.**

@@ -27,13 +27,16 @@ whole-poem prompt that E1 v1 mistakenly reused (see `docs/phase4/PROMPT_INVENTOR
   rate makes it the dominant cost driver despite having the same call count as the other two models.
 
 Scoring: `experiments/phase4_e1_v2/scoring_v2.py`, three criteria —
-- **verse** (supplementary diagnostic only): model's binary `exists` vs. whether the verse has any GT
-  span at all, no span-text match. CLAUDE.md rule 4 explicitly warns this metric alone produces artifacts
-  (the documented كناية/Periphrasis case) — reported here only alongside, never instead of, the two
-  span-level metrics below.
-- **strict** (primary): `appearance` must exactly span-match a GT span (`pilot_3models.span_matching`,
+- **verse (PRIMARY as of 2026-10-14)**: model's binary `exists` vs. whether the verse has any GT span at
+  all, no span-text match. **This is a user methodological decision, recorded in
+  `docs/phase4/SESSION_LOG.md`** — not a project-rule change, and CLAUDE.md is not edited.
+  **CLAUDE.md rule 4 still flags this metric as a supplementary diagnostic prone to rewarding
+  `exists=True` regardless of whether the span itself is right** (the documented كناية/Periphrasis
+  artifact is the standing precedent). Every verse-primary conclusion below should be read with that
+  caveat live, and §4 below states explicitly where verse and the secondary span-level metrics disagree.
+- **strict (secondary)**: `appearance` must exactly span-match a GT span (`pilot_3models.span_matching`,
   reused unchanged).
-- **token** (primary): token-overlap match on the same GT spans.
+- **token (secondary)**: token-overlap match on the same GT spans.
 
 **أبو نواس split (n=5 poems) is indicative only** — too small to draw a reliable same-poet-vs-other-poet
 conclusion on its own; included for completeness, not as a finding.
@@ -42,7 +45,7 @@ conclusion on its own; included for completeness, not as a finding.
 
 ## 1. Claude Sonnet 4.6 (anthropic)
 
-### criterion: verse (supplementary)
+### criterion: verse (PRIMARY — user decision, see CLAUDE.md rule 4 caveat above)
 | Set | Split | TP | FP | FN | P | R | F1 |
 |---|---|---|---|---|---|---|---|
 | Z | overall | 39 | 41 | 88 | 0.487 | 0.307 | 0.377 |
@@ -58,7 +61,7 @@ conclusion on its own; included for completeness, not as a finding.
 | C | abu_nuwas | 6 | 3 | 21 | 0.667 | 0.222 | 0.333 |
 | C | other | 42 | 53 | 58 | 0.442 | 0.420 | 0.431 |
 
-### criterion: strict (primary)
+### criterion: strict (secondary)
 | Set | Split | TP | FP | FN | P | R | F1 |
 |---|---|---|---|---|---|---|---|
 | Z | overall | 25 | 55 | 154 | 0.312 | 0.140 | 0.193 |
@@ -74,7 +77,7 @@ conclusion on its own; included for completeness, not as a finding.
 | C | abu_nuwas | 1 | 8 | 35 | 0.111 | 0.028 | 0.044 |
 | C | other | 29 | 66 | 114 | 0.305 | 0.203 | 0.244 |
 
-### criterion: token (primary)
+### criterion: token (secondary)
 | Set | Split | TP | FP | FN | P | R | F1 |
 |---|---|---|---|---|---|---|---|
 | Z | overall | 27 | 53 | 152 | 0.338 | 0.151 | 0.208 |
@@ -97,7 +100,7 @@ conclusion on its own; included for completeness, not as a finding.
 
 ## 2. GPT-5.4-mini (openai)
 
-### criterion: verse (supplementary)
+### criterion: verse (PRIMARY — user decision, see CLAUDE.md rule 4 caveat above)
 | Set | Split | TP | FP | FN | P | R | F1 |
 |---|---|---|---|---|---|---|---|
 | Z | overall | 93 | 119 | 34 | 0.439 | 0.732 | 0.549 |
@@ -113,7 +116,7 @@ conclusion on its own; included for completeness, not as a finding.
 | C | abu_nuwas | 7 | 8 | 20 | 0.467 | 0.259 | 0.333 |
 | C | other | 45 | 51 | 55 | 0.469 | 0.450 | 0.459 |
 
-### criterion: strict (primary)
+### criterion: strict (secondary)
 | Set | Split | TP | FP | FN | P | R | F1 |
 |---|---|---|---|---|---|---|---|
 | Z | overall | 48 | 164 | 131 | 0.226 | 0.268 | 0.246 |
@@ -129,7 +132,7 @@ conclusion on its own; included for completeness, not as a finding.
 | C | abu_nuwas | 3 | 12 | 33 | 0.200 | 0.083 | 0.118 |
 | C | other | 24 | 72 | 119 | 0.250 | 0.168 | 0.201 |
 
-### criterion: token (primary)
+### criterion: token (secondary)
 | Set | Split | TP | FP | FN | P | R | F1 |
 |---|---|---|---|---|---|---|---|
 | Z | overall | 51 | 161 | 128 | 0.241 | 0.285 | 0.261 |
@@ -155,7 +158,7 @@ fewshot-C design, the opposite of what "examples help" would predict.
 
 ## 3. Gemini (served: gemini-3.6-flash)
 
-### criterion: verse (supplementary)
+### criterion: verse (PRIMARY — user decision, see CLAUDE.md rule 4 caveat above)
 | Set | Split | TP | FP | FN | P | R | F1 |
 |---|---|---|---|---|---|---|---|
 | Z | overall | 47 | 65 | 80 | 0.420 | 0.370 | 0.393 |
@@ -171,7 +174,7 @@ fewshot-C design, the opposite of what "examples help" would predict.
 | C | abu_nuwas | 14 | 6 | 13 | 0.700 | 0.519 | 0.596 |
 | C | other | 49 | 66 | 51 | 0.426 | 0.490 | 0.456 |
 
-### criterion: strict (primary)
+### criterion: strict (secondary)
 | Set | Split | TP | FP | FN | P | R | F1 |
 |---|---|---|---|---|---|---|---|
 | Z | overall | 31 | 81 | 148 | 0.277 | 0.173 | 0.213 |
@@ -187,7 +190,7 @@ fewshot-C design, the opposite of what "examples help" would predict.
 | C | abu_nuwas | 6 | 14 | 30 | 0.300 | 0.167 | 0.214 |
 | C | other | 32 | 83 | 111 | 0.278 | 0.224 | 0.248 |
 
-### criterion: token (primary)
+### criterion: token (secondary)
 | Set | Split | TP | FP | FN | P | R | F1 |
 |---|---|---|---|---|---|---|---|
 | Z | overall | 30 | 82 | 149 | 0.268 | 0.168 | 0.206 |
@@ -208,67 +211,99 @@ fewshot-C design, the opposite of what "examples help" would predict.
 
 ---
 
-## Question 1 — Do the few-shot examples help at all (Z vs A/B/C)?
+## Question 1 — Do the few-shot examples help at all (Z vs A/B/C)? [answered on the PRIMARY verse metric]
 
-**It depends on the model, and the picture is NOT uniform.**
+**It depends on the model, and the picture is NOT uniform.** (Verse-criterion bootstrap 95% CIs,
+F1(X) − F1(Z); secondary strict/token noted only where they disagree.)
 
-- **Claude Sonnet 4.6**: Yes, clearly, for sets A and B. Z is significantly worse than A (verse, token)
-  and significantly worse than B (verse, strict). Z vs C is never significant — C behaves statistically
-  like the zero-shot baseline, not like an improvement.
-- **GPT-5.4-mini**: No. Z vs A and Z vs B are never significant on any criterion. Worse: **Z is
-  significantly BETTER than C on every single criterion** (verse, strict, token) — adding Set C's
-  examples measurably *hurt* GPT relative to zero-shot.
-- **Gemini**: Yes, the strongest and most consistent signal of the three. Z is significantly worse than
-  A, B, *and* C on the verse and token criteria, and significantly worse than B on strict too. Few-shot
-  helps Gemini regardless of which example set is used.
+- **Claude Sonnet 4.6**: Yes, clearly, for sets A and B — Z is significantly worse than both (verse:
+  Z−A = **−0.199 SIG**, Z−B = **−0.170 SIG**). Z vs C is not significant (Z−C = −0.039 ns) — C behaves
+  statistically like the zero-shot baseline, not like an improvement. (Secondary metrics agree on the
+  direction here; strict's Z−A point estimate is smaller and not significant on its own — see §4.)
+- **GPT-5.4-mini**: No. Z vs A and Z vs B are never significant (Z−A = +0.008 ns, Z−B = +0.036 ns).
+  Worse: **Z is significantly BETTER than C** (Z−C = **+0.112 SIG**) — adding Set C's examples measurably
+  *hurt* GPT relative to zero-shot. (Agrees with both secondary metrics.)
+- **Gemini**: Yes, the strongest and most consistent signal of the three — Z is significantly worse than
+  A, B, **and now C too** (Z−A = **−0.118 SIG**, Z−B = **−0.117 SIG**, Z−C = **−0.088 SIG**). Few-shot
+  helps Gemini regardless of which example set is used. (Secondary strict shows Z−C as `ns` — one of
+  §4's disagreements: on the primary metric, Gemini's few-shot advantage over Z is uniform across A/B/C;
+  on strict alone it looked like C might be the exception.)
 
-**Bottom line**: few-shot examples help Gemini unambiguously, help Claude for 2 of 3 example sets, and do
-not help — or actively hurt — GPT-5.4-mini. A single blanket "yes, few-shot helps" conclusion would be
-wrong for this subtype/prompt/model combination; the effect is model-dependent.
+**Bottom line**: few-shot examples help Gemini unambiguously (now on all 3 sets, not just 2), help Claude
+for 2 of 3 example sets, and do not help — or actively hurt — GPT-5.4-mini. A single blanket "yes,
+few-shot helps" conclusion would be wrong for this subtype/prompt/model combination; the effect is
+model-dependent.
 
-## Question 2 — How much does the choice of examples matter (spread among A/B/C vs. CI width)?
+## Question 2 — How much does the choice of examples matter (spread among A/B/C vs. CI width)? [verse-primary]
 
-**A vs B is never significant for any model on any criterion** (all 9 model×criterion A−B comparisons are
-`ns`, point estimates all within ±0.04 F1) — A and B are statistically indistinguishable from each other
-everywhere.
+**A vs B is never significant for any model** on the primary verse metric (all 3 model A−B comparisons are
+`ns`, point estimates all within ±0.03 F1) — A and B are statistically indistinguishable from each other
+everywhere, same conclusion as the secondary metrics.
 
-**C is where the spread shows up, and only for 2 of the 3 models**:
-- Claude: A−C and B−C are both significant (verse) and B−C significant (strict) — C performs
-  meaningfully worse than A/B for Claude.
-- GPT: A−C and B−C are both significant (verse, strict) — same pattern, C is the worst set.
-- Gemini: A−C and B−C are **not** significant on verse/token; only B−C is significant on strict. Gemini
-  is comparatively insensitive to which example set it gets.
+**C is where the spread shows up, but on verse it is now concentrated in 2 of 3 models, not the same 2 as
+before**:
+- Claude: A−C = **+0.161 SIG**, B−C = **+0.131 SIG** — C performs meaningfully worse than A/B for Claude.
+- GPT: A−C = **+0.104 SIG**, B−C = **+0.076 SIG** — same pattern, C is the worst set.
+- Gemini: A−C = +0.030 ns, B−C = +0.029 ns — **both now `ns` on the primary metric**. This is a
+  disagreement worth flagging: the secondary strict metric showed Gemini's B−C as significant
+  (+0.054 SIG), which had been read as "Gemini is *mostly* insensitive to example choice, with one
+  exception." On verse (primary), Gemini shows **no** significant sensitivity to which example set it
+  gets, at all — a cleaner, stronger version of "Gemini doesn't care which fewshot set it's given" than
+  the secondary-metric read suggested.
 
-**So example-choice sensitivity is real but concentrated**: it's not "any two example sets differ," it's
-specifically "Set C differs from A and B" — and that gap is large enough to be a bigger factor than
-whether few-shot is used at all, for 2 of the 3 models (Claude, GPT). `example_sets.json` confirms Set C's
-two example verses are both built on the same root ع-ق-ل (التعقيل) applied to different objects, with no
-other pattern represented — the leading candidate explanation this pilot was designed to test, and the
-data here is consistent with (not proof of) that homogeneity hurting generalization for Claude and GPT.
-Gemini's relative insensitivity to the same C-set homogeneity is itself a notable, model-dependent
-finding, not something assumed in advance.
+**So example-choice sensitivity is real but concentrated**: specifically "Set C differs from A and B" for
+Claude and GPT, and Gemini shows no significant choice-sensitivity on the primary metric at all.
+`example_sets.json` confirms Set C's two example verses are both built on the same root ع-ق-ل (التعقيل)
+applied to different objects — the leading candidate explanation this pilot was designed to test (see
+`docs/phase4/E1_V2_SET_D.md` for the direct follow-up test of that hypothesis), and the data here is
+consistent with (not proof of) that homogeneity hurting generalization for Claude and GPT. Gemini's
+insensitivity to the same C-set homogeneity is itself a notable, model-dependent finding.
 
-## Question 3 — How do the three models compare on the same sets?
+## Question 3 — How do the three models compare on the same sets? [verse-primary, strict/token secondary]
 
-Primary span-level F1 (strict / token), set by set:
+Primary verse F1, set by set (secondary strict/token in parentheses):
 
-| Set | Claude (strict/token) | GPT (strict/token) | Gemini (strict/token) |
+| Set | Claude (verse \| strict/token) | GPT (verse \| strict/token) | Gemini (verse \| strict/token) |
 |---|---|---|---|
-| Z | 0.193 / 0.208 | **0.246** / **0.261** | 0.213 / 0.206 |
-| A | 0.257 / 0.281 | 0.243 / 0.249 | 0.260 / **0.288** |
-| B | 0.263 / 0.278 | 0.243 / 0.258 | **0.296** / **0.307** |
-| C | 0.212 / 0.240 | 0.186 / 0.207 | **0.242** / **0.299** |
+| Z | 0.377 (0.193/0.208) | **0.549** (0.246/0.261) | 0.393 (0.213/0.206) |
+| A | **0.576** (0.257/0.281) | 0.541 (0.243/0.249) | 0.511 (0.260/**0.288**) |
+| B | 0.547 (0.263/0.278) | 0.513 (0.243/0.258) | **0.510** (**0.296**/0.307) |
+| C | 0.416 (0.212/0.240) | 0.437 (0.186/0.207) | 0.481 (0.242/0.299) |
 
-- **Zero-shot (Z)**: GPT-5.4-mini is clearly the best out of the box on this subtype — highest F1 on both
-  criteria, and the cheapest model by far ($1.21 total openai spend vs. $7.09 anthropic). Claude and
-  Gemini are both weaker than GPT at Z.
-- **With any few-shot set (A/B/C)**: Gemini overtakes and stays ahead on token-overlap for every set, and
-  ties-or-leads on strict for B/C. Claude catches up to roughly Gemini's level on A/B but falls back on C.
-  GPT barely moves from its Z performance and is the weakest of the three on A/B/C.
-- **Cost-adjusted**: Gemini's advantage with few-shot, combined with being ~3x cheaper than Claude and
-  only slightly pricier than GPT, makes it the standout choice for this subtype if few-shot examples are
-  used — Claude's much higher cost ($7.09 of the $10.57 total) is not matched by a corresponding
-  performance edge over Gemini anywhere in this table.
+- **Zero-shot (Z)**: GPT-5.4-mini is clearly the best out of the box on this subtype on the primary
+  metric too — highest verse-F1 (0.549), and the cheapest model by far ($1.21 total openai spend vs.
+  $7.09 anthropic). Claude and Gemini are both weaker than GPT at Z.
+- **With any few-shot set (A/B/C)**: on verse, Claude takes the lead at A (0.576, the single highest
+  number in the table) and stays ahead at B; Gemini's few-shot gains are real (confirmed SIG above) but
+  land it below Claude and GPT's A/B numbers in absolute verse-F1, even though it leads on the secondary
+  token-overlap metric for the same sets — a case where the primary and secondary metrics rank the models
+  differently (see §4). GPT barely moves from its Z performance on verse and is the weakest of the three
+  on A/B.
+- **Cost-adjusted**: Claude's much higher cost ($7.09 of the $10.57 total) now looks better-justified on
+  the primary metric for sets A/B than it did on strict/token, where Gemini led outright; cost-conscious
+  choices should weigh which metric is actually decision-relevant for the downstream use case.
+
+## Question 4 — Where do verse (primary) and strict/token (secondary) disagree?
+
+Since the primary metric changed, every pairwise conclusion above was re-derived from verse CIs, not
+carried over from the old strict/token-based write-up. The clearest disagreements:
+
+| Comparison | verse (primary) | strict (secondary) | Note |
+|---|---|---|---|
+| Claude, Z vs A | **SIG** (−0.199) | ns (−0.064) | user's own example: verse alone affirms "A helps," strict alone does not |
+| Claude, Z vs D (`E1_V2_SET_D.md`) | **SIG** (+0.185) | ns (+0.058) | same pattern as Z vs A |
+| Claude, D vs C (`E1_V2_SET_D.md`) | **SIG** (+0.146) | ns (+0.039) | flips the Set-D hypothesis verdict for Claude — see that doc |
+| Gemini, Z vs C | **SIG** (−0.088) | ns (−0.029) | verse shows a uniform few-shot advantage over Z for Gemini; strict suggested C might be an exception |
+| Gemini, B vs C | ns (+0.029) | **SIG** (+0.054) | the one Q2 "exception" for Gemini disappears under the primary metric |
+| GPT, D2 vs C (`E1_V2_SET_D.md`) | **SIG** (+0.066) | ns (+0.049) | strengthens D2's case for GPT specifically |
+
+Every case above is a genuine criterion disagreement, not a rounding difference — each pair's
+significance flips sign of "ns ↔ SIG" depending which metric is used. This is expected and explicitly
+why CLAUDE.md rule 4 flags verse as a metric that can diverge from span-level correctness: a model can
+correctly say "yes, this verse has the sub-element" (scored right on verse) while pointing at the wrong
+span (scored wrong on strict/token), or vice versa in rarer cases. The user's choice to make verse
+primary is a decision about which question matters more for this project's conclusions (does the model
+detect presence vs. does it also localize correctly) — it is not a claim that verse is more "correct."
 
 ## Caveats (apply to everything above)
 
@@ -278,13 +313,18 @@ Primary span-level F1 (strict / token), set by set:
   halved on a second run for an unrelated element/model pair).
 - **أبو نواس split (n=5 poems) is indicative only** in every table above — far too small to support a
   same-poet-vs-other-poet conclusion on its own.
-- **Verse-level criterion is a supplementary diagnostic, not a primary metric** — CLAUDE.md rule 4's
-  standing warning about plain exists/not-exists artifacts applies; strict and token-overlap are the
-  metrics this report's conclusions are actually based on.
+- **Verse is the PRIMARY metric by explicit user decision (2026-10-14), not a project-rule change.**
+  CLAUDE.md rule 4's standing warning still applies in full: plain exists/not-exists rewards a model that
+  says "yes, present" regardless of whether it points at the right span, and can produce artifacts (the
+  documented كناية/Periphrasis case is the precedent). §4 above lists where this actually changed a
+  significance verdict versus the secondary strict/token metrics — read those rows as the concrete cost
+  of the methodological choice, not as noise.
 - **TEST is unaffected** — this entire pilot runs on a newly-scraped, separate corpus (`data/ali_poems/`),
   not Phase 1's frozen DEV/TEST poems; nothing here touches the frozen Phase 1 numbers.
 
 ---
 
-*Full numeric report (all splits, all pairs, all criteria): `results/phase4_e1_v2/analysis_report.json`.
-Raw manifest: `results/phase4_e1_v2/run_manifest.json` (3,924 records, 0 errors).*
+*Full numeric report (all splits, all pairs, all criteria): `results/phase4_e1_v2/analysis_report.json`,
+`results/phase4_e1_v2/analysis_report_verse.json` (verse-criterion bootstrap CIs, 2026-10-14 addition).
+Raw manifest: `results/phase4_e1_v2/run_manifest.json` (5,886 records as of the Set D/D2 addition, 0
+errors — this report's own Z/A/B/C numbers are unaffected by that later addition).*

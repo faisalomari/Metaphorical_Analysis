@@ -1640,3 +1640,115 @@ from 3,924 to 5,886 records, Z/A/B/C's existing 3,924 untouched/unmodified),
 untouched), `docs/phase4/E1_V2_SET_D.md` (new), this log. No file in `phase4_e1/` (v1),
 `phase3_*`, or `pilot_3models/` was edited. Total project-to-date E1 v2 spend across all 6 sets:
 **$16.0131** (within the user-approved cap). Committing and pushing now.
+
+---
+
+**2026-10-14 (new task) — Switch the PRIMARY metric for conclusions to "verse" (plain
+exists-bool vs. whether the verse has any ground-truth span).** This is an explicit
+**user methodological decision**, recorded here verbatim for the record: *"the PRIMARY
+metric for conclusions is now the VERSE criterion... Strict and token-overlap stay as
+secondary columns."* This is noted alongside every verse-primary table in the docs touched
+below: **CLAUDE.md rule 4 flags the verse criterion as a supplementary diagnostic, prone to
+rewarding `exists=true` regardless of span correctness** (the documented كناية/Periphrasis
+artifact is the precedent) — the switch to verse-primary is the user's explicit choice,
+not a project-rule change, and **CLAUDE.md itself is not edited**. No API calls this task;
+everything below is recomputed from `results/phase4_e1_v2/run_manifest.json` +
+`raw/*.txt` (now 5,886 records, Z/A/B/C/D/D2) via `scoring_v2.score_set`'s existing
+`criterion="verse"` branch, reused unchanged.
+
+**Step 1 done.** Wrote `experiments/phase4_e1_v2/verse_analysis.py`: recomputes verse-level
+TP/FP/FN/P/R/F1 for all 6 sets x 3 models, overall + abu_nuwas/other, from the manifest (not
+typed numbers), writes `results/phase4_e1_v2/analysis_report_verse.json`. **Reference check
+against the user-supplied Z/A/B/C numbers (Claude .377/.576/.547/.416; GPT .549/.541/.513/.437;
+Gemini .393/.511/.510/.481): ALL 12 MATCH exactly** (computed vs. reference, abs diff < 0.0005)
+— printed per-cell in the script's own output, no mismatches.
+
+**Step 2 done.** Added a bootstrap helper (`bootstrap_pair`) that resamples poems once (seed=0,
+2000 iters, same method as `scoring_v2.bootstrap_ci_pairwise`) and returns F1/precision/recall
+diffs together from the same draw. Computed 95% CIs for all 13 requested pairs (Z vs A/B/C/D/D2,
+A-B, A-C, B-C, D-C, D-A, D-B, D2-C, D2-B) per model, with precision and recall reported
+separately alongside F1 — full output in `results/phase4_e1_v2/analysis_report_verse.json`, key
+numbers folded into the doc rewrites below rather than re-pasted here.
+
+Also wrote `experiments/phase4_e1_v2/samepoet_verse.py` (reuses
+`samepoet_analysis.py`'s `bootstrap_gain_ci`/`bootstrap_diffofgains_ci` unchanged, swaps the
+strict/token-only `analysis_report.json` source for `scoring_v2.score_set(criterion="verse")`)
+to extend the same-poet check to the new primary metric; wrote
+`results/phase4_e1_v2/samepoet_verse.json`. All 9 model x set diff-of-gains cells are `ns` on
+verse too (same headline as strict/token), but the one previously-significant secondary-metric
+cell (Claude, set C: diff ≈ −0.14 to −0.16, SIG on strict/token) is **not significant on verse**
+(diff = −0.021, CI [−0.336, +0.247]) — flagged as a disagreement in the updated SAMEPOET doc.
+
+**Step 3 done.** Updated all 3 docs, verse-primary headline / strict+token secondary throughout,
+every number pulled from the scripts above (no re-typing):
+- `docs/phase4/E1_V2_RESULTS.md`: relabeled all 9 per-model criterion headers (verse -> PRIMARY,
+  strict/token -> secondary); added the user-decision + CLAUDE.md-rule-4 caveat right after the
+  scoring-criteria list; rewrote Q1/Q2/Q3 from verse CIs (Gemini's Z-vs-C and Z-vs-A/B all
+  significant now vs. mixed before; Gemini's Q2 "B-C significant on strict" finding does NOT
+  replicate on verse -- no significant choice-sensitivity for Gemini at all under the primary
+  metric); added new **Question 4 — where verse and strict/token disagree**, a 6-row table
+  (Claude Z-A, Claude Z-D/D-C, Gemini Z-C, Gemini B-C, GPT D2-C) with each row's verdict flip
+  explained; updated the Caveats section to state the metric switch explicitly.
+- `docs/phase4/E1_V2_SAMEPOET.md`: added a new `## 0` section (verse-criterion gain-over-Z per
+  group, all 9 cells `ns`, flagged the Claude/C sign-disagreement above) as the current primary
+  answer; retitled the old `## 5. Plain answer` to note it is now the secondary-metric view.
+- `docs/phase4/E1_V2_SET_D.md`: added `## 0.5` with the verse-primary D-vs-C/D2-vs-C/D-vs-Z
+  verdict table -- **the single biggest finding of this task**: on verse, D significantly beats
+  C for **Claude AND GPT** (2 of 3 models), while Gemini's D-vs-C flips from significant (strict)
+  to not-significant (verse) -- the opposite ranking from the original secondary-metric write-up,
+  where only GPT showed a clean D-beats-C result and Claude's D never beat C. Relabeled all
+  per-model criterion headers; added verse columns to the `## 2`/`## 3` summary tables; rewrote
+  `## 4`'s plain answer to point to `## 0.5` as the current verdict while keeping the old
+  secondary-metric read intact alongside it; added a verse-primary-decision caveat to `## 5`.
+
+**Step 4 done.** Extended `scripts/build_e1v2_report.py`:
+- Loads `analysis_report_D.json` (all 6 sets) as the per-set source, merges its D/D2 pairwise
+  CIs with the original `analysis_report.json`'s Z-A/Z-B/Z-C/A-B/A-C/B-C pairs into one `analysis`
+  dict used throughout -- added a cross-file verification (`verify_f1_matches_json`) that asserts
+  every Z/A/B/C F1 in the merged dict equals BOTH source files exactly (independently-computed
+  scripts must agree).
+- `CRITERIA` reordered to `["verse","strict","token"]`, `DEFAULT_CRITERION="verse"`; all criterion
+  toggle buttons relabeled "Verse (primary)" / "Strict (secondary)" / "Token-overlap (secondary)";
+  JS default view on page load is now verse.
+- `SET_NAMES_FULL = [Z,A,B,C,D,D2]` threaded through the main F1 table, bar chart, detailed
+  tables, completeness table, and cost table (badges/text updated from "4 sets" to "6 sets").
+  `build_gain_over_z_svg` generalized to read whichever pairwise key exists (`Z-{s}` vs `{s}-Z`)
+  instead of assuming the ZABC-only convention, and now covers A/B/C/D/D2 with a criterion
+  toggle (was strict-only, hardcoded A/B/C).
+- Added `build_example_card_d()`: composes D/D2's example cards from A/B/C's existing example
+  dicts via `prompt_builder._examples_for_set` (no retyping), flags the inherited empty-note span
+  inline with `[no analysis note]`, and states each set's composition in a note.
+- Added `verify_d_differs_only_in_examples()` (byte-level, same style as the existing ABC check)
+  and extended `verify_prompts_match_previews()`/the prompt diff view/the main prompt panel to
+  all 6 sets (now also diffs A-vs-D and C-vs-D2).
+- Added 2 warning banners (verse-is-primary + CLAUDE.md rule 4 caveat) to the hero section, a new
+  caveat-box bullet about the Set D note-completeness confound, and rendered
+  `docs/phase4/E1_V2_SET_D.md` in full (via the existing `md_block` renderer) inside panel (e),
+  alongside a new "Where verse and strict/token disagree" block sourced from `E1_V2_RESULTS.md`'s
+  new Question 4 section (fixed the `q3_body`/`q4_body` extraction boundary so Q3's executive-
+  summary snippet doesn't swallow Q4's table).
+- Ran the generator: all built-in PASS checks green, including the new cross-file F1 check and
+  the new D/D2 prompt-diff check; completeness 5,886/5,886, 0 errors; total spend $16.0131
+  (matches the manifest). **Visual check in the browser pane** (desktop + 375px mobile): verse
+  table/charts render correctly as the default view, D/D2 example cards render with the
+  `[no analysis note]` flag visible, the Question 4 disagreement table renders correctly with
+  highlighted SIG cells, RTL verse text renders right-to-left on both viewport sizes, mobile
+  tables scroll horizontally instead of overflowing.
+
+**Step 5 — Arabic summary.** Checked `docs/phase4/FULL_COST_SUMMARY_AR.md` (the only Arabic
+`.md` under `docs/phase4/`): it is a pure cost/token-accounting document (model pricing, token
+counts, spend) and contains no reference to scoring criteria, F1, or verse/strict/token anywhere
+(`grep -i "verse\|strict\|token\|F1\|criterion"` found one unrelated hit about Gemini thinking-
+token billing). **No results-focused Arabic summary exists to update** for this task — nothing
+changed.
+
+**Session complete.** Files touched/added: `experiments/phase4_e1_v2/verse_analysis.py`,
+`experiments/phase4_e1_v2/samepoet_verse.py` (new scripts, no API calls),
+`results/phase4_e1_v2/analysis_report_verse.json`, `results/phase4_e1_v2/samepoet_verse.json`
+(new result files), `docs/phase4/E1_V2_RESULTS.md`, `docs/phase4/E1_V2_SAMEPOET.md`,
+`docs/phase4/E1_V2_SET_D.md` (all edited in place, verse-primary rewrite), `scripts/
+build_e1v2_report.py` and `docs/phase4/E1_V2_REPORT.html` (generator + regenerated output).
+`CLAUDE.md` was not edited, per the task instruction -- the verse-primary decision is recorded
+here and in every affected doc as an explicit user methodological choice, with CLAUDE.md rule 4's
+standing caveat quoted alongside it every time. No API calls anywhere in this task. Committing
+and pushing now.

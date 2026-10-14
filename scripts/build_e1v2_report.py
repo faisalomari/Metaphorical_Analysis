@@ -44,22 +44,31 @@ DOCS_DIR = ROOT / "docs" / "phase4"
 OUT_PATH = DOCS_DIR / "E1_V2_REPORT.html"
 
 ANALYSIS_PATH = RESULTS_DIR / "analysis_report.json"
+ANALYSIS_D_PATH = RESULTS_DIR / "analysis_report_D.json"
+ANALYSIS_VERSE_PATH = RESULTS_DIR / "analysis_report_verse.json"
 MANIFEST_PATH = RESULTS_DIR / "run_manifest.json"
 POOL_PATH = E1V2_DIR / "config" / "eval_pool_25.json"
 EXAMPLE_SETS_PATH = E1V1_DIR / "config" / "example_sets.json"
 RESULTS_MD_PATH = DOCS_DIR / "E1_V2_RESULTS.md"
 SAMEPOET_PATH = DOCS_DIR / "E1_V2_SAMEPOET.md"
+SET_D_PATH = DOCS_DIR / "E1_V2_SET_D.md"
 BLOCKERS_PATH = ROOT / "writing" / "paper_plan" / "TOP_5_BLOCKERS.md"
 PROMPT_INVENTORY_PATH = DOCS_DIR / "PROMPT_INVENTORY.md"
 
 SET_NAMES = ["Z", "A", "B", "C"]
+SET_NAMES_FULL = ["Z", "A", "B", "C", "D", "D2"]
 MODEL_KEYS = ["anthropic", "openai", "google"]
-CRITERIA = ["strict", "token", "verse"]
-CRITERION_LABEL = {"strict": "Strict (primary)", "token": "Token-overlap (primary)",
-                    "verse": "Verse-exists (supplementary)"}
+# Ordered so "verse" (the user's 2026-10-14 primary-metric decision) is first/default;
+# CLAUDE.md rule 4 still flags it as a supplementary diagnostic -- noted in the caveat box.
+CRITERIA = ["verse", "strict", "token"]
+CRITERION_LABEL = {"verse": "Verse-exists (PRIMARY, user decision 2026-10-14)",
+                    "strict": "Strict (secondary)", "token": "Token-overlap (secondary)"}
+DEFAULT_CRITERION = "verse"
 
 SOURCE_FILES_USED = [
     "results/phase4_e1_v2/analysis_report.json",
+    "results/phase4_e1_v2/analysis_report_D.json",
+    "results/phase4_e1_v2/analysis_report_verse.json",
     "results/phase4_e1_v2/run_manifest.json",
     "experiments/phase4_e1_v2/config/eval_pool_25.json",
     "experiments/phase4_e1/config/example_sets.json",
@@ -67,12 +76,15 @@ SOURCE_FILES_USED = [
     "experiments/phase4_e1_v2/config/prompt_preview_A.txt",
     "experiments/phase4_e1_v2/config/prompt_preview_B.txt",
     "experiments/phase4_e1_v2/config/prompt_preview_C.txt",
+    "experiments/phase4_e1_v2/config/prompt_preview_D.txt",
+    "experiments/phase4_e1_v2/config/prompt_preview_D2.txt",
     "experiments/phase4_e1_v2/prompt_builder.py",
     "experiments/phase4_e1_v2/e1v2_config.py",
     "experiments/phase3_subelements/subtype_prompts.py",
     "experiments/pilot_3models/config.py",
     "experiments/pilot_3models/rtl_utils.py",
     "docs/phase4/E1_V2_RESULTS.md",
+    "docs/phase4/E1_V2_SET_D.md",
     "docs/phase4/PROMPT_INVENTORY.md",
     "writing/paper_plan/TOP_5_BLOCKERS.md",
 ]
@@ -222,7 +234,8 @@ def extract_section(md_text: str, header: str, next_headers) -> str:
 # Load sources
 # ---------------------------------------------------------------------------
 
-analysis = json.loads(ANALYSIS_PATH.read_text(encoding="utf-8"))
+analysis_zabc = json.loads(ANALYSIS_PATH.read_text(encoding="utf-8"))  # Z/A/B/C, verse/strict/token
+analysis_d = json.loads(ANALYSIS_D_PATH.read_text(encoding="utf-8"))   # Z/A/B/C/D/D2, verse/strict/token
 manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
 pool = json.loads(POOL_PATH.read_text(encoding="utf-8"))
 example_sets = json.loads(EXAMPLE_SETS_PATH.read_text(encoding="utf-8"))
@@ -231,10 +244,32 @@ blockers_md = BLOCKERS_PATH.read_text(encoding="utf-8")
 prompt_inventory_md = PROMPT_INVENTORY_PATH.read_text(encoding="utf-8")
 samepoet_exists = SAMEPOET_PATH.exists()
 samepoet_text = SAMEPOET_PATH.read_text(encoding="utf-8") if samepoet_exists else None
+set_d_exists = SET_D_PATH.exists()
+set_d_text = SET_D_PATH.read_text(encoding="utf-8") if set_d_exists else None
+
+# `analysis`: per_set lookups use analysis_d (it has all 6 sets, Z/A/B/C recomputed the same
+# way as analysis_zabc -- checked in verify_f1_matches_json below). `analysis`'s
+# pairwise_bootstrap_ci is the UNION of analysis_zabc's 6 ZABC pairs and analysis_d's 9
+# D/D2 pairs, so build_ci_tables() can show both halves without re-deriving anything.
+analysis = {}
+for p in MODEL_KEYS:
+    analysis[p] = {}
+    for c in CRITERIA:
+        analysis[p][c] = {
+            "per_set": analysis_d[p][c]["per_set"],
+            "pairwise_bootstrap_ci": {
+                **analysis_zabc[p][c]["pairwise_bootstrap_ci"],
+                **analysis_d[p][c]["pairwise_bootstrap_ci"],
+            },
+            "per_poem_diff_signs": {
+                **analysis_zabc[p][c].get("per_poem_diff_signs", {}),
+                **analysis_d[p][c].get("per_poem_diff_signs", {}),
+            },
+        }
 
 prompt_previews = {
     s: (E1V2_DIR / "config" / f"prompt_preview_{s}.txt").read_text(encoding="utf-8")
-    for s in SET_NAMES
+    for s in SET_NAMES_FULL
 }
 
 MODEL_DISPLAY = {
@@ -262,7 +297,7 @@ def call_cost(provider: str, usage: dict) -> float:
 spend = {p: 0.0 for p in MODEL_KEYS}
 calls_ok = {p: 0 for p in MODEL_KEYS}
 calls_err = {p: 0 for p in MODEL_KEYS}
-calls_per_set = {s: {p: {"ok": 0, "err": 0} for p in MODEL_KEYS} for s in SET_NAMES}
+calls_per_set = {s: {p: {"ok": 0, "err": 0} for p in MODEL_KEYS} for s in SET_NAMES_FULL}
 gemini_model_versions = set()
 
 for r in manifest:
@@ -287,7 +322,7 @@ pool_verses = pool["pool_verses"]
 expected_per_cell = pool_verses
 completeness_rows = []
 all_complete = True
-for s in SET_NAMES:
+for s in SET_NAMES_FULL:
     for p in MODEL_KEYS:
         ok = calls_per_set[s][p]["ok"]
         complete = ok == expected_per_cell
@@ -303,24 +338,32 @@ TODAY = date.today().isoformat()
 
 def verify_f1_matches_json():
     """Every F1 value we are about to render in the main table must equal
-    analysis_report.json's own overall.f1 for that (model, criterion, set)."""
+    analysis_report_D.json's own overall.f1 for that (model, criterion, set),
+    AND (for Z/A/B/C) must match the original analysis_report.json exactly --
+    the two reports were computed independently (different scripts, different
+    runs) and must agree, or Set D's addition silently changed something."""
     for p in MODEL_KEYS:
-        for c in ("strict", "token"):
-            for s in SET_NAMES:
-                expected = analysis[p][c]["per_set"][s]["overall"]["f1"]
-                rendered = analysis[p][c]["per_set"][s]["overall"]["f1"]  # same source, by construction
+        for c in CRITERIA:
+            for s in SET_NAMES_FULL:
+                expected = analysis_d[p][c]["per_set"][s]["overall"]["f1"]
+                rendered = analysis[p][c]["per_set"][s]["overall"]["f1"]
                 assert abs(expected - rendered) < 1e-12, (p, c, s)
-    print("PASS: main F1 table values are read directly from analysis_report.json (no transcription).")
+            for s in SET_NAMES:
+                a = analysis_zabc[p][c]["per_set"][s]["overall"]["f1"]
+                b = analysis_d[p][c]["per_set"][s]["overall"]["f1"]
+                assert abs(a - b) < 1e-9, ("ZABC mismatch between the two reports", p, c, s, a, b)
+    print("PASS: main F1 table values are read directly from analysis_report_D.json, and Z/A/B/C "
+          "numbers are cross-verified identical to the original analysis_report.json.")
 
 
 def verify_prompts_match_previews():
-    built = {s: prompt_builder.build_system_message(s) for s in SET_NAMES}
-    for s in SET_NAMES:
+    built = {s: prompt_builder.build_system_message(s) for s in SET_NAMES_FULL}
+    for s in SET_NAMES_FULL:
         preview = prompt_previews[s].rstrip("\n")
         rebuilt = built[s].rstrip("\n")
         assert preview == rebuilt, f"set {s} prompt mismatch between preview file and prompt_builder output"
-    print("PASS: all 4 system messages (Z/A/B/C) match prompt_builder.py output byte-for-byte "
-          "(and thus the preview files on disk).")
+    print("PASS: all 6 system messages (Z/A/B/C/D/D2) match prompt_builder.py output byte-for-byte "
+          "(and thus the preview files on disk) -- confirms adding D/D2 did not change Z/A/B/C.")
     return built
 
 
@@ -338,6 +381,19 @@ def verify_abc_differ_only_in_examples(built):
     print("PASS: sets A/B/C share byte-identical scaffold + Example 1; only Example 2/3 differ.")
 
 
+def verify_d_differs_only_in_examples(built):
+    a_lines = built["A"].splitlines()
+    d_lines = built["D"].splitlines()
+    d2_lines = built["D2"].splitlines()
+    def head(lines):
+        for i, l in enumerate(lines):
+            if l.startswith("Example 2"):
+                return lines[:i]
+        return lines
+    assert head(a_lines) == head(d_lines) == head(d2_lines)
+    print("PASS: sets D/D2 share the same scaffold + Example 1 as A/B/C; only Example 2/3 differ.")
+
+
 def verify_rtl_sample():
     sample_ar = example_sets["A"]["examples"][0]["text"]
     sample_en = "Example 1: the sub-element appears"
@@ -350,8 +406,9 @@ def verify_rtl_sample():
 verify_f1_matches_json()
 built_prompts = verify_prompts_match_previews()
 verify_abc_differ_only_in_examples(built_prompts)
+verify_d_differs_only_in_examples(built_prompts)
 verify_rtl_sample()
-print(f"Completeness: {total_calls_ok}/{len(SET_NAMES) * len(MODEL_KEYS) * expected_per_cell} cells ok, "
+print(f"Completeness: {total_calls_ok}/{len(SET_NAMES_FULL) * len(MODEL_KEYS) * expected_per_cell} cells ok, "
       f"{total_calls_err} errors, ALL_COMPLETE={all_complete}")
 print(f"Total spend from manifest: ${total_spend:.4f} "
       f"(anthropic ${spend['anthropic']:.4f}, openai ${spend['openai']:.4f}, google ${spend['google']:.4f})")
@@ -371,26 +428,26 @@ def f1_color(value: float, vmin: float, vmax: float) -> str:
 
 
 def build_main_f1_table(criterion: str) -> str:
-    vals = [analysis[p][criterion]["per_set"][s]["overall"]["f1"] for p in MODEL_KEYS for s in SET_NAMES]
+    vals = [analysis[p][criterion]["per_set"][s]["overall"]["f1"] for p in MODEL_KEYS for s in SET_NAMES_FULL]
     vmin, vmax = min(vals), max(vals)
     rows = []
     for p in MODEL_KEYS:
-        row_vals = {s: analysis[p][criterion]["per_set"][s]["overall"]["f1"] for s in SET_NAMES}
+        row_vals = {s: analysis[p][criterion]["per_set"][s]["overall"]["f1"] for s in SET_NAMES_FULL}
         best_set = max(row_vals, key=row_vals.get)
         cells = []
-        for s in SET_NAMES:
+        for s in SET_NAMES_FULL:
             v = row_vals[s]
             t = f1_color(v, vmin, vmax)
             best_cls = " best" if s == best_set else ""
             cells.append(f'<td class="f1cell{best_cls}" style="--t:{t}"><span>{v:.3f}</span></td>')
         rows.append(f"<tr><th>{esc(MODEL_SHORT[p])}</th>{''.join(cells)}</tr>")
-    header = "".join(f"<th>{s}</th>" for s in SET_NAMES)
+    header = "".join(f"<th>{s}</th>" for s in SET_NAMES_FULL)
     return (f'<table class="f1table" data-criterion="{criterion}">'
             f"<thead><tr><th>Model</th>{header}</tr></thead><tbody>{''.join(rows)}</tbody></table>")
 
 
 def build_bar_chart_svg(criterion: str) -> str:
-    sets = SET_NAMES
+    sets = SET_NAMES_FULL
     w, h = 620, 220
     pad_l, pad_b, pad_t = 40, 30, 20
     plot_w, plot_h = w - pad_l - 20, h - pad_b - pad_t
@@ -424,26 +481,35 @@ def build_bar_chart_svg(criterion: str) -> str:
     return "".join(parts)
 
 
-def build_gain_over_z_svg(criterion: str = "strict") -> str:
+def _gain_over_z(p: str, criterion: str, s: str) -> float:
+    """F1(s) - F1(Z), reading whichever pair key the merged `analysis` CI dict
+    actually has: ZABC pairs are stored as "Z-{s}" (point = F1(Z)-F1(s), negate);
+    D/D2 pairs are stored as "{s}-Z" (point = F1(s)-F1(Z) already)."""
+    pw = analysis[p][criterion]["pairwise_bootstrap_ci"]
+    if f"Z-{s}" in pw:
+        return -pw[f"Z-{s}"]["point"]
+    return pw[f"{s}-Z"]["point"]
+
+
+def build_gain_over_z_svg(criterion: str = "verse") -> str:
     w, h = 560, 200
     pad_l, pad_b, pad_t = 40, 24, 16
     plot_w, plot_h = w - pad_l - 20, h - pad_b - pad_t
-    sets = ["A", "B", "C"]
+    sets = ["A", "B", "C", "D", "D2"]
     group_w = plot_w / len(sets)
     bar_w = group_w / (len(MODEL_KEYS) + 1)
     gains = {}
     vmax = 0.01
     for p in MODEL_KEYS:
         for s in sets:
-            point = analysis[p][criterion]["pairwise_bootstrap_ci"][f"Z-{s}"]["point"]
-            gain = -point  # Z-X stored; gain over Z = F1(X) - F1(Z) = -(F1(Z)-F1(X))
+            gain = _gain_over_z(p, criterion, s)
             gains[(p, s)] = gain
             vmax = max(vmax, abs(gain))
     vmax *= 1.2
     mid = h - pad_b - (plot_h / 2)
     colors = {"anthropic": "var(--c-anthropic)", "openai": "var(--c-openai)", "google": "var(--c-google)"}
-    parts = [f'<svg viewBox="0 0 {w} {h}" class="barchart gainchart" '
-             f'xmlns="http://www.w3.org/2000/svg" role="img" aria-label="F1 gain over zero-shot Z (strict)">']
+    parts = [f'<svg viewBox="0 0 {w} {h}" class="barchart gainchart" data-criterion="{criterion}" '
+             f'xmlns="http://www.w3.org/2000/svg" role="img" aria-label="F1 gain over zero-shot Z ({criterion})">']
     parts.append(f'<line x1="{pad_l}" y1="{mid:.1f}" x2="{w-20}" y2="{mid:.1f}" class="axis"/>')
     parts.append(f'<line x1="{pad_l}" y1="{pad_t}" x2="{pad_l}" y2="{h-pad_b}" class="axis"/>')
     for gi, s in enumerate(sets):
@@ -465,7 +531,7 @@ def build_detailed_tables(criterion: str) -> str:
     for p in MODEL_KEYS:
         out.append(f"<h4>{esc(MODEL_DISPLAY[p])}</h4>")
         rows = []
-        for s in SET_NAMES:
+        for s in SET_NAMES_FULL:
             d = analysis[p][criterion]["per_set"][s]
             for split in ("overall", "abu_nuwas", "other"):
                 r = d[split]
@@ -479,7 +545,8 @@ def build_detailed_tables(criterion: str) -> str:
 
 
 def build_ci_tables() -> str:
-    pairs = ["Z-A", "Z-B", "Z-C", "A-B", "A-C", "B-C"]
+    pairs = ["Z-A", "Z-B", "Z-C", "A-B", "A-C", "B-C",
+             "D-A", "D-B", "D-C", "D-Z", "D2-A", "D2-B", "D2-C", "D2-Z", "D-D2"]
     out = []
     for p in MODEL_KEYS:
         out.append(f"<h4>{esc(MODEL_DISPLAY[p])}</h4>")
@@ -493,12 +560,12 @@ def build_ci_tables() -> str:
                 cells.append(f'<td class="cicell{cls}">{ci["point"]:+.3f} '
                             f'[{ci["ci_95"][0]:+.3f}, {ci["ci_95"][1]:+.3f}]'
                             f'{" <b>SIG</b>" if sig else " ns"}</td>')
-            diff = analysis[p]["strict"]["per_poem_diff_signs"][pair]
+            diff = analysis[p]["verse"]["per_poem_diff_signs"].get(pair) or analysis[p]["strict"]["per_poem_diff_signs"][pair]
             rows.append(f"<tr><td>{pair}</td>{''.join(cells)}"
                         f'<td>{diff["a_greater"]}/{diff["b_greater"]}/{diff["tied"]}</td></tr>')
         out.append('<table class="detail-table"><thead><tr><th>Pair (F1_i-F1_j)</th>'
-                   "<th>verse</th><th>strict</th><th>token</th>"
-                   "<th>strict per-poem signs (i&gt;j / j&gt;i / tied)</th></tr></thead>"
+                   "<th>verse (primary)</th><th>strict</th><th>token</th>"
+                   "<th>verse per-poem signs (i&gt;j / j&gt;i / tied)</th></tr></thead>"
                    f"<tbody>{''.join(rows)}</tbody></table>")
     return "\n".join(out)
 
@@ -549,6 +616,49 @@ def build_example_card(set_name: str) -> str:
     )
 
 
+def build_example_card_d(set_name: str) -> str:
+    """D/D2's two examples are composed from A/B/C's existing example dicts (see
+    e1v2_config.SET_D_SOURCE/SET_D2_SOURCE, applied via prompt_builder._examples_for_set)
+    -- never retyped. This renders the composed card the same way as A/B/C's, plus the
+    note-completeness confound found in Step 1 of the Set D task (D inherits a span with
+    an empty analysis note from Set A)."""
+    v1_sets = prompt_builder.load_v1_example_sets()
+    ex1_raw, ex2_raw = prompt_builder._examples_for_set(set_name, v1_sets)
+    src = {"D": e1v2_config.SET_D_SOURCE, "D2": e1v2_config.SET_D2_SOURCE}[set_name]
+    source_labels = [f'{src["example1"][0]} example' + f' (poem {v1_sets[src["example1"][0]]["source_poem_id"]})',
+                     f'{src["example2"][0]} example' + f' (poem {v1_sets[src["example2"][0]]["source_poem_id"]})']
+    verses = []
+    for ex, label in zip([ex1_raw, ex2_raw], source_labels):
+        ann_items = "".join(
+            f'<li>{rtl_wrap(a.get("span") or "(no span)")} '
+            f'— {rtl_wrap(a.get("analysis") or "(no analysis note)")}'
+            f'{" <strong>[no analysis note]</strong>" if not a.get("analysis") else ""}</li>'
+            for a in ex["annotations"]
+        )
+        verses.append(
+            f'<div class="example-verse">'
+            f'<div class="verse-text">{rtl_wrap(ex["text"])} <code>({esc(label)})</code></div>'
+            f'<ul class="ann-list">{ann_items}</ul>'
+            f"</div>"
+        )
+    note = {
+        "D": 'Example 1 = Set C\'s example (root ع-ق-ل). Example 2 = Set A\'s second example '
+             '(different root) -- a direct root-diversity swap-in. <strong>Confound: the borrowed '
+             'Example 2 has one span with an empty analysis note</strong> (the only example among '
+             'A/B/C/D that is partially unannotated) -- D is not a clean single-variable swap.',
+        "D2": 'Example 1 = same as D (Set C\'s example). Example 2 = Set B\'s second example '
+              '(different root, fully annotated) -- the confound-free root-diversity-only control.',
+    }[set_name]
+    return (
+        f'<div class="example-card">'
+        f'<div class="example-head"><span class="set-chip">{set_name}</span> composed from A/B/C '
+        f'(no text retyped)</div>'
+        f"{''.join(verses)}"
+        f'<p class="example-note">{note}</p>'
+        f"</div>"
+    )
+
+
 def build_pool_table() -> str:
     rows = []
     for poem in pool["poems"]:
@@ -588,8 +698,9 @@ def build_cost_table() -> str:
         "<th>$/MTok in</th><th>$/MTok out</th><th>Real spend</th><th>Calls OK</th><th>Errors</th>"
         f"</tr></thead><tbody>{''.join(rows)}</tbody></table>"
         f'<p class="total-spend">Total real spend: <strong>${total_spend:.4f}</strong> '
-        f"({total_calls_ok} OK calls, {total_calls_err} errors, across all 4 sets x 3 models x "
-        f"{pool_verses} verse-units = {len(SET_NAMES) * len(MODEL_KEYS) * pool_verses} planned cells).</p>"
+        f"({total_calls_ok} OK calls, {total_calls_err} errors, across all 6 sets x 3 models x "
+        f"{pool_verses} verse-units = {len(SET_NAMES_FULL) * len(MODEL_KEYS) * pool_verses} planned cells; "
+        f"Z/A/B/C cost $10.5680, D+D2 added $5.4451).</p>"
     )
 
 
@@ -632,7 +743,9 @@ q1_body = extract_section(results_md, "Question 1 — Do the few-shot examples h
 q2_body = extract_section(results_md, "Question 2 — How much does the choice of examples matter "
                            "(spread among A/B/C vs. CI width)?", ["Question 3"])
 q3_body = extract_section(results_md, "Question 3 — How do the three models compare on the same sets?",
-                           ["Caveats"])
+                           ["Question 4"])
+q4_body = extract_section(results_md, "Question 4 — Where do verse (primary) and strict/token "
+                           "(secondary) disagree?", ["Caveats"])
 caveats_body = extract_section(results_md, "Caveats (apply to everything above)", [])
 
 def tail_paragraph(body: str, marker: str) -> str:
@@ -825,7 +938,7 @@ function fallbackCopy(text, done) {
   try { document.execCommand('copy'); done(); } catch (e) {}
   document.body.removeChild(ta);
 }
-document.addEventListener('DOMContentLoaded', function() { toggleCriterion('strict'); });
+document.addEventListener('DOMContentLoaded', function() { toggleCriterion('""" + DEFAULT_CRITERION + """'); });
 """
 
 html_parts = []
@@ -844,14 +957,20 @@ html_parts.append(f"""<!doctype html>
   <p class="subtitle">Generated {esc(TODAY)} &middot; Phase 4, Metaphorical Analysis project</p>
   <div class="badges">
     <span class="badge">3 models</span>
-    <span class="badge">4 sets (Z/A/B/C)</span>
+    <span class="badge">6 sets (Z/A/B/C/D/D2)</span>
     <span class="badge">25 poems</span>
     <span class="badge">{len(manifest)} calls</span>
     <span class="badge">1 run per cell</span>
     <span class="badge">actual cost ${total_spend:.4f}</span>
     <span class="badge">Gemini served as gemini-3.6-flash</span>
+    <span class="badge">primary metric: verse (2026-10-14)</span>
   </div>
   <div class="warning-banner">&#9888; Indicative only: single run, no noise baseline.</div>
+  <div class="warning-banner" style="margin-top:.5rem">&#9888; Verse (the PRIMARY metric here, by
+  explicit user decision) is flagged by CLAUDE.md rule 4 as a supplementary diagnostic: it rewards a
+  model saying "this verse has the sub-element" regardless of whether it points at the right span.
+  Strict/token-overlap (secondary here) check span correctness. See panel (e) for where the two
+  disagree.</div>
 </header>
 """)
 
@@ -870,22 +989,27 @@ html_parts.append(f"""
 <section id="key-results">
   <h2>Key results</h2>
   <div class="toolbar">
-    <button class="crit-btn" data-target="strict" onclick="toggleCriterion('strict')">Strict</button>
-    <button class="crit-btn" data-target="token" onclick="toggleCriterion('token')">Token-overlap</button>
+    <button class="crit-btn" data-target="verse" onclick="toggleCriterion('verse')">Verse (primary)</button>
+    <button class="crit-btn" data-target="strict" onclick="toggleCriterion('strict')">Strict (secondary)</button>
+    <button class="crit-btn" data-target="token" onclick="toggleCriterion('token')">Token-overlap (secondary)</button>
   </div>
+  <div data-criterion="verse">{build_main_f1_table('verse')}</div>
   <div data-criterion="strict">{build_main_f1_table('strict')}</div>
   <div data-criterion="token">{build_main_f1_table('token')}</div>
   <div class="chart-row">
     <div class="chart-card">
       <h3>F1 per set &amp; model</h3>
+      <div data-criterion="verse">{build_bar_chart_svg('verse')}</div>
       <div data-criterion="strict">{build_bar_chart_svg('strict')}</div>
       <div data-criterion="token">{build_bar_chart_svg('token')}</div>
     </div>
     <div class="chart-card">
-      <h3>Gain over zero-shot (Z), strict F1</h3>
-      {build_gain_over_z_svg('strict')}
-      <p style="font-size:.8rem;color:var(--muted)">Positive = few-shot set beats Z; bars from the same
-      bootstrap point estimates as the statistics section below.</p>
+      <h3>Gain over zero-shot (Z)</h3>
+      <div data-criterion="verse">{build_gain_over_z_svg('verse')}</div>
+      <div data-criterion="strict">{build_gain_over_z_svg('strict')}</div>
+      <div data-criterion="token">{build_gain_over_z_svg('token')}</div>
+      <p style="font-size:.8rem;color:var(--muted)">Positive = set beats Z; bars from the same
+      bootstrap point estimates as the statistics section below. Now includes D/D2.</p>
     </div>
   </div>
 </section>
@@ -903,6 +1027,13 @@ html_parts.append(f"""
 <ul>
 <li><strong>Z</strong> — zero-shot baseline: Phase 3's original subtype prompt, one built-in definition example, no injected few-shot examples.</li>
 <li><strong>A / B / C</strong> — Z's prompt plus 2 extra example verses each, drawn from 3 different Abu Nuwas poems (reused unchanged from E1 v1's <code>example_sets.json</code>, seed=42).</li>
+<li><strong>D</strong> — added later to test whether Set C's root-homogeneity (both examples built on
+ع-ق-ل) explains its underperformance: Example 1 = Set C's example, Example 2 = Set A's second
+example (different root). Composed programmatically from A/B/C's existing example dicts, never
+retyped — see <code>e1v2_config.SET_D_SOURCE</code>. Carries a confound: the borrowed Example 2 has
+one span with an empty analysis note.</li>
+<li><strong>D2</strong> — the confound-free control for D: Example 1 = same as D, Example 2 = Set
+B's second example (different root, fully annotated).</li>
 </ul>
 <h4>Pool composition (25 poems, {pool['pool_verses']} verse-units)</h4>
 {build_pool_table()}
@@ -913,17 +1044,20 @@ html_parts.append(f"""
 
 prompt_abc_diff = (
     "<h4>Diff: Set A vs Set B</h4>" + build_diff_html(built_prompts["A"], built_prompts["B"], "A", "B") +
-    "<h4>Diff: Set A vs Set C</h4>" + build_diff_html(built_prompts["A"], built_prompts["C"], "A", "C")
+    "<h4>Diff: Set A vs Set C</h4>" + build_diff_html(built_prompts["A"], built_prompts["C"], "A", "C") +
+    "<h4>Diff: Set A vs Set D</h4>" + build_diff_html(built_prompts["A"], built_prompts["D"], "A", "D") +
+    "<h4>Diff: Set C vs Set D2</h4>" + build_diff_html(built_prompts["C"], built_prompts["D2"], "C", "D2")
 )
 html_parts.append(f"""
 <details>
 <summary>b. The prompts</summary>
-<p>All 4 sets share the same scaffold and Example 1 (the subtype's built-in definition example);
-A/B/C differ from each other only in Example 2/3, confirmed byte-for-byte below.</p>
-{''.join(build_prompt_block(s) for s in SET_NAMES)}
-<h4>User message template (all 4 sets)</h4>
+<p>All 6 sets share the same scaffold and Example 1 (the subtype's built-in definition example);
+A/B/C/D/D2 differ from each other only in Example 2/3, confirmed byte-for-byte below (and confirmed
+that adding D/D2 did not change Z/A/B/C's own prompts).</p>
+{''.join(build_prompt_block(s) for s in SET_NAMES_FULL)}
+<h4>User message template (all 6 sets)</h4>
 <pre class="prompt-pre" dir="ltr">{esc(prompt_builder.build_user_message('{verse}'))}</pre>
-<h4>Diff view (A/B/C differ only in the 2 examples)</h4>
+<h4>Diff view (A/B/C/D/D2 differ only in the 2 examples)</h4>
 {prompt_abc_diff}
 </details>
 """)
@@ -932,6 +1066,7 @@ html_parts.append(f"""
 <details>
 <summary>c. The examples</summary>
 {''.join(build_example_card(s) for s in ("A", "B", "C"))}
+{''.join(build_example_card_d(s) for s in ("D", "D2"))}
 </details>
 """)
 
@@ -939,13 +1074,13 @@ html_parts.append(f"""
 <details>
 <summary>d. Detailed tables (raw TP/FP/FN, P/R/F1)</summary>
 <div class="toolbar">
-  <button class="crit-btn" data-target="strict" onclick="toggleCriterion('strict')">Strict</button>
-  <button class="crit-btn" data-target="token" onclick="toggleCriterion('token')">Token-overlap</button>
-  <button class="crit-btn" data-target="verse" onclick="toggleCriterion('verse')">Verse (supplementary)</button>
+  <button class="crit-btn" data-target="verse" onclick="toggleCriterion('verse')">Verse (primary)</button>
+  <button class="crit-btn" data-target="strict" onclick="toggleCriterion('strict')">Strict (secondary)</button>
+  <button class="crit-btn" data-target="token" onclick="toggleCriterion('token')">Token-overlap (secondary)</button>
 </div>
+<div data-criterion="verse">{build_detailed_tables('verse')}</div>
 <div data-criterion="strict">{build_detailed_tables('strict')}</div>
 <div data-criterion="token">{build_detailed_tables('token')}</div>
-<div data-criterion="verse">{build_detailed_tables('verse')}</div>
 </details>
 """)
 
@@ -953,13 +1088,25 @@ samepoet_html = (
     md_block(samepoet_text) if samepoet_exists else
     "<p><em>Pending — <code>docs/phase4/E1_V2_SAMEPOET.md</code> has not been written yet for this cycle.</em></p>"
 )
+set_d_html = (
+    md_block(set_d_text) if set_d_exists else
+    "<p><em>Pending — <code>docs/phase4/E1_V2_SET_D.md</code> has not been written yet for this cycle.</em></p>"
+)
 html_parts.append(f"""
 <details>
 <summary>e. Statistics</summary>
+<div class="warning-banner">&#9888; Verse is the PRIMARY metric (user decision, 2026-10-14);
+CLAUDE.md rule 4 still flags it as a supplementary diagnostic. The "verse per-poem signs" column
+below and the Set D write-up are where this most visibly changes a significance verdict versus
+strict/token.</div>
 <h3>Pairwise bootstrap 95% CIs (F1_i − F1_j)</h3>
 {build_ci_tables()}
+<h3>Where verse (primary) and strict/token (secondary) disagree</h3>
+{md_block(q4_body)}
 <h3>Same-poet (أبو نواس) analysis</h3>
 {samepoet_html}
+<h3>Set D / D2 — root-diversity hypothesis test</h3>
+{set_d_html}
 </details>
 """)
 
@@ -987,6 +1134,16 @@ html_parts.append(f"""
 <details>
 <summary>g. Caveats and limitations</summary>
 <ul>
+<li><strong>Verse is the PRIMARY metric by explicit user decision (2026-10-14), not a project-rule
+change</strong> — CLAUDE.md rule 4 still flags plain exists/not-exists as a supplementary diagnostic
+prone to rewarding a model that says "present" regardless of whether it points at the right span
+(the documented كناية/Periphrasis artifact is the precedent). Panel (e)'s CI tables and the Set D
+write-up show concretely where this changed a significance verdict versus the secondary strict/token
+metrics — most notably Claude's D-vs-C result, which is significant on verse but not on strict/token.</li>
+<li><strong>Set D's Example 2 carries a note-completeness confound</strong>: it is borrowed verbatim
+from Set A and has one span with an empty analysis note, unlike every other example in A/B/C/D2 —
+D is a joint test of "different root" and "possibly weaker annotation," not an isolated manipulation.
+D2 is the confound-free control; see panel (c) and the Set D write-up in panel (e).</li>
 <li>Single run per (set, poem, verse, model) cell — <strong>no run-noise baseline</strong>. Every
 difference reported above is indicative only (CLAUDE.md rule 2: a prior 8x apparent gain on one run
 halved on a second run).</li>
@@ -1011,9 +1168,11 @@ html_parts.append(f"""
 <li>Source files read to build this report:
 <ul>{''.join(f'<li><code>{esc(f)}</code></li>' for f in SOURCE_FILES_USED)}</ul></li>
 <li>To reproduce the figures: <code>python experiments/phase4_e1_v2/analyze_v2.py</code> (writes
-<code>results/phase4_e1_v2/analysis_report.json</code>), then
-<code>python scripts/build_e1v2_report.py</code> (writes this file). No API calls in either step —
-both read already-collected data.</li>
+<code>results/phase4_e1_v2/analysis_report.json</code>, Z/A/B/C only),
+<code>python experiments/phase4_e1_v2/analyze_D.py</code> (writes
+<code>results/phase4_e1_v2/analysis_report_D.json</code>, all 6 sets, which this report reads
+preferentially), then <code>python scripts/build_e1v2_report.py</code> (writes this file). No API
+calls in any step — all read already-collected data.</li>
 </ul>
 </details>
 </section>
@@ -1042,12 +1201,13 @@ print(f"Wrote {OUT_PATH} ({len(final_html):,} chars).")
 
 written = OUT_PATH.read_text(encoding="utf-8")
 for p in MODEL_KEYS:
-    for s in SET_NAMES:
-        for c in ("strict", "token"):
+    for s in SET_NAMES_FULL:
+        for c in CRITERIA:
             v = analysis[p][c]["per_set"][s]["overall"]["f1"]
             assert f"{v:.3f}" in written, f"F1 value {v:.3f} for {p}/{c}/{s} not found in written HTML"
-for s in SET_NAMES:
+for s in SET_NAMES_FULL:
     assert prompt_previews[s].rstrip("\n") in written or esc(prompt_previews[s]) in written or True
-print("PASS: re-read the written file and confirmed every main-table F1 value string is present.")
+print("PASS: re-read the written file and confirmed every main-table F1 value string is present "
+      "(all 6 sets x 3 models x 3 criteria).")
 rtl_count = written.count('dir="rtl"')
 print(f"RTL spans/pre blocks emitted: {rtl_count} (>0 confirms Arabic text is wrapped RTL).")
