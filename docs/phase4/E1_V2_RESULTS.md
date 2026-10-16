@@ -336,6 +336,19 @@ single model in most sets (5 of 6 on both strict and token). **This agrees with 
 single model here, and are sometimes worse. Full agreement-bucket table (3/3, 2/3, 1/3, 0/3 vote
 counts and each bucket's accuracy against ground truth) and every pairwise CI: `E1_V2_ENSEMBLE.md`.
 
+## Opus 5.5 on set A
+
+Claude Opus 5.5 (`claude-opus-5-5`) was run on **set A only** (not Z/B/C/D/D2, not added to the
+ensemble) — $4.3157, 327/327 cells. Verse-primary F1 = **0.585** (vs. Sonnet 0.576, GPT 0.541,
+Gemini 0.511, ensemble 0.568 — all also on set A): Opus numerically leads all four but the
+difference is only statistically significant against Gemini; vs. Sonnet/GPT/ensemble it is `ns`.
+On the secondary strict/token span-level metrics, Opus **significantly beats all four** by a wide
+margin (strict F1=0.387 vs. 0.226-0.260; token F1=0.440 vs. 0.241-0.288) — the opposite of this
+project's usual verse-vs-span disagreement pattern, because Opus's plain "exists" recall is lower
+than Sonnet's while its span-level precision/correctness is higher. Set A is a few-shot set and
+Opus has no Z/B/C/D/D2 results, so no gain-over-Z or other cross-set read exists for it. Full
+tables, CIs, and the plain answer: `E1_V2_OPUS_A.md`.
+
 ## Caveats (apply to everything above)
 
 - **No run-noise baseline exists** — 1 run per cell, per the frozen design. Every difference reported

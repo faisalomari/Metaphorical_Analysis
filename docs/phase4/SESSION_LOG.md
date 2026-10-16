@@ -1952,3 +1952,27 @@ much more so, output ~2.24x (consistent with Opus 5.5's adaptive thinking always
 Sonnet 4.6). Still well under the $5 cap and the effective per-invocation cap. Cumulative spend
 across the whole manifest: $20.3288 (anthropic $10.7338, openai $1.8353, google $3.4440,
 anthropic_opus $4.3157).
+
+**Step 4 (no API).** Wrote `experiments/phase4_e1_v2/scoring_opus_a.py`: scores Opus on set A for
+verse (PRIMARY)/strict/token (secondary), overall + abu_nuwas/other, and bootstrap 95% CIs
+(F1/precision/recall, same `verse_analysis.bootstrap_pair`, seed=0, 2000 iters, resample-over-
+poems method as every other Phase 4 comparison) against Claude Sonnet 4.6, GPT-5.4-mini, Gemini,
+and the majority-vote ensemble, all on set A. Uses `ensemble_v2`'s cache-based
+`score_set_single_model`/`score_set_ensemble` (not `scoring_v2.score_set`'s per-call manifest
+rescan, which is correct but far too slow at this call volume — the same perf note the ensemble
+task already recorded); **cross-verified identical TP/FP/FN/F1 from both the slow and fast scorer
+on a full run**, and cross-verified Sonnet/GPT/Gemini/ensemble set-A F1 (0.576/0.541/0.511/0.568)
+match `analysis_report_verse.json`/`analysis_report_ensemble.json` exactly. Writes
+`results/phase4_e1_v2/analysis_report_opus_a.json`.
+
+**Headline numbers (verse-primary)**: Opus 5.5 overall TP=83 FP=74 FN=44, P=0.529 R=0.654
+**F1=0.585** (abu_nuwas F1=0.717, other F1=0.554). vs Sonnet (F1=0.576): ΔF1=+0.008, CI
+[-0.050,+0.066], **ns**. vs GPT (F1=0.541): ΔF1=+0.044, CI [-0.019,+0.103], **ns**. vs Gemini
+(F1=0.511): ΔF1=+0.073, CI [+0.025,+0.126], **SIG** (Opus beats Gemini). vs ensemble (F1=0.568):
+ΔF1=+0.017, CI [-0.038,+0.072], **ns**. Precision is significantly higher for Opus vs all 4;
+recall is significantly *lower* than Sonnet, not-significant vs the others. **On secondary
+strict/token, Opus significantly beats all 4** (Sonnet/GPT/Gemini/ensemble), unlike the primary
+verse metric — the opposite of the usual pattern in this project (strict/token usually reads
+*worse* than verse for span-level correctness, per CLAUDE.md rule 4's concern; here it's the
+primary metric where Opus's edge mostly washes out as `ns`). Set A is a few-shot set; Opus has no
+Z/B/C/D/D2 results, so no gain-over-Z or other cross-set comparison exists for it.
