@@ -1752,3 +1752,102 @@ build_e1v2_report.py` and `docs/phase4/E1_V2_REPORT.html` (generator + regenerat
 here and in every affected doc as an explicit user methodological choice, with CLAUDE.md rule 4's
 standing caveat quoted alongside it every time. No API calls anywhere in this task. Committing
 and pushing now.
+
+---
+
+**2026-10-16T10:51** — New task: add a majority-vote (2-of-3 models) ensemble of Claude/GPT-5.4-
+mini/Gemini for every set Z/A/B/C/D/D2, include it in `E1_V2_REPORT.html`. **No API calls.**
+Re-read `CLAUDE.md`, `docs/phase4/E1_V2_RESULTS.md`, this log's tail, `results/phase4_e1_v2/`
+(`run_manifest.json`, `analysis_report*.json`), `experiments/phase4_e1_v2/scoring_v2.py`,
+`analyze_v2.py`, `verse_analysis.py` (the verse-level analysis script from the last task),
+`scripts/build_e1v2_report.py`. Confirmed 0 errors in the 5,886-record manifest (6 sets x 327
+verse-units x 3 models), per the prior session's completeness check.
+
+**Declared ensemble definition** (primary, verse-level): `ensemble_exists(set,poem,verse) = True`
+iff >=2 of {anthropic, openai, google} returned `exists=True` for that cell. An API-error or
+unparseable-JSON cell (none occurred -- checked directly, see below) would be treated as a
+non-vote (False) for the 2-of-3 threshold.
+
+**Declared secondary span rule** (strict/token): among the models that voted `exists=True`, each
+independently runs `pilot_3models.span_matching.best_match` against the GT spans; if >=2 of them
+agree on the SAME GT span index, that counts as 1 ensemble TP (remaining GT spans at that verse
+-> FN, same one-match-per-verse convention `scoring_v2.score_poem` already uses for a single
+model). If `ensemble_exists` but no GT span gets >=2 agreeing match-votes, the verse is 1 FP + FN
+per GT span. **Limitation stated up front**: this under-counts ensemble TP when 2+ "yes" models
+each correctly spot a DIFFERENT real span in a multi-span verse -- majority-of-span-identity is a
+stricter bar than majority-of-mere-existence.
+
+Backed up `docs/phase4/E1_V2_REPORT.html` -> `docs/phase4/E1_V2_REPORT_before_ensemble.html`
+before touching the generator. Did not edit `v1`, `phase3_*`, `pilot_3models`, `CLAUDE.md`, or any
+existing raw result file.
+
+**Wrote `experiments/phase4_e1_v2/ensemble_v2.py`** (new script, no API calls; reads
+`run_manifest.json` + `raw/*.txt` only, reuses `gt_v2.gt_spans_for_subtype`,
+`parsing_v2.parse_verse_response`, `pilot_3models.span_matching.best_match`,
+`scoring_v2.score_set` (for the 3 single-model baselines), and `verse_analysis.bootstrap_pair`
+(resample-poems CI over F1/precision/recall together) unchanged -- no scoring logic duplicated
+beyond the ensemble-vote/match-agreement rule itself). Computes, for every set Z/A/B/C/D/D2 and
+every criterion (verse primary; strict/token secondary): ensemble overall/abu_nuwas/other
+TP/FP/FN/P/R/F1; bootstrap 95% CI (F1, precision, recall) of ensemble vs. each of the 3 single
+models; oracle context (best single model, average of the 3); and, independent of criterion, the
+3/3-2/3-1/3-0/3 vote-count agreement buckets with each bucket's accuracy against plain verse-level
+ground truth. Writes `results/phase4_e1_v2/analysis_report_ensemble.json`.
+
+**Perf note**: `scoring_v2.score_set` rescans the entire 5,886-record manifest per verse lookup --
+fine called a handful of times, far too slow called ~54x here. Added a cache-based reimplementation
+of the single-model scorer (`score_set_single_model`, same rule as `scoring_v2.score_poem`) against
+a preloaded `{(set,poem,verse,provider): parsed}` dict; `verify_single_model_cache_scorer()` checks
+it reproduces `analysis_report.json` / `analysis_report_D.json` / `analysis_report_verse.json`
+exactly on all 54 (criterion, set, model) F1 values before trusting it for anything else. **PASS**,
+0 API errors / 0 unparseable-JSON cells confirmed directly (not assumed from the prior session).
+
+**Headline numbers** (verse-primary F1; full tables in `docs/phase4/E1_V2_ENSEMBLE.md`): ensemble
+Z=0.450, A=0.568, B=0.543, C=0.475, D=0.577, D2=0.550. Ensemble **never significantly beats that
+set's best single model** on any criterion (one case, Z, where it is significantly *worse* than
+GPT-5.4-mini's zero-shot F1=0.549). On verse it **consistently beats the average of the 3 singles**
+(all 6 sets, point estimate +0.010 to +0.043). On secondary strict/token it is **worse than the
+average of the 3 singles in every set**, and significantly worse than the best single model in 5
+of 6 sets on both — the declared span-agreement rule's stated limitation (majority-of-span-identity
+is harder than majority-of-mere-existence) shows up exactly where predicted. **Agrees with and
+strengthens `PROJECT_STATE.md` §3e's Phase 1 finding** (model ensembles give no improvement over
+the best single model here, sometimes worse).
+
+**Updated `docs/phase4/E1_V2_RESULTS.md`**: added a new `## Ensemble (majority vote)` section
+(summary table + plain-language verdict, pointing to the full doc) right before `## Caveats`.
+
+**Wrote `docs/phase4/E1_V2_ENSEMBLE.md`**: full write-up — §0 declared definitions (primary +
+secondary span rule + its stated limitation + errors/unparseable count), §1 verse-primary
+TP/FP/FN/P/R/F1 (overall/abu_nuwas/other, all 6 sets), §2 secondary strict/token tables, §3
+ensemble-vs-each-single-model F1/precision/recall bootstrap 95% CIs (all 54 cells), §4 the
+3/3-2/3-1/3-0/3 agreement-bucket table with per-bucket accuracy against ground truth (plus 2 flagged
+counter-intuitive readings), §5 oracle context (best single + average of 3, every set/criterion),
+§6 the plain answer, caveats.
+
+**Extended `scripts/build_e1v2_report.py`**: loads `analysis_report_ensemble.json`; injects
+`analysis["ensemble"]` (per_set only, verified byte-identical to the source JSON via a new
+`verify_ensemble_matches_json()`, run alongside the existing verify_* checks) as a 4th pseudo-model
+row/series — `MODEL_KEYS_ALL = MODEL_KEYS + ["ensemble"]` threaded through `build_main_f1_table`
+(all 3 criterion toggles) and `build_bar_chart_svg` (new purple `--c-ensemble` CSS var, light+dark,
+plus an `.ensemble-row` highlight rule) -- the gain-over-Z chart stays 3-model-only (not requested).
+Added a new collapsible panel **h. Ensemble (majority vote)** (a warning-banner summary + the full
+`E1_V2_ENSEMBLE.md` rendered via the existing `md_block` renderer, same pattern as panels e's
+same-poet/Set-D sub-sections), renumbered the old panel h (Provenance) to **i**, and added
+`ensemble_v2.py` to the "to reproduce" instructions and both `SOURCE_FILES_USED` lists.
+
+**Verification**: ran the generator — all built-in PASS checks green (including the 2 new ones);
+completeness 5,886/5,886, 0 errors; total spend unchanged at $16.0131 (no API calls, this task only
+re-reads the manifest). **Visual check in the browser pane** (desktop + 375px mobile, file:// open
+of the regenerated HTML): the Ensemble row/series render correctly in the main F1 table and bar
+chart under all 3 criterion toggles; panel (h) expands and its agreement-bucket/CI/oracle tables
+render correctly; mobile view scrolls the wide table horizontally instead of overflowing, same
+pattern as the existing tables; no console errors. Confirmed via `git status` that the existing
+set/prompt/example sections' source files were not touched (only `E1_V2_RESULTS.md`,
+`SESSION_LOG.md`, and the 4 new/generated files listed below changed).
+
+**Session complete.** Files added: `experiments/phase4_e1_v2/ensemble_v2.py` (no API calls),
+`results/phase4_e1_v2/analysis_report_ensemble.json`, `docs/phase4/E1_V2_ENSEMBLE.md`,
+`docs/phase4/E1_V2_REPORT_before_ensemble.html` (pre-task backup, per the task instruction). Files
+edited: `docs/phase4/E1_V2_RESULTS.md` (new Ensemble section), `scripts/build_e1v2_report.py`
+(Ensemble panel + 4th model row/series), `docs/phase4/E1_V2_REPORT.html` (regenerated output). No
+`v1`, `phase3_*`, `pilot_3models`, `CLAUDE.md`, or existing raw result file touched. No API calls
+anywhere in this task. Committing and pushing now.

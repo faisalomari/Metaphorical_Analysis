@@ -305,6 +305,37 @@ span (scored wrong on strict/token), or vice versa in rarer cases. The user's ch
 primary is a decision about which question matters more for this project's conclusions (does the model
 detect presence vs. does it also localize correctly) — it is not a claim that verse is more "correct."
 
+## Ensemble (majority vote)
+
+Added 2026-10-16, no new API calls — full tables in `docs/phase4/E1_V2_ENSEMBLE.md`, numeric
+report in `results/phase4_e1_v2/analysis_report_ensemble.json`
+(`experiments/phase4_e1_v2/ensemble_v2.py`). **Definition (verse-primary)**: `ensemble_exists` =
+True iff >=2 of the 3 models agree for that verse-unit (0 unparseable/error cells, so no tie-break
+rule was ever exercised). Secondary strict/token use a declared, stated-limitation span-agreement
+rule — see that doc's §0.
+
+Verse-primary F1, ensemble vs. the 3 single models, every set:
+
+| Set | Claude | GPT | Gemini | **Ensemble** | best single | avg of 3 |
+|---|---|---|---|---|---|---|
+| Z | 0.377 | 0.549 | 0.393 | **0.450** | GPT 0.549 | 0.440 |
+| A | 0.576 | 0.541 | 0.511 | **0.568** | Claude 0.576 | 0.543 |
+| B | 0.547 | 0.513 | 0.510 | **0.543** | Claude 0.547 | 0.523 |
+| C | 0.416 | 0.437 | 0.481 | **0.475** | Gemini 0.481 | 0.444 |
+| D | 0.562 | 0.533 | 0.509 | **0.577** | Claude 0.562 | 0.534 |
+| D2 | 0.568 | 0.503 | 0.500 | **0.550** | Claude 0.568 | 0.524 |
+
+**Plain answer**: majority voting **never significantly beats the best single model** on any set
+or criterion (one case — Z — where it is significantly *worse* than GPT's zero-shot F1). On the
+primary verse metric it **consistently beats the average of the 3 singles** (all 6 sets, point
+estimate +0.010 to +0.043), often significantly against the two weaker models specifically. On
+the secondary strict/token metrics the ensemble's conservative span-agreement rule makes it
+**worse than the average of the 3 singles in every set**, and significantly worse than the best
+single model in most sets (5 of 6 on both strict and token). **This agrees with and strengthens
+`PROJECT_STATE.md` §3e's Phase 1 finding** that model ensembles give no improvement over the best
+single model here, and are sometimes worse. Full agreement-bucket table (3/3, 2/3, 1/3, 0/3 vote
+counts and each bucket's accuracy against ground truth) and every pairwise CI: `E1_V2_ENSEMBLE.md`.
+
 ## Caveats (apply to everything above)
 
 - **No run-noise baseline exists** — 1 run per cell, per the frozen design. Every difference reported

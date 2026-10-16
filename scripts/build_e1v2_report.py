@@ -46,12 +46,14 @@ OUT_PATH = DOCS_DIR / "E1_V2_REPORT.html"
 ANALYSIS_PATH = RESULTS_DIR / "analysis_report.json"
 ANALYSIS_D_PATH = RESULTS_DIR / "analysis_report_D.json"
 ANALYSIS_VERSE_PATH = RESULTS_DIR / "analysis_report_verse.json"
+ANALYSIS_ENSEMBLE_PATH = RESULTS_DIR / "analysis_report_ensemble.json"
 MANIFEST_PATH = RESULTS_DIR / "run_manifest.json"
 POOL_PATH = E1V2_DIR / "config" / "eval_pool_25.json"
 EXAMPLE_SETS_PATH = E1V1_DIR / "config" / "example_sets.json"
 RESULTS_MD_PATH = DOCS_DIR / "E1_V2_RESULTS.md"
 SAMEPOET_PATH = DOCS_DIR / "E1_V2_SAMEPOET.md"
 SET_D_PATH = DOCS_DIR / "E1_V2_SET_D.md"
+ENSEMBLE_PATH = DOCS_DIR / "E1_V2_ENSEMBLE.md"
 BLOCKERS_PATH = ROOT / "writing" / "paper_plan" / "TOP_5_BLOCKERS.md"
 PROMPT_INVENTORY_PATH = DOCS_DIR / "PROMPT_INVENTORY.md"
 
@@ -69,6 +71,7 @@ SOURCE_FILES_USED = [
     "results/phase4_e1_v2/analysis_report.json",
     "results/phase4_e1_v2/analysis_report_D.json",
     "results/phase4_e1_v2/analysis_report_verse.json",
+    "results/phase4_e1_v2/analysis_report_ensemble.json",
     "results/phase4_e1_v2/run_manifest.json",
     "experiments/phase4_e1_v2/config/eval_pool_25.json",
     "experiments/phase4_e1/config/example_sets.json",
@@ -85,6 +88,7 @@ SOURCE_FILES_USED = [
     "experiments/pilot_3models/rtl_utils.py",
     "docs/phase4/E1_V2_RESULTS.md",
     "docs/phase4/E1_V2_SET_D.md",
+    "docs/phase4/E1_V2_ENSEMBLE.md",
     "docs/phase4/PROMPT_INVENTORY.md",
     "writing/paper_plan/TOP_5_BLOCKERS.md",
 ]
@@ -236,6 +240,7 @@ def extract_section(md_text: str, header: str, next_headers) -> str:
 
 analysis_zabc = json.loads(ANALYSIS_PATH.read_text(encoding="utf-8"))  # Z/A/B/C, verse/strict/token
 analysis_d = json.loads(ANALYSIS_D_PATH.read_text(encoding="utf-8"))   # Z/A/B/C/D/D2, verse/strict/token
+analysis_ensemble = json.loads(ANALYSIS_ENSEMBLE_PATH.read_text(encoding="utf-8"))  # majority-vote ensemble, all 6 sets
 manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
 pool = json.loads(POOL_PATH.read_text(encoding="utf-8"))
 example_sets = json.loads(EXAMPLE_SETS_PATH.read_text(encoding="utf-8"))
@@ -246,6 +251,8 @@ samepoet_exists = SAMEPOET_PATH.exists()
 samepoet_text = SAMEPOET_PATH.read_text(encoding="utf-8") if samepoet_exists else None
 set_d_exists = SET_D_PATH.exists()
 set_d_text = SET_D_PATH.read_text(encoding="utf-8") if set_d_exists else None
+ensemble_doc_exists = ENSEMBLE_PATH.exists()
+ensemble_doc_text = ENSEMBLE_PATH.read_text(encoding="utf-8") if ensemble_doc_exists else None
 
 # `analysis`: per_set lookups use analysis_d (it has all 6 sets, Z/A/B/C recomputed the same
 # way as analysis_zabc -- checked in verify_f1_matches_json below). `analysis`'s
@@ -267,6 +274,14 @@ for p in MODEL_KEYS:
             },
         }
 
+# "ensemble" is injected as a 4th pseudo-model so build_main_f1_table/build_bar_chart_svg can
+# render it as an extra row/series without special-casing -- it only has per_set (no pairwise
+# CI vs itself; its CIs vs each real model live in analysis_ensemble["criteria"][c]["vs_single"]
+# and are rendered separately in the Ensemble panel, not via the shared `analysis` dict).
+analysis["ensemble"] = {
+    c: {"per_set": analysis_ensemble["criteria"][c]["per_set"]} for c in CRITERIA
+}
+
 prompt_previews = {
     s: (E1V2_DIR / "config" / f"prompt_preview_{s}.txt").read_text(encoding="utf-8")
     for s in SET_NAMES_FULL
@@ -276,8 +291,10 @@ MODEL_DISPLAY = {
     "anthropic": "Claude Sonnet 4.6",
     "openai": "GPT-5.4-mini",
     "google": "Gemini (served: gemini-3.6-flash)",
+    "ensemble": "Majority-vote ensemble (2-of-3)",
 }
-MODEL_SHORT = {"anthropic": "Claude", "openai": "GPT", "google": "Gemini"}
+MODEL_SHORT = {"anthropic": "Claude", "openai": "GPT", "google": "Gemini", "ensemble": "Ensemble"}
+MODEL_KEYS_ALL = MODEL_KEYS + ["ensemble"]  # main F1 table / bar chart rows, in this order
 
 # ---------------------------------------------------------------------------
 # Derived numbers (cost, call counts) — computed from the manifest + the
@@ -356,6 +373,20 @@ def verify_f1_matches_json():
           "numbers are cross-verified identical to the original analysis_report.json.")
 
 
+def verify_ensemble_matches_json():
+    """The 'ensemble' row injected into the shared `analysis` dict must equal
+    analysis_report_ensemble.json's own per_set F1 exactly, for every
+    criterion and set -- the merge in the loading section must not have
+    mutated anything."""
+    for c in CRITERIA:
+        for s in SET_NAMES_FULL:
+            expected = analysis_ensemble["criteria"][c]["per_set"][s]["overall"]["f1"]
+            rendered = analysis["ensemble"][c]["per_set"][s]["overall"]["f1"]
+            assert abs(expected - rendered) < 1e-12, (c, s, expected, rendered)
+    print("PASS: the 'ensemble' row's F1 values are read directly from "
+          "analysis_report_ensemble.json, unmutated by the merge into `analysis`.")
+
+
 def verify_prompts_match_previews():
     built = {s: prompt_builder.build_system_message(s) for s in SET_NAMES_FULL}
     for s in SET_NAMES_FULL:
@@ -404,6 +435,7 @@ def verify_rtl_sample():
 
 
 verify_f1_matches_json()
+verify_ensemble_matches_json()
 built_prompts = verify_prompts_match_previews()
 verify_abc_differ_only_in_examples(built_prompts)
 verify_d_differs_only_in_examples(built_prompts)
@@ -428,10 +460,10 @@ def f1_color(value: float, vmin: float, vmax: float) -> str:
 
 
 def build_main_f1_table(criterion: str) -> str:
-    vals = [analysis[p][criterion]["per_set"][s]["overall"]["f1"] for p in MODEL_KEYS for s in SET_NAMES_FULL]
+    vals = [analysis[p][criterion]["per_set"][s]["overall"]["f1"] for p in MODEL_KEYS_ALL for s in SET_NAMES_FULL]
     vmin, vmax = min(vals), max(vals)
     rows = []
-    for p in MODEL_KEYS:
+    for p in MODEL_KEYS_ALL:
         row_vals = {s: analysis[p][criterion]["per_set"][s]["overall"]["f1"] for s in SET_NAMES_FULL}
         best_set = max(row_vals, key=row_vals.get)
         cells = []
@@ -440,7 +472,8 @@ def build_main_f1_table(criterion: str) -> str:
             t = f1_color(v, vmin, vmax)
             best_cls = " best" if s == best_set else ""
             cells.append(f'<td class="f1cell{best_cls}" style="--t:{t}"><span>{v:.3f}</span></td>')
-        rows.append(f"<tr><th>{esc(MODEL_SHORT[p])}</th>{''.join(cells)}</tr>")
+        row_cls = ' class="ensemble-row"' if p == "ensemble" else ""
+        rows.append(f"<tr{row_cls}><th>{esc(MODEL_SHORT[p])}</th>{''.join(cells)}</tr>")
     header = "".join(f"<th>{s}</th>" for s in SET_NAMES_FULL)
     return (f'<table class="f1table" data-criterion="{criterion}">'
             f"<thead><tr><th>Model</th>{header}</tr></thead><tbody>{''.join(rows)}</tbody></table>")
@@ -452,10 +485,11 @@ def build_bar_chart_svg(criterion: str) -> str:
     pad_l, pad_b, pad_t = 40, 30, 20
     plot_w, plot_h = w - pad_l - 20, h - pad_b - pad_t
     group_w = plot_w / len(sets)
-    bar_w = group_w / (len(MODEL_KEYS) + 1)
-    vmax = max(analysis[p][criterion]["per_set"][s]["overall"]["f1"] for p in MODEL_KEYS for s in sets)
+    bar_w = group_w / (len(MODEL_KEYS_ALL) + 1)
+    vmax = max(analysis[p][criterion]["per_set"][s]["overall"]["f1"] for p in MODEL_KEYS_ALL for s in sets)
     vmax = max(vmax * 1.15, 0.05)
-    colors = {"anthropic": "var(--c-anthropic)", "openai": "var(--c-openai)", "google": "var(--c-google)"}
+    colors = {"anthropic": "var(--c-anthropic)", "openai": "var(--c-openai)", "google": "var(--c-google)",
+              "ensemble": "var(--c-ensemble)"}
     parts = [f'<svg viewBox="0 0 {w} {h}" class="barchart" data-criterion="{criterion}" '
              f'xmlns="http://www.w3.org/2000/svg" role="img" aria-label="F1 by set and model ({criterion})">']
     # axes
@@ -463,7 +497,7 @@ def build_bar_chart_svg(criterion: str) -> str:
     parts.append(f'<line x1="{pad_l}" y1="{h-pad_b}" x2="{w-20}" y2="{h-pad_b}" class="axis"/>')
     for gi, s in enumerate(sets):
         gx = pad_l + gi * group_w
-        for mi, p in enumerate(MODEL_KEYS):
+        for mi, p in enumerate(MODEL_KEYS_ALL):
             v = analysis[p][criterion]["per_set"][s]["overall"]["f1"]
             bh = (v / vmax) * plot_h
             x = gx + (mi + 0.3) * bar_w
@@ -473,7 +507,7 @@ def build_bar_chart_svg(criterion: str) -> str:
             parts.append(f'<text x="{x+bar_w*0.4:.1f}" y="{y-4:.1f}" class="bar-label">{v:.2f}</text>')
         parts.append(f'<text x="{gx+group_w/2:.1f}" y="{h-pad_b+16}" class="axis-label">{s}</text>')
     legend_x = pad_l
-    for i, p in enumerate(MODEL_KEYS):
+    for i, p in enumerate(MODEL_KEYS_ALL):
         lx = legend_x + i * 150
         parts.append(f'<rect x="{lx}" y="2" width="10" height="10" fill="{colors[p]}"/>')
         parts.append(f'<text x="{lx+14}" y="11" class="legend-label">{MODEL_SHORT[p]}</text>')
@@ -785,7 +819,7 @@ CSS = """
 :root {
   --bg: #fbfaf8; --fg: #1d1b18; --muted: #6b655c; --border: #e3ddd3;
   --panel: #ffffff; --accent: #8a5a2a; --accent-2: #2a5a6b;
-  --c-anthropic: #c9622f; --c-openai: #2f8f6b; --c-google: #3f6fc9;
+  --c-anthropic: #c9622f; --c-openai: #2f8f6b; --c-google: #3f6fc9; --c-ensemble: #8a3f9e;
   --warn-bg: #fff4e5; --warn-fg: #7a4a00; --warn-border: #e8b86a;
   --sig-bg: #fde9e5; --ok: #2f8f6b; --bad: #c9622f;
   --f1-low: 229,221,208; --f1-high: 138,90,42;
@@ -793,7 +827,7 @@ CSS = """
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #171512; --fg: #ece7df; --muted: #a79f92; --border: #3a352e;
-    --panel: #201d19; --accent: #d79a5f; --accent-2: #7fb3c7;
+    --panel: #201d19; --accent: #d79a5f; --accent-2: #7fb3c7; --c-ensemble: #c48fd6;
     --warn-bg: #3a2a0a; --warn-fg: #ffd9a0; --warn-border: #8a6020;
     --sig-bg: #3a1e18; --ok: #6fcf9e; --bad: #e08a5f;
     --f1-low: 58,53,46; --f1-high: 215,154,95;
@@ -801,7 +835,7 @@ CSS = """
 }
 :root[data-theme="dark"] {
   --bg: #171512; --fg: #ece7df; --muted: #a79f92; --border: #3a352e;
-  --panel: #201d19; --accent: #d79a5f; --accent-2: #7fb3c7;
+  --panel: #201d19; --accent: #d79a5f; --accent-2: #7fb3c7; --c-ensemble: #c48fd6;
   --warn-bg: #3a2a0a; --warn-fg: #ffd9a0; --warn-border: #8a6020;
   --sig-bg: #3a1e18; --ok: #6fcf9e; --bad: #e08a5f;
   --f1-low: 58,53,46; --f1-high: 215,154,95;
@@ -847,6 +881,8 @@ th { background: var(--panel); }
 }
 .f1cell { background-color: color-mix(in srgb, rgb(var(--f1-low)) calc((1 - var(--t)) * 100%), rgb(var(--f1-high)) calc(var(--t) * 100%)); }
 .f1cell.best span { text-decoration: underline; text-decoration-thickness: 2px; }
+.ensemble-row th { color: var(--c-ensemble); border-top: 2px solid var(--c-ensemble); }
+.ensemble-row td { border-top: 2px solid var(--c-ensemble); }
 .detail-table { font-size: .82rem; }
 .cicell.sig { background: var(--sig-bg); font-weight: 600; }
 .tag { border-radius: 999px; padding: .05rem .5rem; font-size: .75rem; }
@@ -1157,10 +1193,27 @@ with a clean, non-leaking example pool. {md_inline(leakage_note)}</li>
 </details>
 """)
 
+ensemble_html = (
+    md_block(ensemble_doc_text) if ensemble_doc_exists else
+    "<p><em>Pending — <code>docs/phase4/E1_V2_ENSEMBLE.md</code> has not been written yet for this cycle.</em></p>"
+)
+html_parts.append(f"""
+<details>
+<summary>h. Ensemble (majority vote)</summary>
+<div class="warning-banner">&#9888; Majority voting (2-of-3) never significantly beats that set's
+best single model, on any criterion — see &sect;6 below. It consistently beats the <em>average</em>
+of the 3 single models on the primary verse metric, and is consistently <em>worse</em> than the
+average on the secondary strict/token metrics (their declared span-agreement rule is a stricter
+bar than plain-existence voting). This agrees with and strengthens the Phase 1 ensemble finding in
+<code>PROJECT_STATE.md</code> &sect;3e.</div>
+{ensemble_html}
+</details>
+""")
+
 commit_hash_cmd = "git rev-parse HEAD"
 html_parts.append(f"""
 <details>
-<summary>h. Provenance</summary>
+<summary>i. Provenance</summary>
 <ul>
 <li>Report generator: <code>scripts/build_e1v2_report.py</code> (this file is its output).</li>
 <li>Pool seed: <code>{pool['seed']}</code> &middot; example-set seed: <code>42</code>
@@ -1171,7 +1224,9 @@ html_parts.append(f"""
 <code>results/phase4_e1_v2/analysis_report.json</code>, Z/A/B/C only),
 <code>python experiments/phase4_e1_v2/analyze_D.py</code> (writes
 <code>results/phase4_e1_v2/analysis_report_D.json</code>, all 6 sets, which this report reads
-preferentially), then <code>python scripts/build_e1v2_report.py</code> (writes this file). No API
+preferentially), <code>python experiments/phase4_e1_v2/ensemble_v2.py</code> (writes
+<code>results/phase4_e1_v2/analysis_report_ensemble.json</code>, the majority-vote ensemble for
+panel (h)), then <code>python scripts/build_e1v2_report.py</code> (writes this file). No API
 calls in any step — all read already-collected data.</li>
 </ul>
 </details>
