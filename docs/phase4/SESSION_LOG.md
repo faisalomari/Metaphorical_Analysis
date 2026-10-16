@@ -1903,3 +1903,16 @@ prior Phase 4 session here.
   scenario (Opus 5.5 has adaptive thinking always on and a different default effort than Sonnet
   4.6, so its real output length is not guaranteed to match Sonnet's exactly). Both land inside the
   task's own ~$2.40–$3.00 expectation band.
+
+**Sanity-checked the wiring with a dry run** (`runner.run(sets=["A"], models=["anthropic_opus"],
+pool_name="25", dry_run=True)`, no API call, manifest unchanged at 5886 records): plans exactly
+**327 calls**, matching the pool's `pool_verses`.
+
+**Step 1 done. Committed and pushed** (`b11f892`): `e1v2_config.py` (+`EXTRA_MODEL_PRICING`),
+`providers_v2.py` (+`call_anthropic_opus`, `CALLERS["anthropic_opus"]`), `runner.py` (merged
+`MODELS`, `--models` choices, `error_counts`/`spend_so_far` keys), new
+`experiments/phase4_e1_v2/dryrun_opus_a.py`, backup `docs/phase4/E1_V2_REPORT_before_opus.html`.
+No `v1`/`phase3_*`/`pilot_3models`/`CLAUDE.md`/existing raw result file touched.
+
+**Step 2: STOP.** Reporting cost estimate, awaiting explicit "go" before any API call (hard cap
+$5 via `--max-additional-usd 5`, per task instruction).
