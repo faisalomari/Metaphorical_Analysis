@@ -1,0 +1,94 @@
+{
+  "_comment": "Step 1 output: the 5 data-driven targets + difficulty assignment + evidence. See docs/phase5/LOCAL_FT_RESULTS.md for the full writeup. min_positive_verses threshold = 150 (14 subtypes qualified; restricted further to the 10 that are in-scope subtypes defined in experiments/phase3_subelements/subtype_defs.py -- the other 4 qualifying raw labels (اشتقاق/ترديد/مبالغة/رد الأعجاز على الصدور) are different rhetorical devices outside this project's 4-element scope and have no LLM difficulty evidence to rank against).",
+  "corpus": {"n_poems": 166, "total_verses": 3470, "excluded_poem_id": "28601"},
+  "min_positive_verses_threshold": 150,
+  "targets": [
+    {
+      "level": "very_easy",
+      "kind": "subtype",
+      "value": "تشبيه مطول",
+      "parent": "Simile (تشبيه)",
+      "pos_verses": 217,
+      "poems_with": 85,
+      "pos_rate": 0.0625,
+      "pos_weight": 14.99,
+      "evidence": {
+        "phase1_frozen_parent_F1_avg_3models": 0.70,
+        "phase3_crossmodel_recall_strict": {"gemini": 0.833, "gpt": 0.667, "n": 30}
+      },
+      "weak_evidence_flag": null
+    },
+    {
+      "level": "easy",
+      "kind": "subtype",
+      "value": "استعارة تمثيلية",
+      "parent": "Trope (مجاز) — فرع التمثيل",
+      "pos_verses": 287,
+      "poems_with": 94,
+      "pos_rate": 0.0827,
+      "pos_weight": 11.09,
+      "evidence": {
+        "phase1_TEST_subtype_breakdown_pct_missed": {"baseline": 0.33, "v4_combined": 0.29, "n": 24},
+        "phase3_crossmodel_recall_strict": {"gemini": 0.143, "gpt": 0.571, "n": 28}
+      },
+      "weak_evidence_flag": "Phase1 TEST-scale breakdown (PROJECT_STATE.md §3c) found this the EASIEST Trope subtype (29-33% missed) -- a corrected finding that overturned an earlier DEV-only read. But Phase3 crossmodel recall is sharply model-dependent for this same subtype (Gemini 0.143 = hardest-looking of all reliable subtypes; GPT 0.571 = one of the best) -- both docs independently flag this subtype's history of small-sample-sensitive, surprising swings. Placed as 'easy' on the stronger (larger-n, TEST-scale) Phase1 evidence, but this is the least internally-consistent of the 5 targets."
+    },
+    {
+      "level": "medium",
+      "kind": "subtype",
+      "value": "استعارة فعل",
+      "parent": "Trope (مجاز) — فرع الاستعارة",
+      "pos_verses": 1258,
+      "poems_with": 156,
+      "pos_rate": 0.3626,
+      "pos_weight": 1.758,
+      "evidence": {
+        "phase1_TEST_subtype_breakdown_pct_missed": {"baseline": 0.83, "v4_combined": 0.62, "n": 76},
+        "phase3_crossmodel_recall_strict": {"gemini": 0.264, "gpt": 0.155, "n": 110},
+        "e1_v2_verse_F1_best_single_model_setA": 0.576,
+        "e1_v2_verse_F1_ensemble_setA": 0.568,
+        "e1_v2_verse_F1_zero_shot_range": [0.377, 0.549]
+      },
+      "weak_evidence_flag": null,
+      "note": "Forced medium reference per task instruction -- directly comparable to E1/E1 v2 (same subtype, same GT convention, verified: eval_pool_25's 327 verse-units / 127 GT-positives reproduced exactly by this phase's own data_io.py). Richest evidence base of the 5 targets (dedicated Phase1 + Phase3 + E1/E1v2 experiments)."
+    },
+    {
+      "level": "hard",
+      "kind": "subtype",
+      "value": "طباق إيجاب",
+      "parent": "Antonymy (طباق)",
+      "pos_verses": 456,
+      "poems_with": 114,
+      "pos_rate": 0.1314,
+      "pos_weight": 6.61,
+      "evidence": {
+        "phase1_frozen_parent_F1_avg_3models": 0.165,
+        "phase3_crossmodel_recall_strict": {"gemini": 0.237, "gpt": 0.053, "n": 38},
+        "phase3_own_naive_recall": [0.714, 0.714]
+      },
+      "weak_evidence_flag": "Only Antonymy candidate above the verse threshold (forced choice for this parent). PROJECT_STATE.md §3d: all 3 models systematically OVER-claim Antonymy (false positives > true positives at baseline, e.g. Claude strict precision=0.263) -- its headline weakness in the LLM experiments is a PRECISION failure, not just low recall. A from-scratch verse-level binary classifier (this phase's task framing) has no equivalent 'over-claims a span then gets the wrong one' failure mode, so this subtype's LLM-measured difficulty may not transfer directly to the classifier's own precision/recall balance -- flagged for that reason, not because the recall evidence itself is thin (n=38, 114 poems, Phase1+Phase3 agree in direction: this subtype is hard)."
+    },
+    {
+      "level": "very_hard",
+      "kind": "subtype",
+      "value": "كناية عن فعل",
+      "parent": "Kenning/Periphrasis (كناية)",
+      "pos_verses": 280,
+      "poems_with": 90,
+      "pos_rate": 0.0807,
+      "pos_weight": 11.39,
+      "evidence": {
+        "phase1_frozen_parent_F1_avg_3models": 0.109,
+        "phase3_crossmodel_recall_strict": {"gemini": 0.333, "gpt": 0.148, "n": 27},
+        "phase3_own_naive_recall_run1_run2": [0.70, 0.50]
+      },
+      "weak_evidence_flag": "Kenning/Periphrasis is Phase1's frozen worst-performing parent (F1 avg 0.109, lowest of 4) and this is its lowest-average-recall above-threshold subtype among the 4 Kenning candidates, so the parent- and subtype-level signals agree on 'hard'. BUT Phase3's own in-house run-to-run count swung 14/20 to 10/20 (70%->50%) between its two runs on a small (n=20) sample within that specific frozen-TEST experiment -- flagged as the least run-stable evidence of the 5, even though the subtype's larger full-corpus count used for this phase's training (n=280 positive verses, 90 poems) is itself large and stable."
+    }
+  ],
+  "rejected_as_out_of_scope": [
+    {"subtype": "اشتقاق", "pos_verses": 566, "reason": "derivation/paronomasia -- not one of the project's 4 rhetorical elements (طباق/تشبيه/مجاز/كناية), no LLM difficulty evidence exists for it"},
+    {"subtype": "ترديد", "pos_verses": 492, "reason": "repetition device -- same as above"},
+    {"subtype": "مبالغة", "pos_verses": 233, "reason": "hyperbole -- same as above"},
+    {"subtype": "رد الأعجاز على الصدور", "pos_verses": 229, "reason": "\"returning the endings to the beginnings\" (a sound/structure device) -- same as above"}
+  ]
+}

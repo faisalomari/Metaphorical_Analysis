@@ -2022,3 +2022,224 @@ existing record touched), `docs/phase4/E1_V2_RESULTS.md` (new Opus section), `sc
 build_e1v2_report.py` (Opus row/bar/panel), `docs/phase4/E1_V2_REPORT.html` (regenerated output).
 No `v1`, `phase3_*`, `pilot_3models`, `CLAUDE.md`, or existing raw result file touched/edited.
 Real total spend this task: $4.3157 (327/327 calls OK). Committing and pushing now.
+
+## Task: Phase 5 — local fine-tuning on RTX 3060 Ti 8GB (new `experiments/phase5_local_ft/`), no API calls
+
+Context read before starting: `CLAUDE.md`, `GLOSSARY.md`, `docs/phase4/E1_V2_RESULTS.md`,
+`data/ali_poems/README.md`, `experiments/phase3_subelements/subtype_defs.py`,
+`results/phase3_subelements/summary_test.json`, `results/phase3_crossmodel/summary.md`,
+`experiments/phase4_e1_v2/{gt_v2.py,e1v2_config.py}`,
+`experiments/phase4_e1_v2/config/eval_pool_25.json`, skimmed `experiments/classifiers/`
+(not edited — confirmed it holds only older embedding-classifier experiments, separate from
+this task). Confirmed `EXAMPLE_POEM_IDS = ["16251","17234","21337"]` in `e1v2_config.py` —
+these are the 3 poems whose verses were used as few-shot example text in E1/E1 v2; per the
+task instruction these must stay in TRAIN ONLY for the S3 split (استعارة فعل) so they never
+leak into that split's TEST pool, which already excludes them anyway (they're outside the
+25-poem `eval_pool_25.json`) — kept in train for S3 as an explicit extra guarantee, not because
+they were ever at risk of landing in TEST.
+
+**Step 0 — environment check (no training yet).**
+- GPU: NVIDIA GeForce RTX 3060 Ti, 8.59 GB total VRAM (`nvidia-smi` + `torch.cuda.get_device_properties`).
+- `torch` 2.12.0.dev20260323+cu128 **already installed with working CUDA**
+  (`torch.cuda.is_available()` → `True`, build CUDA 12.8). Per the task's own instruction this
+  means no STOP is needed (the STOP condition was only "if torch lacks CUDA").
+- `transformers` was **not installed**. Installed (local pip, no API/network cost beyond package
+  download): `pip install transformers accelerate safetensors sentencepiece` →
+  transformers 5.20.1, accelerate 1.15.0, safetensors 0.8.0, sentencepiece 0.2.2. `datasets`
+  5.0.0 and `scikit-learn` and `openpyxl` were already present.
+  - pip's resolver flagged a version conflict (`datasets 5.0.0` wants `huggingface-hub<2.0`, got
+    2.2.0 from the transformers install) — verified both `transformers` and `datasets` still
+    import and function correctly despite the warning; not using `datasets`'s hub-download path
+    in this project (only local JSON), so this is not expected to matter, flagged here for
+    the record.
+- Created `experiments/phase5_local_ft/{,config,splits}`, `results/phase5_local_ft/`,
+  `docs/phase5/`. Added `.gitignore` entries for phase5 checkpoints/weights/HF cache (never
+  committing weights, per the task instruction).
+
+**Step 1 — data-driven target selection (no training yet).**
+- `experiments/phase5_local_ft/data_io.py`: fresh loader over `data/ali_poems/poems/*.json`
+  (excl. 28601), reusing `pilot_3models.ground_truth.SUBSTRING_MAP` unmodified for the 4
+  parent-element mapping (not reinvented) so "parent element" counts use the exact Phase 1
+  Trope/Simile/Kenning/Antonymy <-> مجاز+استعارة / تشبيه / كناية / طباق convention. Verse
+  positivity = same "first entry of the comma-separated verse_index" rule as
+  `phase4_e1_v2/gt_v2.py` and `phase4_e1`'s `ali_poems_io.py`.
+- **Verified**: re-running this loader's `positive_verses_by_subtype` on exactly the 25 poems
+  in `phase4_e1_v2/config/eval_pool_25.json` reproduces **327/327 verse-units** and **127**
+  GT-positive استعارة فعل verses, matching Claude set-A's TP=104+FN=23=127 from
+  `E1_V2_RESULTS.md` exactly — confirms this phase's counting is consistent with the frozen
+  E1 v2 ground truth before building anything on top of it.
+- `experiments/phase5_local_ft/step1_target_selection.py`: full per-subtype + per-parent
+  positive-verse/poem-count table over the whole 166-poem corpus (3,470 verses). Saved to
+  `experiments/phase5_local_ft/config/subtype_verse_stats.json`.
+- **Threshold**: >=150 positive verses -> 14 subtypes qualify (no need to lower). Of those,
+  4 (اشتقاق/ترديد/مبالغة/رد الأعجاز على الصدور) are rhetorical devices **outside** this
+  project's 4-element scope (طباق/تشبيه/مجاز/كناية; not in `subtype_defs.SUBTYPE_DEFS`) with
+  **zero LLM difficulty evidence** to rank against — excluded from target selection for that
+  reason (kept in the stats file and `targets.json`'s `rejected_as_out_of_scope` for the record).
+  10 in-scope candidates remain, spanning all 4 parents but unevenly: Simile and Antonymy each
+  have exactly 1 above-threshold subtype (تشبيه مطول, طباق إيجاب — forced choices for those
+  parents); Trope has 4 (استعارة فعل/مجاز عقلي/استعارة تمثيلية/مجاز مرسل); Kenning has 4
+  (كناية عن {صفة,موصوف,فعل}, كناية لغوية).
+- **5 targets chosen** (`experiments/phase5_local_ft/config/targets.json`, full evidence +
+  weak-evidence flags inline) — one per parent, Trope sampled twice to anchor both sides of
+  the forced استعارة فعل medium reference:
+
+  | Level | Subtype | Parent | pos_verses | poems | pos_rate | pos_weight |
+  |---|---|---|---|---|---|---|
+  | very easy | تشبيه مطول | Simile | 217 | 85 | 6.3% | 14.99 |
+  | easy | استعارة تمثيلية | Trope | 287 | 94 | 8.3% | 11.09 |
+  | medium | استعارة فعل | Trope | 1258 | 156 | 36.3% | 1.76 |
+  | hard | طباق إيجاب | Antonymy | 456 | 114 | 13.1% | 6.61 |
+  | very hard | كناية عن فعل | Kenning | 280 | 90 | 8.1% | 11.39 |
+
+  Difficulty anchored primarily on **Phase 1's frozen v4_combined parent-level strict F1**
+  (`PROJECT_STATE.md` §3a: Simile ~0.70 > Trope ~0.29 > Antonymy ~0.165 > Kenning ~0.109 avg
+  across 3 models) and, within Trope/Kenning, the §3c TEST-scale subtype breakdown +
+  Phase3-crossmodel per-subtype strict recall (`results/phase3_crossmodel/summary.md`).
+  **Important correction caught while doing this**: an initial pass almost picked مجاز عقلي
+  as the "easy" Trope subtype on crossmodel recall alone (0.463/0.426, the best-looking
+  Trope number in that table) — re-checking `PROJECT_STATE.md` §3c (the TEST-scale, not DEV,
+  subtype breakdown) showed مجاز عقلي is actually *not* meaningfully easier than استعارة فعل
+  at Phase 1's own TEST scale (66% vs 62% missed, same ballpark) and that استعارة تمثيلية is
+  the real easiest Trope subtype there (29-33% missed) — corrected before finalizing.
+  **Weak-evidence flags** (full detail in `targets.json`): استعارة تمثيلية's crossmodel
+  recall is sharply model-dependent (Gemini 0.143 vs GPT 0.571 for the identical subtype);
+  طباق إيجاب's LLM difficulty is driven by a precision/over-claiming failure
+  (`PROJECT_STATE.md` §3d) that may not transfer to a from-scratch classifier's own
+  precision/recall balance; كناية عن فعل's own small-sample (n=20) Phase3 run-to-run count
+  swung 70%->50% between runs, even though its full-corpus training count (n=280, 90 poems)
+  is itself large and stable.
+
+**STOP (per task instruction): awaiting user confirmation on this 5-target table before
+Step 2 (splits).**
+
+**User approved the 5 targets. Step 2 — splits (no training yet).**
+- `experiments/phase5_local_ft/splitting.py`: poem-level, poet-stratified splitting via
+  sequential apportionment (not naive per-poet-group largest-remainder rounding — **caught
+  and fixed a real bug during development**: with 51 poets and most poet-groups tiny (23
+  poets have exactly 1 poem; 16 have exactly 2), independent per-group largest-remainder
+  rounding systematically starves the minority splits — every 2-poem poet's remainder tie
+  resolves to `train` under floor+remainder, which **deflated S2's test split to ~10% poems
+  instead of the target 15%** on the first implementation. Replaced with a single global
+  apportionment pass over a poet-interleaved processing order (round-robins across poets so
+  a poet's own poems are spread out in time, each poem assigned on the fly to whichever
+  split has the largest running deficit vs its target ratio) — now hits every target ratio
+  to within ~1 poem (verified below).
+- `experiments/phase5_local_ft/step2_splits.py`: builds S1 (80/20 + 10%-of-train val carve),
+  S2 (70/15/15), and S3 (استعارة فعل-only, TEST fixed to `eval_pool_25.json`'s 25 poems,
+  train/val from the other 141 poems, `16251/17234/21337` forced into train — asserted, not
+  just intended). 3 seeds (0/1/2) each, saved to `experiments/phase5_local_ft/splits/*.json`.
+  **S1/S2 vary the WHOLE partition per seed (train+val+test all reshuffle)**; **S3 keeps TEST
+  fixed across all 3 seeds** and only reshuffles train/val — matches the task's "fixed test
+  in S3" instruction read literally (S1/S2 said nothing about keeping test fixed, so all 3
+  parts vary there for a fuller sense of split-variance alongside training-variance).
+- **Verified**: S3's test-poem verse-unit count reproduces E1 v2's own 327 exactly (assert
+  passed, all 3 seeds); `16251/17234/21337` confirmed in train, confirmed absent from val, for
+  every S3 seed (assert passed); S3's 25 test poems confirmed disjoint from
+  `EXAMPLE_POEM_IDS` (no overlap to begin with, per e1v2_config's own candidate-pool
+  exclusions — asserted anyway).
+- **Achieved ratios** (poems): S1 ~72/8/20% (target 72/8/20 after the val carve), S2
+  ~70/15/15% (target 70/15/15, e.g. seed0: 116/25/25 = 69.9/15.1/15.1%), S3 ~76/8/15% train/
+  val/test of the 166-poem corpus (test fixed at 25; train/val ratio 90/10 of the remaining
+  141, chosen to mirror S1's "10% of train as val" convention since the task gave no explicit
+  S3 train/val ratio).
+- **Per-target class balance is stable across splits/seeds** (full per-split/per-target
+  poems/verses/positives table printed by `step2_splits.py`, not reproduced in full here):
+  استعارة فعل positive rate ~35-41% in every split/seed (least imbalanced of the 5, as
+  expected from its 36.3% corpus-wide rate); the other 4 targets stay in their expected
+  6-16% range in every split/seed, no split/seed showing a wildly different balance than the
+  corpus-wide numbers in `targets.json` — no extra rebalancing needed beyond the per-target
+  `pos_weight` already computed in Step 1.
+
+**Step 3 — models, pipeline build + smoke test (training grid launched, running in background).**
+- Downloaded (public, no HF token) all 3 candidate tokenizers/models into a local, gitignored
+  `experiments/phase5_local_ft/hf_cache/`: `CAMeL-Lab/bert-base-arabic-camelbert-ca`
+  (vocab 30k), `aubmindlab/bert-base-arabertv2` (vocab 64k), `UBC-NLP/MARBERT` (vocab 100k).
+- **max_len (99th percentile verse token length, per tokenizer, whole 166-poem/3470-verse
+  corpus)**: camelbert_ca p99=20, arabert_v2 p99=21, marbert p99=23 (means 12.4-14.9, max
+  26-40). Chose a single shared `MAX_LEN=32` for all 3 models (covers every tokenizer's p99
+  with margin, comparable across models) — Arabic poetry hemistich-pair verses are short, so
+  this is a deliberately small sequence length.
+- **Batch/grad-accum for 8GB**: batch_size=64, grad_accum=1 (no accumulation needed — short
+  sequences + bert-base fit comfortably in 8GB at this length). fp16 via
+  `torch.autocast(dtype=float16)` + `GradScaler` (mixed precision, fp32 master weights).
+- **Class imbalance**: BCEWithLogitsLoss(pos_weight=neg/pos), pos_weight computed from each
+  run's own TRAIN split (not a fixed corpus-wide constant) — reported per run in its result
+  JSON. (Rejected class-weighted CE in favor of pos_weight-weighted BCE with a single-logit
+  head — equivalent for binary classification, simpler to reason about with a tunable
+  decision threshold.)
+- Module-name collision caught+fixed: phase5's own `config.py` shadowed
+  `pilot_3models.config` the moment `data_io.py` (which imports from `pilot_3models`) was
+  loaded after phase5's `config` was already cached in `sys.modules` — renamed to
+  `phase5_config.py` everywhere in phase5 (pilot_3models/phase4_e1* themselves untouched).
+- **Smoke-tested** `train.py` (CAMeL-BERT-CA, استعارة فعل/medium, S2 seed0): works end-to-end
+  (tokenize -> fp16 train -> val threshold tuning -> early stop -> test eval -> save metrics+
+  predictions, no weights written to disk). **Measured real speed: ~3.6-4.3s/epoch**,
+  full run (early-stopped at epoch 4, train=2461/val=522/test=487) in **15.9s total**. Ran an
+  isolated gradient-flow diagnostic (plain BCE, no pos_weight) to rule out an fp16
+  GradScaler silently skipping all optimizer steps — confirmed real nonzero classifier-head
+  gradients and steps are not being skipped (1 benign inf-skip in the first few steps, normal
+  GradScaler warmup behavior) — the near-flat 4-epoch loss curve in the full pos_weight'd run
+  is BERT fine-tuning converging within ~1 epoch on this small/short-sequence corpus, not a
+  training bug; early stopping correctly picked epoch 1 as best val-F1 there.
+- **Time estimate for the full grid, printed before the long run** (per task instruction):
+  at ~16-30s/run including model load, the full grid — S1+S2 (3 models x 5 targets x 3 seeds
+  = 45 runs each = 90) + S3 (3 models x 3 seeds = 9, استعارة فعل only) = **99 model-training
+  runs**, plus baselines (majority/always-positive/TF-IDF+logreg; 5 targets x 2 splits x 3
+  seeds + 1 target x 1 split x 3 seeds = 33 baseline cells, seconds each) — comes to well
+  under an hour total. Given this, **ran every (model, target, split, seed) cell, not just
+  the best model per target** (the task's "if time allows" fallback applies — here it
+  clearly does, since the whole grid costs about as much wall-clock as the "best-model-only"
+  subset would on a slower setup). `diacritics_check=True` on every run (one extra val
+  forward pass, no retraining -- negligible added cost) rather than restricting the
+  with/without-diacritics comparison to a single cell.
+- `experiments/phase5_local_ft/run_grid.py` launched in the background
+  (`results/phase5_local_ft/grid_run.log`), resumable (`train.py`/`run_baselines.py` both
+  skip any result file already marked `"complete": true`). No weights or checkpoints written
+  to disk at any point — only `results/phase5_local_ft/raw/*.json` (metrics + per-verse test
+  predictions for later bootstrap CIs).
+- **QLoRA 4-bit 1.5-3B note (per task instruction, not run)**: a 1.5-3B model in 4-bit QLoRA
+  would need roughly 1-2GB for frozen 4-bit weights + a few hundred MB for LoRA adapters/
+  optimizer states/activations at this sequence length — comfortably under 8GB and very
+  likely to fit and train on this GPU, but out of scope for this task (not run).
+
+**Step 4 — evaluation on TEST only (no training, no API calls).**
+- `experiments/phase5_local_ft/analyze.py`: aggregates the 99 model-training runs into
+  mean±std F1 (+ raw TP/FP/FN, per CLAUDE.md rule 3) across the 3 seeds, plus a bootstrap
+  95% CI over poems for S2/S3 (pooled across the 3 seeds' test predictions, 2000 iters,
+  seed=0 — same method/params as the project's existing poem-resampling bootstrap).
+- **Headline finding**: fine-tuned-model difficulty does **not** track the LLM-based
+  difficulty order at all. LLM order: very_easy > easy > medium > hard > very_hard. Fine-tuned
+  S2 mean F1 across the 3 models: **medium (0.550) >> hard (0.232) > very_hard (0.184) >
+  very_easy (0.158) ~ easy (0.152)** — the two targets LLMs found *easiest* are the
+  fine-tuned models' *worst* two. This tracks each target's **positive-verse count** almost
+  perfectly instead (Pearson r=0.996 between corpus-wide positive-verse count and S2 mean
+  F1 across the 5 targets) — fine-tuned performance here is a training-data-volume story,
+  not a rhetorical-subtlety story.
+- **Best model per target** (S2): MARBERT wins 4/5 (very_easy/easy/medium/hard); CAMeLBERT-CA
+  (the one model pretrained specifically on Classical Arabic) wins very_hard
+  (كناية عن فعل) — the one target where domain-specific pretraining might matter most.
+- **استعارة فعل (medium) S3 vs. the frozen E1 v2 LLM table, identical 25-poem/327-verse test
+  set**: best fine-tuned (MARBERT) F1=0.570 [0.495,0.635] vs. best single LLM (Claude Sonnet
+  4.6, set A) 0.576 vs. 3-model ensemble (set A) 0.568 — **differences of -0.006 / +0.002,
+  the fine-tuned model's own CI comfortably contains both LLM numbers**: a small, fully
+  local, zero-cost fine-tuned classifier statistically matches the best few-shot LLM
+  configuration here, specifically because this is the one target with abundant (1258)
+  positive training verses.
+- **Baselines**: majority is trivially 0 F1 everywhere (every target <50% positive). TF-IDF
+  char-ngram+logreg is a real, non-strawman baseline — it beats 2 of 3 BERT models outright on
+  very_easy, and on medium it sits within ~2pts of the best BERT model and barely above
+  **always-positive** (0.543 vs 0.548) -- the same verse-level-metric-rewards-blanket-"yes"
+  concern CLAUDE.md rule 4 already flags for the LLM experiments, now observed in this
+  phase's own classifiers too.
+- **Diacritics ablation** (val-only, every run, no retraining): mean delta ≈ 0 (+0.0015±0.030
+  across all 99 runs, 42/23/34 with/without/tied) — no systematic effect, largest swings
+  confined to the already-unstable very_easy/camelbert_ca cells.
+
+**Step 5 — write-up.** `docs/phase5/LOCAL_FT_RESULTS.md` (full tables: per-split F1 grid,
+baselines, diacritics ablation, difficulty-order comparison + Pearson r, S3-vs-LLM table,
+caveats, plain answer) and `docs/phase5/LOCAL_FT_SUMMARY_AR.md` (short Arabic summary).
+Committing and pushing code/configs/metrics/docs now (no weights were ever written to disk
+at any point in this task — `results/phase5_local_ft/raw/*.json` holds only metrics + per-
+verse test predictions; `experiments/phase5_local_ft/hf_cache/` (2.6GB of downloaded model/
+tokenizer files) stays local and gitignored).
