@@ -1916,3 +1916,27 @@ No `v1`/`phase3_*`/`pilot_3models`/`CLAUDE.md`/existing raw result file touched.
 
 **Step 2: STOP.** Reporting cost estimate, awaiting explicit "go" before any API call (hard cap
 $5 via `--max-additional-usd 5`, per task instruction).
+
+**User said "go." Step 3 attempt 1**: `python runner.py --confirm --pool 25 --sets A --models
+anthropic_opus --max-additional-usd 5`. **Hit a request-shape error the dry-run couldn't catch**:
+all 5 calls before the runner's own 5-consecutive-errors stop returned HTTP 400
+`` `temperature` is deprecated for this model ``. **$0 spent** — the runner's existing
+no-retry-loop/stop-on-error machinery worked exactly as designed, no cost incurred from the
+failure. Root cause confirmed via `platform.claude.com/docs/en/models/opus-5-5/migration-guide`:
+Claude Opus 4.7 and later (including 5.5) reject `temperature`/`top_p`/`top_k` at any non-default
+value with a 400 — they must be omitted entirely, not set to 0. Fixed
+`providers_v2.call_anthropic_opus` to stop forwarding `temperature` to the API call (keeps the
+parameter in its signature for call-shape compatibility with `runner.py`'s `caller(system, user,
+TEMPERATURE)` invocation; just doesn't use it). The 5 error records this attempt wrote to
+`run_manifest.json` are not deleted (ADD-only); the runner's own resumability logic already
+treats error cells as not-done, so re-running retries exactly those 5 cells.
+
+**Step 3 attempt 2** (after the fix): re-ran the same command. Got through **75/327 calls OK**
+($1.0401 spent) before hitting a real external blocker: HTTP 400 "Your credit balance is too low
+to access the Anthropic API" on all 5 consecutive calls — the Anthropic account's own credit
+balance ran out mid-run (not covered by `QUOTA_ERROR_MARKERS`'s 429/RESOURCE_EXHAUSTED/quota
+strings, since this is a 400, not a 429, but the runner's separate 5-consecutive-errors stop
+caught it anyway and halted automatically; no runaway spend). **Stopped. Needs the user to add
+credits to the Anthropic account before this can resume** — not something fixable from code.
+75/327 done, 252 remaining (~$1.86 more at the same real average rate, well under the $5 cap's
+remaining headroom of ~$3.96).

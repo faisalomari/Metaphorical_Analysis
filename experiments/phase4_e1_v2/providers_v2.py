@@ -38,13 +38,21 @@ from providers_fixed import call_google_fixed  # noqa: E402
 
 
 def call_anthropic_opus(system_message: str, user_message: str, temperature: float = 0.0) -> dict:
+    """`temperature` is accepted (same call signature as every other CALLERS entry,
+    which runner.py invokes positionally as caller(system, user, TEMPERATURE)) but
+    NOT forwarded to the API: Anthropic's Opus 5.5 migration guide
+    (platform.claude.com/docs/en/models/opus-5-5/migration-guide) states that
+    Claude Opus 4.7 and later, including Opus 5.5, reject temperature/top_p/top_k
+    at any non-default value with a 400 error -- confirmed directly here too (the
+    first live attempt with temperature=0.0 failed with exactly that 400:
+    "`temperature` is deprecated for this model", 5 consecutive errors, $0 spent,
+    stopped automatically by the runner's own error-cap logic before this fix)."""
     import anthropic
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     model_id = EXTRA_MODEL_PRICING["anthropic_opus"]["model_id"]
     resp = client.messages.create(
         model=model_id,
         max_tokens=16000,
-        temperature=temperature,
         system=system_message,
         messages=[{"role": "user", "content": user_message}],
     )
