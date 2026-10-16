@@ -71,6 +71,17 @@ ALL_MODELS = ["anthropic", "openai", "google"]
 N_RUNS = 1
 REPEAT_SET_A = False
 
+# Claude Opus 5.5 on set A only (added for the set-A Opus task, 2026-10-16). pilot_3models/
+# config.py's MODELS dict is frozen Phase 1 config and must not be edited, so this is a
+# phase4_e1_v2-local pricing-table extension, merged into a local MODELS dict by runner.py
+# rather than touching pilot_3models/config.py. Model id + pricing verified directly against
+# platform.claude.com/docs/en/models/overview and claude.com/pricing (2026-10-16): $4/MTok in,
+# $20/MTok out, API id "claude-opus-5-5" (dateless pinned snapshot).
+EXTRA_MODEL_PRICING = {
+    "anthropic_opus": {"model_id": "claude-opus-5-5", "display": "Claude Opus 5.5",
+                        "price_in": 4.00, "price_out": 20.00},
+}
+
 TEMPERATURE = 0.0
 
 # Cheaper-variant subsample: 5 abu_nuwas + 20 other, drawn from the same

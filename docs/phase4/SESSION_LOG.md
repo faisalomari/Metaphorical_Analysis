@@ -1851,3 +1851,55 @@ edited: `docs/phase4/E1_V2_RESULTS.md` (new Ensemble section), `scripts/build_e1
 (Ensemble panel + 4th model row/series), `docs/phase4/E1_V2_REPORT.html` (regenerated output). No
 `v1`, `phase3_*`, `pilot_3models`, `CLAUDE.md`, or existing raw result file touched. No API calls
 anywhere in this task. Committing and pushing now.
+
+---
+
+**2026-10-16T11:40** — New task: run Claude Opus 5.5 on **set A only** (25-poem pool, all 327
+verse-units, 1 run), score it, add it to the report for set A only. Re-read `CLAUDE.md`, this log's
+tail, `experiments/phase4_e1_v2/{runner.py,providers_v2.py,e1v2_config.py,dryrun_v2.py,scoring_v2.py}`,
+`verse_analysis.py`, `scripts/build_e1v2_report.py`. Backed up
+`docs/phase4/E1_V2_REPORT.html` -> `docs/phase4/E1_V2_REPORT_before_opus.html` before touching the
+generator. Will not edit `v1`, `phase3_*`, `pilot_3models`, `CLAUDE.md`, or any existing raw
+result/manifest record (only ADD new records) — explicit task constraint, consistent with every
+prior Phase 4 session here.
+
+**Step 1 (no API).** Confirmed set A's 25-poem pool = 327 verse-units
+(`experiments/phase4_e1_v2/config/eval_pool_25.json`: `pool_size=25`, `pool_verses=327`).
+
+- **Model id**: WebSearch + direct WebFetch of `platform.claude.com/docs/en/models/overview`
+  confirms Claude Opus 5.5's Claude API ID is **`claude-opus-5-5`** (dateless pinned snapshot, same
+  scheme as 4.6-generation-and-later models) — matches the task's expectation exactly, verified
+  against Anthropic's own docs, not just third-party trackers.
+- **Pricing**: WebFetch of `claude.com/pricing` directly confirms **$4/MTok input, $20/MTok
+  output** — also cross-checked against the same models-overview table ($4 in / $20 out) and
+  several independent third-party pricing trackers (WebSearch), all agreeing. Per CLAUDE.md rule 5,
+  this is a new model's pricing/request shape being verified before estimating, not assumed.
+- **New provider wiring** (new code only, no existing file edited in `pilot_3models`):
+  - `experiments/phase4_e1_v2/e1v2_config.py`: added `EXTRA_MODEL_PRICING = {"anthropic_opus": {...
+    model_id "claude-opus-5-5", display "Claude Opus 5.5", price_in 4.00, price_out 20.00}}` — a
+    phase4_e1_v2-local pricing table extension, since `pilot_3models/config.py`'s `MODELS` dict is
+    frozen Phase 1 config and must not be edited.
+  - `experiments/phase4_e1_v2/providers_v2.py`: added `call_anthropic_opus()`, a new thin wrapper
+    (same SDK call shape as `pilot_3models.providers.call_anthropic`: `max_tokens=16000`,
+    `temperature` passed through, same `{raw_text, model_id, usage}` return shape) but targeting
+    `claude-opus-5-5` instead of the frozen `MODELS["anthropic"]["model_id"]` (Sonnet 4.6) —
+    written as a new function rather than calling `call_anthropic` unmodified, since that function
+    hardcodes the Sonnet model id from the pilot config and cannot be parameterized without editing
+    `pilot_3models/providers.py` (not allowed). Registered under `CALLERS["anthropic_opus"]`.
+  - `experiments/phase4_e1_v2/runner.py`: merged `MODELS = {**PILOT_MODELS, **EXTRA_MODEL_PRICING}`
+    (phase4_e1_v2-local merge, pilot's own `MODELS` dict object untouched) and added
+    `"anthropic_opus"` to the `--models` argparse choices. No other runner logic changed — the
+    existing resumable/hard-cap/quota-stop machinery applies unmodified to the new provider key.
+- **Prompt parity check**: set A's prompt is built by `prompt_builder.build_messages("A", verse_text)`
+  independent of provider — the runner never branches prompt construction on provider, so Opus
+  necessarily gets the byte-identical set-A system/user messages already used for Claude
+  Sonnet/GPT/Gemini. Directly confirmed: `prompt_builder.build_system_message("A")` reproduces
+  `experiments/phase4_e1_v2/config/prompt_preview_A.txt` byte-for-byte (same check
+  `build_e1v2_report.py`'s `verify_prompts_match_previews()` already runs for every set/model).
+- **Dry-run cost estimate** (new script `experiments/phase4_e1_v2/dryrun_opus_a.py`, no API calls):
+  reads the 327 already-logged Claude-Sonnet-on-set-A manifest cells directly (not a tokenizer
+  estimate) — real average 888.30 input tokens / 192.38 output tokens per call. At Opus 5.5 pricing
+  ($4/$20 per MTok) x 327 calls: **$2.4201** base estimate, **$2.7975** under a +30% output-length
+  scenario (Opus 5.5 has adaptive thinking always on and a different default effort than Sonnet
+  4.6, so its real output length is not guaranteed to match Sonnet's exactly). Both land inside the
+  task's own ~$2.40–$3.00 expectation band.

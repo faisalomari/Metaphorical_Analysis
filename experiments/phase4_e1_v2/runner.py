@@ -33,8 +33,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from e1v2_config import (  # noqa: E402
-    ALL_SET_NAMES, E1V1_EVAL_POOL_PATH, E1V1_DIR, EVAL_POOL_25_PATH, PILOT_DIR,
-    RESULTS_DIR, ROOT, RUN_MODELS, SET_NAMES, TEMPERATURE, build_cheap_variant_pool,
+    ALL_SET_NAMES, E1V1_EVAL_POOL_PATH, E1V1_DIR, EVAL_POOL_25_PATH, EXTRA_MODEL_PRICING,
+    PILOT_DIR, RESULTS_DIR, ROOT, RUN_MODELS, SET_NAMES, TEMPERATURE, build_cheap_variant_pool,
 )
 from prompt_builder import build_messages  # noqa: E402
 from providers_v2 import CALLERS  # noqa: E402
@@ -49,7 +49,12 @@ from build_pool import build_candidate_pool  # noqa: E402
 
 if str(PILOT_DIR) not in sys.path:
     sys.path.insert(0, str(PILOT_DIR))
-from config import MODELS  # noqa: E402
+from config import MODELS as _PILOT_MODELS  # noqa: E402
+
+# phase4_e1_v2-local merge: pilot_3models/config.py's own MODELS dict object is untouched
+# (frozen Phase 1 config, CLAUDE.md). This runner-local MODELS adds "anthropic_opus" (Claude
+# Opus 5.5, set-A-only task) on top of it.
+MODELS = {**_PILOT_MODELS, **EXTRA_MODEL_PRICING}
 
 QUOTA_ERROR_MARKERS = ("429", "RESOURCE_EXHAUSTED", "quota")
 HARD_COST_CAP_USD = 10.00
@@ -70,7 +75,7 @@ def call_cost(provider: str, usage: dict) -> float:
 def spend_so_far(manifest: list) -> dict:
     """{provider: cost} + "_total", computed from every error-free manifest
     record's real logged usage (not an estimate)."""
-    spend = {p: 0.0 for p in ("anthropic", "openai", "google")}
+    spend = {p: 0.0 for p in ("anthropic", "openai", "google", "anthropic_opus")}
     for r in manifest:
         if r.get("error") is None:
             spend[r["provider"]] += call_cost(r["provider"], r.get("usage"))
@@ -144,7 +149,7 @@ def run(sets=None, models=None, pool_name="full", out_dir=None, force=False, dry
 
     system_messages = {s: build_messages(s, "placeholder")[0] for s in sets}  # system doesn't depend on verse
     consecutive_errors = 0
-    error_counts = {"anthropic": 0, "openai": 0, "google": 0}
+    error_counts = {"anthropic": 0, "openai": 0, "google": 0, "anthropic_opus": 0}
     calls_made_this_run = 0
 
     for set_name, poem, verse_no, verse_text, provider in plan:
@@ -210,7 +215,7 @@ def _print_summary(manifest, error_counts, sets, models, headline):
     print(f"\n{'=' * 70}\n{headline}\n{'=' * 70}")
     print(f"Total manifest records: {len(manifest)}")
     print(f"Spend per model: openai=${spend['openai']:.4f}  google=${spend['google']:.4f}  "
-          f"anthropic=${spend['anthropic']:.4f}")
+          f"anthropic=${spend['anthropic']:.4f}  anthropic_opus=${spend['anthropic_opus']:.4f}")
     print(f"TOTAL SPEND: ${spend['_total']:.4f}  (cap ${HARD_COST_CAP_USD:.2f})")
     print(f"Error counts this invocation: {error_counts}")
     for s in sets:
@@ -248,7 +253,8 @@ def _save(manifest, poem, set_name, poem_id, verse_no, provider, run_result, err
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--sets", nargs="+", default=None, choices=ALL_SET_NAMES)
-    parser.add_argument("--models", nargs="+", default=None, choices=["anthropic", "openai", "google"])
+    parser.add_argument("--models", nargs="+", default=None,
+                         choices=["anthropic", "openai", "google", "anthropic_opus"])
     parser.add_argument("--pool", default="full", choices=["full", "cheap", "25"])
     parser.add_argument("--out-dir", default=None)
     parser.add_argument("--force", action="store_true")

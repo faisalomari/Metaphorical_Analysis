@@ -11,7 +11,16 @@
   Studio balance drop ~$7.5-8, see providers_fixed.py's own docstring).
   call_google_fixed also sets thinking_level="minimal" to keep that
   hidden-token cost near zero.
+- anthropic_opus: Claude Opus 5.5, set-A-only task (2026-10-16). Cannot
+  reuse pilot_3models.providers.call_anthropic unmodified -- it hardcodes
+  MODELS["anthropic"]["model_id"] (Claude Sonnet 4.6) from the frozen
+  Phase 1 config, which must not be edited (CLAUDE.md). call_anthropic_opus
+  below is a new, separate function with the identical SDK call shape
+  (max_tokens=16000, temperature passed through, same return dict shape),
+  targeting e1v2_config.EXTRA_MODEL_PRICING["anthropic_opus"]["model_id"]
+  instead.
 """
+import os
 import sys
 from pathlib import Path
 
@@ -22,11 +31,34 @@ if str(PILOT_DIR) not in sys.path:
 if str(PHASE3_DIR) not in sys.path:
     sys.path.insert(0, str(PHASE3_DIR))
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from e1v2_config import EXTRA_MODEL_PRICING  # noqa: E402
 from providers import call_anthropic, call_openai  # noqa: E402
 from providers_fixed import call_google_fixed  # noqa: E402
+
+
+def call_anthropic_opus(system_message: str, user_message: str, temperature: float = 0.0) -> dict:
+    import anthropic
+    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    model_id = EXTRA_MODEL_PRICING["anthropic_opus"]["model_id"]
+    resp = client.messages.create(
+        model=model_id,
+        max_tokens=16000,
+        temperature=temperature,
+        system=system_message,
+        messages=[{"role": "user", "content": user_message}],
+    )
+    text = "".join(block.text for block in resp.content if block.type == "text")
+    return {
+        "raw_text": text,
+        "model_id": model_id,
+        "usage": {"input_tokens": resp.usage.input_tokens, "output_tokens": resp.usage.output_tokens},
+    }
+
 
 CALLERS = {
     "anthropic": call_anthropic,
     "openai": call_openai,
     "google": call_google_fixed,
+    "anthropic_opus": call_anthropic_opus,
 }
