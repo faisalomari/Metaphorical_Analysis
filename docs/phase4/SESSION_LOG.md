@@ -1940,3 +1940,15 @@ caught it anyway and halted automatically; no runaway spend). **Stopped. Needs t
 credits to the Anthropic account before this can resume** — not something fixable from code.
 75/327 done, 252 remaining (~$1.86 more at the same real average rate, well under the $5 cap's
 remaining headroom of ~$3.96).
+
+**User topped up credits, said "go." Step 3 attempt 3** (resume, same command): manifest's existing
+`done` set already covered the 75 OK cells (the 5 errored cells, and the remaining 247, were
+retried/filled) — **327/327 OK, 0 errors, plan exhausted**. **Real total anthropic_opus/set-A
+spend: $4.3157`** (327 calls, real avg 1144.31 input / 431.03 output tokens/call) — higher than
+the $2.42 dry-run estimate because Opus 5.5's real tokens ran above the Sonnet-based proxy on
+both ends: input ~1.29x (consistent with Anthropic's own migration-guide note that Opus 4.7+'s
+updated tokenizer uses up to ~1.35x more tokens than earlier models for the same text) and,
+much more so, output ~2.24x (consistent with Opus 5.5's adaptive thinking always being on, unlike
+Sonnet 4.6). Still well under the $5 cap and the effective per-invocation cap. Cumulative spend
+across the whole manifest: $20.3288 (anthropic $10.7338, openai $1.8353, google $3.4440,
+anthropic_opus $4.3157).
