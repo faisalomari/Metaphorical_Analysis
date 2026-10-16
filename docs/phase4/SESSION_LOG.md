@@ -1976,3 +1976,49 @@ verse metric — the opposite of the usual pattern in this project (strict/token
 *worse* than verse for span-level correctness, per CLAUDE.md rule 4's concern; here it's the
 primary metric where Opus's edge mostly washes out as `ns`). Set A is a few-shot set; Opus has no
 Z/B/C/D/D2 results, so no gain-over-Z or other cross-set comparison exists for it.
+
+**Step 5.** Regenerated `scripts/build_e1v2_report.py`:
+- Loads `analysis_report_opus_a.json` and `E1_V2_OPUS_A.md`; `PRICING` merged with
+  `e1v2_config.EXTRA_MODEL_PRICING` so the cost table can show Opus's row without touching
+  `pilot_3models.config.MODELS`.
+- Main F1 table (`build_main_f1_table`): added an **"Opus 5.5" row** under every criterion toggle
+  — set A shows its real F1 (bold/"best"-styled like every other best-in-row cell), every other
+  set (Z/B/C/D/D2) shows a styled em-dash (`.f1cell.dash`), not a blank or a zero, so the missing
+  data is explicit. New `--c-opus` CSS var (light+dark) and `.opus-row` styling, matching the
+  existing `.ensemble-row` pattern.
+- Added a **separate, clearly-labeled bar chart** (`build_opus_a_bar_svg`) — Opus vs. the 3 single
+  models + ensemble, all on set A only — instead of folding it into the main 6-set grouped chart
+  (which would show Opus as a lone bar surrounded by 5 empty groups).
+- Added new **collapsible panel "i. Opus 5.5 (set A only)"** (old panel "i. Provenance" renumbered
+  to "j."): warning banner stating the set-A-only/not-in-ensemble scope, per-criterion detail
+  table, the new bar chart, a per-criterion Opus-vs-each-model/ensemble CI comparison table, and
+  the full `E1_V2_OPUS_A.md` write-up rendered via the existing `md_block` renderer.
+- Added `verify_opus_a_matches_json()`: cross-checks 327/327 OK cells directly against
+  `run_manifest.json` (not just trusting the JSON file) and cross-checks every single-model/
+  ensemble F1 inside `analysis_report_opus_a.json` against the independently-loaded
+  `analysis_report_D.json`/`analysis_report_ensemble.json` — **PASS**. Extended the post-write
+  re-read check to confirm Opus's 3 criterion F1 strings and the "Opus 5.5" label are present in
+  the written file.
+- Ran the generator: **all PASS checks green** (including the 2 new/extended ones);
+  completeness 5886/5886 (3-model design, unchanged), 0 errors; Opus 327/327 OK confirmed
+  directly from the manifest. **Visual check in the browser pane** (desktop + 375px mobile,
+  file:// open of the regenerated HTML): the "+Opus 5.5 (set A only)" header badge renders; the
+  main F1 table's Opus row renders with dashes for Z/B/C/D/D2 and 0.585 (bold) for A, under all 3
+  criterion toggles; the separate Opus-vs-others bar chart renders with a distinct gold color;
+  panel (i) expands/collapses correctly and its detail table, comparison table, and the embedded
+  `E1_V2_OPUS_A.md` write-up all render; mobile view scrolls the wide tables horizontally instead
+  of overflowing, same pattern as every other panel; panel numbering (i→j) is consistent in both
+  the collapsible list and the TOC-style sidebar. Confirmed via `git status` that no existing
+  set/prompt/example/Z-A-B-C-D-D2 section's source files changed — only the files below.
+
+**Session complete.** Files added: `experiments/phase4_e1_v2/dryrun_opus_a.py`,
+`experiments/phase4_e1_v2/scoring_opus_a.py` (no API calls), `results/phase4_e1_v2/
+analysis_report_opus_a.json`, `results/phase4_e1_v2/opus_a_run.log`, `results/phase4_e1_v2/
+opus_a_run2.log`, 327 new `results/phase4_e1_v2/raw/A_*_anthropic_opus.txt` files,
+`docs/phase4/E1_V2_OPUS_A.md`, `docs/phase4/E1_V2_REPORT_before_opus.html` (pre-task backup).
+Files edited: `experiments/phase4_e1_v2/{e1v2_config.py,providers_v2.py,runner.py}` (new
+`anthropic_opus` provider), `results/phase4_e1_v2/run_manifest.json` (327 new ADDED records, no
+existing record touched), `docs/phase4/E1_V2_RESULTS.md` (new Opus section), `scripts/
+build_e1v2_report.py` (Opus row/bar/panel), `docs/phase4/E1_V2_REPORT.html` (regenerated output).
+No `v1`, `phase3_*`, `pilot_3models`, `CLAUDE.md`, or existing raw result file touched/edited.
+Real total spend this task: $4.3157 (327/327 calls OK). Committing and pushing now.

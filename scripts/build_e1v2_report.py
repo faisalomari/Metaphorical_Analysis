@@ -47,6 +47,8 @@ ANALYSIS_PATH = RESULTS_DIR / "analysis_report.json"
 ANALYSIS_D_PATH = RESULTS_DIR / "analysis_report_D.json"
 ANALYSIS_VERSE_PATH = RESULTS_DIR / "analysis_report_verse.json"
 ANALYSIS_ENSEMBLE_PATH = RESULTS_DIR / "analysis_report_ensemble.json"
+ANALYSIS_OPUS_A_PATH = RESULTS_DIR / "analysis_report_opus_a.json"
+OPUS_A_DOC_PATH = DOCS_DIR / "E1_V2_OPUS_A.md"
 MANIFEST_PATH = RESULTS_DIR / "run_manifest.json"
 POOL_PATH = E1V2_DIR / "config" / "eval_pool_25.json"
 EXAMPLE_SETS_PATH = E1V1_DIR / "config" / "example_sets.json"
@@ -72,6 +74,7 @@ SOURCE_FILES_USED = [
     "results/phase4_e1_v2/analysis_report_D.json",
     "results/phase4_e1_v2/analysis_report_verse.json",
     "results/phase4_e1_v2/analysis_report_ensemble.json",
+    "results/phase4_e1_v2/analysis_report_opus_a.json",
     "results/phase4_e1_v2/run_manifest.json",
     "experiments/phase4_e1_v2/config/eval_pool_25.json",
     "experiments/phase4_e1/config/example_sets.json",
@@ -89,6 +92,7 @@ SOURCE_FILES_USED = [
     "docs/phase4/E1_V2_RESULTS.md",
     "docs/phase4/E1_V2_SET_D.md",
     "docs/phase4/E1_V2_ENSEMBLE.md",
+    "docs/phase4/E1_V2_OPUS_A.md",
     "docs/phase4/PROMPT_INVENTORY.md",
     "writing/paper_plan/TOP_5_BLOCKERS.md",
 ]
@@ -253,6 +257,10 @@ set_d_exists = SET_D_PATH.exists()
 set_d_text = SET_D_PATH.read_text(encoding="utf-8") if set_d_exists else None
 ensemble_doc_exists = ENSEMBLE_PATH.exists()
 ensemble_doc_text = ENSEMBLE_PATH.read_text(encoding="utf-8") if ensemble_doc_exists else None
+opus_a_exists = ANALYSIS_OPUS_A_PATH.exists()
+analysis_opus_a = json.loads(ANALYSIS_OPUS_A_PATH.read_text(encoding="utf-8")) if opus_a_exists else None
+opus_a_doc_exists = OPUS_A_DOC_PATH.exists()
+opus_a_doc_text = OPUS_A_DOC_PATH.read_text(encoding="utf-8") if opus_a_doc_exists else None
 
 # `analysis`: per_set lookups use analysis_d (it has all 6 sets, Z/A/B/C recomputed the same
 # way as analysis_zabc -- checked in verify_f1_matches_json below). `analysis`'s
@@ -292,8 +300,10 @@ MODEL_DISPLAY = {
     "openai": "GPT-5.4-mini",
     "google": "Gemini (served: gemini-3.6-flash)",
     "ensemble": "Majority-vote ensemble (2-of-3)",
+    "anthropic_opus": "Claude Opus 5.5 (set A only)",
 }
-MODEL_SHORT = {"anthropic": "Claude", "openai": "GPT", "google": "Gemini", "ensemble": "Ensemble"}
+MODEL_SHORT = {"anthropic": "Claude", "openai": "GPT", "google": "Gemini", "ensemble": "Ensemble",
+               "anthropic_opus": "Opus 5.5"}
 MODEL_KEYS_ALL = MODEL_KEYS + ["ensemble"]  # main F1 table / bar chart rows, in this order
 
 # ---------------------------------------------------------------------------
@@ -301,7 +311,7 @@ MODEL_KEYS_ALL = MODEL_KEYS + ["ensemble"]  # main F1 table / bar chart rows, in
 # project's own pricing table, never hand-typed.
 # ---------------------------------------------------------------------------
 
-PRICING = pilot_config.MODELS  # {"anthropic": {...price_in, price_out}, ...}
+PRICING = {**pilot_config.MODELS, **e1v2_config.EXTRA_MODEL_PRICING}  # {"anthropic": {...}, "anthropic_opus": {...}, ...}
 
 
 def call_cost(provider: str, usage: dict) -> float:
@@ -311,15 +321,28 @@ def call_cost(provider: str, usage: dict) -> float:
     return (in_tok / 1e6) * spec["price_in"] + (out_tok / 1e6) * spec["price_out"]
 
 
+# MODEL_KEYS (anthropic/openai/google) drive the main 6-sets x 3-models completeness/cost
+# tables, unchanged by Opus's addition. "anthropic_opus" (set A only) is tracked separately
+# below so it never perturbs those 3-model-shaped loops/dicts.
 spend = {p: 0.0 for p in MODEL_KEYS}
 calls_ok = {p: 0 for p in MODEL_KEYS}
 calls_err = {p: 0 for p in MODEL_KEYS}
 calls_per_set = {s: {p: {"ok": 0, "err": 0} for p in MODEL_KEYS} for s in SET_NAMES_FULL}
 gemini_model_versions = set()
+opus_a_spend = 0.0
+opus_a_calls_ok = 0
+opus_a_calls_err = 0
 
 for r in manifest:
     p = r["provider"]
     s = r["set_name"]
+    if p == "anthropic_opus":
+        if r.get("error") is None:
+            opus_a_spend += call_cost(p, r.get("usage"))
+            opus_a_calls_ok += 1
+        else:
+            opus_a_calls_err += 1
+        continue
     if r.get("error") is None:
         spend[p] += call_cost(p, r.get("usage"))
         calls_ok[p] += 1
@@ -425,6 +448,34 @@ def verify_d_differs_only_in_examples(built):
     print("PASS: sets D/D2 share the same scaffold + Example 1 as A/B/C; only Example 2/3 differ.")
 
 
+def verify_opus_a_matches_json():
+    """Cross-checks analysis_report_opus_a.json's own completeness claim against the raw
+    manifest (not just trusting the JSON file), and cross-checks its set-A single-model/ensemble
+    F1 values against the main `analysis`/`analysis_ensemble` dicts this report already loads --
+    two independently-produced sources must agree."""
+    if not opus_a_exists:
+        print("SKIP: analysis_report_opus_a.json not found -- panel (i) will render as pending.")
+        return
+    opus_cells = [r for r in manifest if r["set_name"] == "A" and r["provider"] == "anthropic_opus"]
+    opus_ok = [r for r in opus_cells if r.get("error") is None]
+    assert len(opus_cells) == 327, f"expected 327 set-A anthropic_opus manifest cells, got {len(opus_cells)}"
+    assert len(opus_ok) == 327, f"expected 327 OK cells, got {len(opus_ok)}"
+    assert analysis_opus_a["n_cells_ok"] == 327 and analysis_opus_a["n_cells_error"] == 0
+    for criterion in CRITERIA:
+        c = analysis_opus_a["criteria"][criterion]
+        for m in ("anthropic", "openai", "google"):
+            expected = analysis[m][criterion]["per_set"]["A"]["overall"]["f1"]
+            got = c["single_models"][m]["overall"]["f1"]
+            assert abs(expected - got) < 1e-9, (criterion, m, expected, got)
+        expected_ens = analysis_ensemble["criteria"][criterion]["per_set"]["A"]["overall"]["f1"]
+        got_ens = c["ensemble"]["overall"]["f1"]
+        assert abs(expected_ens - got_ens) < 1e-9, (criterion, expected_ens, got_ens)
+    print("PASS: 327/327 set-A anthropic_opus cells confirmed directly from run_manifest.json "
+          "(0 errors), and every single-model/ensemble F1 inside analysis_report_opus_a.json "
+          "matches the independently-loaded analysis_report_D.json/analysis_report_ensemble.json "
+          "exactly.")
+
+
 def verify_rtl_sample():
     sample_ar = example_sets["A"]["examples"][0]["text"]
     sample_en = "Example 1: the sub-element appears"
@@ -436,6 +487,7 @@ def verify_rtl_sample():
 
 verify_f1_matches_json()
 verify_ensemble_matches_json()
+verify_opus_a_matches_json()
 built_prompts = verify_prompts_match_previews()
 verify_abc_differ_only_in_examples(built_prompts)
 verify_d_differs_only_in_examples(built_prompts)
@@ -461,6 +513,8 @@ def f1_color(value: float, vmin: float, vmax: float) -> str:
 
 def build_main_f1_table(criterion: str) -> str:
     vals = [analysis[p][criterion]["per_set"][s]["overall"]["f1"] for p in MODEL_KEYS_ALL for s in SET_NAMES_FULL]
+    if opus_a_exists:
+        vals.append(analysis_opus_a["criteria"][criterion]["opus"]["overall"]["f1"])
     vmin, vmax = min(vals), max(vals)
     rows = []
     for p in MODEL_KEYS_ALL:
@@ -474,6 +528,18 @@ def build_main_f1_table(criterion: str) -> str:
             cells.append(f'<td class="f1cell{best_cls}" style="--t:{t}"><span>{v:.3f}</span></td>')
         row_cls = ' class="ensemble-row"' if p == "ensemble" else ""
         rows.append(f"<tr{row_cls}><th>{esc(MODEL_SHORT[p])}</th>{''.join(cells)}</tr>")
+    if opus_a_exists:
+        # Opus 5.5 was run on set A ONLY -- every other set shows a dash, not a 0 or omitted
+        # cell, so the table's shape stays uniform while making the missing data explicit.
+        opus_f1 = analysis_opus_a["criteria"][criterion]["opus"]["overall"]["f1"]
+        t = f1_color(opus_f1, vmin, vmax)
+        cells = []
+        for s in SET_NAMES_FULL:
+            if s == "A":
+                cells.append(f'<td class="f1cell best" style="--t:{t}"><span>{opus_f1:.3f}</span></td>')
+            else:
+                cells.append('<td class="f1cell dash"><span>&ndash;</span></td>')
+        rows.append(f'<tr class="opus-row"><th>{esc(MODEL_SHORT["anthropic_opus"])}</th>{"".join(cells)}</tr>')
     header = "".join(f"<th>{s}</th>" for s in SET_NAMES_FULL)
     return (f'<table class="f1table" data-criterion="{criterion}">'
             f"<thead><tr><th>Model</th>{header}</tr></thead><tbody>{''.join(rows)}</tbody></table>")
@@ -513,6 +579,75 @@ def build_bar_chart_svg(criterion: str) -> str:
         parts.append(f'<text x="{lx+14}" y="11" class="legend-label">{MODEL_SHORT[p]}</text>')
     parts.append("</svg>")
     return "".join(parts)
+
+
+def build_opus_a_bar_svg(criterion: str) -> str:
+    """Clearly-separate bar chart: Opus 5.5 vs the 3 single models + ensemble, ALL on set A
+    only (not mixed into the main 6-set grouped chart, which would otherwise show Opus as a
+    lone bar surrounded by blanks for Z/B/C/D/D2)."""
+    keys = ["anthropic_opus", "anthropic", "openai", "google", "ensemble"]
+    values = {
+        "anthropic_opus": analysis_opus_a["criteria"][criterion]["opus"]["overall"]["f1"],
+        "anthropic": analysis_opus_a["criteria"][criterion]["single_models"]["anthropic"]["overall"]["f1"],
+        "openai": analysis_opus_a["criteria"][criterion]["single_models"]["openai"]["overall"]["f1"],
+        "google": analysis_opus_a["criteria"][criterion]["single_models"]["google"]["overall"]["f1"],
+        "ensemble": analysis_opus_a["criteria"][criterion]["ensemble"]["overall"]["f1"],
+    }
+    colors = {"anthropic_opus": "var(--c-opus)", "anthropic": "var(--c-anthropic)",
+              "openai": "var(--c-openai)", "google": "var(--c-google)", "ensemble": "var(--c-ensemble)"}
+    w, h = 460, 180
+    pad_l, pad_b, pad_t = 30, 46, 16
+    plot_w, plot_h = w - pad_l - 20, h - pad_b - pad_t
+    bar_w = plot_w / (len(keys) + 1)
+    vmax = max(values.values()) * 1.2
+    parts = [f'<svg viewBox="0 0 {w} {h}" class="barchart opus-a-chart" data-criterion="{criterion}" '
+             f'xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Opus 5.5 vs others on set A ({criterion})">']
+    parts.append(f'<line x1="{pad_l}" y1="{pad_t}" x2="{pad_l}" y2="{h-pad_b}" class="axis"/>')
+    parts.append(f'<line x1="{pad_l}" y1="{h-pad_b}" x2="{w-20}" y2="{h-pad_b}" class="axis"/>')
+    for i, k in enumerate(keys):
+        v = values[k]
+        bh = (v / vmax) * plot_h
+        x = pad_l + (i + 0.3) * bar_w
+        y = h - pad_b - bh
+        parts.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{bar_w*0.8:.1f}" height="{bh:.1f}" '
+                     f'fill="{colors[k]}"><title>{MODEL_SHORT[k]} / set A: F1={v:.3f}</title></rect>')
+        parts.append(f'<text x="{x+bar_w*0.4:.1f}" y="{y-4:.1f}" class="bar-label">{v:.3f}</text>')
+        parts.append(f'<text x="{x+bar_w*0.4:.1f}" y="{h-pad_b+14}" class="axis-label" '
+                     f'transform="rotate(20 {x+bar_w*0.4:.1f} {h-pad_b+14})">{MODEL_SHORT[k]}</text>')
+    parts.append("</svg>")
+    return "".join(parts)
+
+
+def build_opus_a_comparison_table(criterion: str) -> str:
+    c = analysis_opus_a["criteria"][criterion]
+    rows = []
+    for m in ["anthropic", "openai", "google", "ensemble"]:
+        other_f1 = (c["single_models"][m]["overall"]["f1"] if m in ("anthropic", "openai", "google")
+                    else c["ensemble"]["overall"]["f1"])
+        pw = c["pairwise_vs_opus"][m]
+        cells = []
+        for metric_key, label in (("f1", "F1"), ("precision", "P"), ("recall", "R")):
+            d = pw[metric_key]
+            cls = " sig" if d["sig"] else ""
+            cells.append(f'<td class="cicell{cls}">{d["point"]:+.3f} '
+                        f'[{d["ci_95"][0]:+.3f}, {d["ci_95"][1]:+.3f}]'
+                        f'{" <b>SIG</b>" if d["sig"] else " ns"}</td>')
+        rows.append(f'<tr><td>{esc(MODEL_DISPLAY[m])}</td><td>{other_f1:.3f}</td>{"".join(cells)}</tr>')
+    return ('<table class="detail-table"><thead><tr><th>vs.</th><th>Other F1 (set A)</th>'
+           "<th>&Delta;F1 (Opus&minus;other)</th><th>&Delta;P</th><th>&Delta;R</th></tr></thead>"
+           f"<tbody>{''.join(rows)}</tbody></table>")
+
+
+def build_opus_a_detail_table(criterion: str) -> str:
+    opus = analysis_opus_a["criteria"][criterion]["opus"]
+    rows = []
+    for split in ("overall", "abu_nuwas", "other"):
+        r = opus[split]
+        rows.append(f"<tr><td>{split}</td><td>{r['tp']}</td><td>{r['fp']}</td><td>{r['fn']}</td>"
+                    f"<td>{r['precision']:.3f}</td><td>{r['recall']:.3f}</td><td>{r['f1']:.3f}</td></tr>")
+    return ('<table class="detail-table"><thead><tr><th>Split</th><th>TP</th><th>FP</th><th>FN</th>'
+           "<th>P</th><th>R</th><th>F1</th></tr></thead>"
+           f"<tbody>{''.join(rows)}</tbody></table>")
 
 
 def _gain_over_z(p: str, criterion: str, s: str) -> float:
@@ -727,14 +862,25 @@ def build_cost_table() -> str:
             f"<td>${spec['price_in']:.2f}</td><td>${spec['price_out']:.2f}</td>"
             f"<td>${spend[p]:.4f}</td><td>{calls_ok[p]}</td><td>{calls_err[p]}</td></tr>"
         )
+    if opus_a_exists:
+        spec = PRICING["anthropic_opus"]
+        rows.append(
+            f"<tr class=\"opus-row\"><td>{esc(MODEL_DISPLAY['anthropic_opus'])}</td>"
+            f"<td><code>{esc(spec['model_id'])}</code></td>"
+            f"<td>${spec['price_in']:.2f}</td><td>${spec['price_out']:.2f}</td>"
+            f"<td>${opus_a_spend:.4f}</td><td>{opus_a_calls_ok}</td><td>{opus_a_calls_err}</td></tr>"
+        )
     return (
         '<table class="detail-table"><thead><tr><th>Model</th><th>Model ID (requested)</th>'
         "<th>$/MTok in</th><th>$/MTok out</th><th>Real spend</th><th>Calls OK</th><th>Errors</th>"
         f"</tr></thead><tbody>{''.join(rows)}</tbody></table>"
-        f'<p class="total-spend">Total real spend: <strong>${total_spend:.4f}</strong> '
+        f'<p class="total-spend">Total real spend (3-model, 6-set design): <strong>${total_spend:.4f}</strong> '
         f"({total_calls_ok} OK calls, {total_calls_err} errors, across all 6 sets x 3 models x "
         f"{pool_verses} verse-units = {len(SET_NAMES_FULL) * len(MODEL_KEYS) * pool_verses} planned cells; "
         f"Z/A/B/C cost $10.5680, D+D2 added $5.4451).</p>"
+        f'<p class="total-spend">Opus 5.5 (set A only, separate from the above): '
+        f"<strong>${opus_a_spend:.4f}</strong> ({opus_a_calls_ok} OK calls, {opus_a_calls_err} "
+        f"errors, {pool_verses} planned cells).</p>"
     )
 
 
@@ -820,6 +966,7 @@ CSS = """
   --bg: #fbfaf8; --fg: #1d1b18; --muted: #6b655c; --border: #e3ddd3;
   --panel: #ffffff; --accent: #8a5a2a; --accent-2: #2a5a6b;
   --c-anthropic: #c9622f; --c-openai: #2f8f6b; --c-google: #3f6fc9; --c-ensemble: #8a3f9e;
+  --c-opus: #b8860b;
   --warn-bg: #fff4e5; --warn-fg: #7a4a00; --warn-border: #e8b86a;
   --sig-bg: #fde9e5; --ok: #2f8f6b; --bad: #c9622f;
   --f1-low: 229,221,208; --f1-high: 138,90,42;
@@ -828,6 +975,7 @@ CSS = """
   :root:not([data-theme="light"]) {
     --bg: #171512; --fg: #ece7df; --muted: #a79f92; --border: #3a352e;
     --panel: #201d19; --accent: #d79a5f; --accent-2: #7fb3c7; --c-ensemble: #c48fd6;
+    --c-opus: #e0b84a;
     --warn-bg: #3a2a0a; --warn-fg: #ffd9a0; --warn-border: #8a6020;
     --sig-bg: #3a1e18; --ok: #6fcf9e; --bad: #e08a5f;
     --f1-low: 58,53,46; --f1-high: 215,154,95;
@@ -836,6 +984,7 @@ CSS = """
 :root[data-theme="dark"] {
   --bg: #171512; --fg: #ece7df; --muted: #a79f92; --border: #3a352e;
   --panel: #201d19; --accent: #d79a5f; --accent-2: #7fb3c7; --c-ensemble: #c48fd6;
+    --c-opus: #e0b84a;
   --warn-bg: #3a2a0a; --warn-fg: #ffd9a0; --warn-border: #8a6020;
   --sig-bg: #3a1e18; --ok: #6fcf9e; --bad: #e08a5f;
   --f1-low: 58,53,46; --f1-high: 215,154,95;
@@ -883,6 +1032,9 @@ th { background: var(--panel); }
 .f1cell.best span { text-decoration: underline; text-decoration-thickness: 2px; }
 .ensemble-row th { color: var(--c-ensemble); border-top: 2px solid var(--c-ensemble); }
 .ensemble-row td { border-top: 2px solid var(--c-ensemble); }
+.opus-row th { color: var(--c-opus); border-top: 2px solid var(--c-opus); }
+.opus-row td { border-top: 2px solid var(--c-opus); }
+.f1cell.dash { background: var(--panel); color: var(--muted); font-weight: 400; }
 .detail-table { font-size: .82rem; }
 .cicell.sig { background: var(--sig-bg); font-weight: 600; }
 .tag { border-radius: 999px; padding: .05rem .5rem; font-size: .75rem; }
@@ -1000,6 +1152,7 @@ html_parts.append(f"""<!doctype html>
     <span class="badge">actual cost ${total_spend:.4f}</span>
     <span class="badge">Gemini served as gemini-3.6-flash</span>
     <span class="badge">primary metric: verse (2026-10-14)</span>
+    <span class="badge">+Opus 5.5 (set A only)</span>
   </div>
   <div class="warning-banner">&#9888; Indicative only: single run, no noise baseline.</div>
   <div class="warning-banner" style="margin-top:.5rem">&#9888; Verse (the PRIMARY metric here, by
@@ -1210,10 +1363,43 @@ bar than plain-existence voting). This agrees with and strengthens the Phase 1 e
 </details>
 """)
 
+opus_a_doc_html = (
+    md_block(opus_a_doc_text) if opus_a_doc_exists else
+    "<p><em>Pending — <code>docs/phase4/E1_V2_OPUS_A.md</code> has not been written yet for this cycle.</em></p>"
+)
+if opus_a_exists:
+    html_parts.append(f"""
+<details>
+<summary>i. Opus 5.5 (set A only)</summary>
+<div class="warning-banner">&#9888; Claude Opus 5.5 was run on <strong>set A only</strong> — not
+Z/B/C/D/D2, and not added to the majority-vote ensemble. No gain-over-Z or other cross-set
+comparison exists for it; every number below is a same-set (A), cross-model comparison.</div>
+<div class="toolbar">
+  <button class="crit-btn" data-target="verse" onclick="toggleCriterion('verse')">Verse (primary)</button>
+  <button class="crit-btn" data-target="strict" onclick="toggleCriterion('strict')">Strict (secondary)</button>
+  <button class="crit-btn" data-target="token" onclick="toggleCriterion('token')">Token-overlap (secondary)</button>
+</div>
+<h4>Opus 5.5 on set A</h4>
+<div data-criterion="verse">{build_opus_a_detail_table('verse')}</div>
+<div data-criterion="strict">{build_opus_a_detail_table('strict')}</div>
+<div data-criterion="token">{build_opus_a_detail_table('token')}</div>
+<h4>F1 by model, set A only</h4>
+<div data-criterion="verse">{build_opus_a_bar_svg('verse')}</div>
+<div data-criterion="strict">{build_opus_a_bar_svg('strict')}</div>
+<div data-criterion="token">{build_opus_a_bar_svg('token')}</div>
+<h4>Opus vs. each model/ensemble (bootstrap 95% CI over poems, set A)</h4>
+<div data-criterion="verse">{build_opus_a_comparison_table('verse')}</div>
+<div data-criterion="strict">{build_opus_a_comparison_table('strict')}</div>
+<div data-criterion="token">{build_opus_a_comparison_table('token')}</div>
+<h4>Full write-up</h4>
+{opus_a_doc_html}
+</details>
+""")
+
 commit_hash_cmd = "git rev-parse HEAD"
 html_parts.append(f"""
 <details>
-<summary>i. Provenance</summary>
+<summary>j. Provenance</summary>
 <ul>
 <li>Report generator: <code>scripts/build_e1v2_report.py</code> (this file is its output).</li>
 <li>Pool seed: <code>{pool['seed']}</code> &middot; example-set seed: <code>42</code>
@@ -1226,7 +1412,9 @@ html_parts.append(f"""
 <code>results/phase4_e1_v2/analysis_report_D.json</code>, all 6 sets, which this report reads
 preferentially), <code>python experiments/phase4_e1_v2/ensemble_v2.py</code> (writes
 <code>results/phase4_e1_v2/analysis_report_ensemble.json</code>, the majority-vote ensemble for
-panel (h)), then <code>python scripts/build_e1v2_report.py</code> (writes this file). No API
+panel (h)), <code>python experiments/phase4_e1_v2/scoring_opus_a.py</code> (writes
+<code>results/phase4_e1_v2/analysis_report_opus_a.json</code>, panel (i)'s Opus-on-set-A
+comparison), then <code>python scripts/build_e1v2_report.py</code> (writes this file). No API
 calls in any step — all read already-collected data.</li>
 </ul>
 </details>
@@ -1262,7 +1450,12 @@ for p in MODEL_KEYS:
             assert f"{v:.3f}" in written, f"F1 value {v:.3f} for {p}/{c}/{s} not found in written HTML"
 for s in SET_NAMES_FULL:
     assert prompt_previews[s].rstrip("\n") in written or esc(prompt_previews[s]) in written or True
+if opus_a_exists:
+    for c in CRITERIA:
+        v = analysis_opus_a["criteria"][c]["opus"]["overall"]["f1"]
+        assert f"{v:.3f}" in written, f"Opus F1 value {v:.3f} for {c}/A not found in written HTML"
+    assert "Opus 5.5" in written
 print("PASS: re-read the written file and confirmed every main-table F1 value string is present "
-      "(all 6 sets x 3 models x 3 criteria).")
+      "(all 6 sets x 3 models x 3 criteria), plus Opus 5.5's set-A F1 for all 3 criteria.")
 rtl_count = written.count('dir="rtl"')
 print(f"RTL spans/pre blocks emitted: {rtl_count} (>0 confirms Arabic text is wrapped RTL).")
