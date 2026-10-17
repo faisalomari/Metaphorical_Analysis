@@ -1,0 +1,67 @@
+{
+  "target_level": "medium",
+  "target_value": "استعارة فعل",
+  "model_key": "marbert",
+  "split": "S2",
+  "seed": 2,
+  "frac": 0.5,
+  "train_size": 1136,
+  "train_pos": 418,
+  "val_size": 449,
+  "val_pos": 160,
+  "test_size": 618,
+  "test_pos": 234,
+  "best_epoch": 3,
+  "best_val_f1": 0.5333333333333333,
+  "threshold": 0.17,
+  "total_train_seconds": 13.2,
+  "epoch_log": [
+    {
+      "epoch": 1,
+      "train_loss": 0.8718710121974139,
+      "val_f1": 0.5275590551181102,
+      "val_threshold": 0.45
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.8031586870341234,
+      "val_f1": 0.5272727272727273,
+      "val_threshold": 0.3
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.5940156469882374,
+      "val_f1": 0.5333333333333333,
+      "val_threshold": 0.17
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.3867802529687613,
+      "val_f1": 0.52465483234714,
+      "val_threshold": 0.05
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.14837264988413998,
+      "val_f1": 0.5,
+      "val_threshold": 0.1
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.06170112041520401,
+      "val_f1": 0.51010101010101,
+      "val_threshold": 0.39
+    }
+  ],
+  "test_metrics": {
+    "tp": 185,
+    "fp": 265,
+    "fn": 49,
+    "tn": 119,
+    "precision": 0.4111111111111111,
+    "recall": 0.7905982905982906,
+    "f1": 0.5409356725146198
+  },
+  "auc_roc_test": 0.6076444533475783,
+  "complete": true
+}

@@ -2243,3 +2243,113 @@ Committing and pushing code/configs/metrics/docs now (no weights were ever writt
 at any point in this task — `results/phase5_local_ft/raw/*.json` holds only metrics + per-
 verse test predictions; `experiments/phase5_local_ft/hf_cache/` (2.6GB of downloaded model/
 tokenizer files) stays local and gitignored).
+
+---
+
+**2026-10-17 — New task: diagnose why the targets LLMs found EASY (تشبيه مطول very_easy,
+استعارة تمثيلية easy) got the WORST fine-tuned F1 in Phase 5, with exact numbers.** Scope:
+no paid API calls (all local GPU, zero cost); do not edit Phase 1-4 or existing Phase 5
+code/results; new code in `experiments/phase5_local_ft/analysis/`, new outputs in
+`results/phase5_local_ft/analysis/` + `docs/phase5/LOCAL_FT_DIAGNOSIS.md` (+ `_AR.md`) +
+`docs/phase5/figs/`.
+- Read `CLAUDE.md`, `PROJECT_STATE.md` (§1-§7 Phase1 frozen numbers, §3f/g Kenning
+  decomposition/per-verse), `docs/phase5/LOCAL_FT_RESULTS.md` (full Phase 5 writeup: Pearson
+  r=0.996 between positive-verse count and S2 mean F1 across the 5 targets — the existing
+  headline finding this task is asked to dig into further with exact numbers/variance/
+  learning diagnostics/data-size causality/signal/distribution-shift evidence), this log's
+  tail (Phase 5 build steps 1-5), and every file under `experiments/phase5_local_ft/` +
+  `results/phase5_local_ft/raw/*.json` (confirmed structure: per-run JSON has `epoch_log`
+  (train_loss + val_f1 per epoch, no val loss ever recorded), `test_metrics` (tp/fp/fn/tn/p/r/
+  f1), and full per-verse `predictions` (poem_id/verse_no/label/prob/pred) — enough to compute
+  AUC/AP/bootstrap-CI/per-poet-period breakdowns without any new training for sections 1-3/6).
+- Built `experiments/phase5_local_ft/analysis/common.py` (shared loaders: raw-run/baseline
+  JSON, poem lookup by id, split poem-id lists, per-split verse/poem positive counts) +
+  6 section scripts, each writing a `.md` + `.json` pair to `results/phase5_local_ft/analysis/`:
+  - `section1_main_table.py`: exact per-target x model x split table (TP/FP/FN/TN, P/R/F1,
+    threshold, best_epoch, train/val/test pos/neg verses+poems, baselines, LLM evidence
+    with units kept explicit -- recall vs F1 vs %%-missed are never conflated). **No cell has
+    test_pos < 30** -- the "thin, n<30" flag never fires (smallest is very_easy/S2, test_pos
+    ~33 mean across seeds) -- support is not the direct bottleneck at the TEST-set level.
+  - `section2_variance.py`: bootstrap 95%% CI over poems (2000 iters, same method as Phase 5's
+    own analyze.py) per target x model, plus pooled-across-3-models per-target CIs and
+    pairwise overlap check. **Key finding: very_easy's CI [0.086,0.166] overlaps very_hard's
+    [0.131,0.252], and easy's [0.099,0.219] overlaps both hard's [0.197,0.291] and very_hard's
+    -- several of the "LLM-easy targets are FT-worst" pairwise claims are NOT statistically
+    distinguishable from each other** (medium is the only target cleanly separated from all
+    others).
+  - `section3_learning_diagnosis.py`: per target x model, AUC-ROC + average precision
+    (threshold-free) on test, prediction-rate vs true-rate, and a diagnostic-only
+    best-possible-threshold F1 (test-set-tuned, never a valid result). **Key finding: for
+    camelbert_ca/arabert_v2, AUC-ROC is at or BELOW chance (0.46-0.57) on 4 of 5 targets
+    INCLUDING medium** (the "good" target) -- medium's high F1 there is substantially a
+    threshold/imbalance artifact (pred_rate 0.97 vs true_rate 0.38), not strong ranking.
+    MARBERT is the only model with consistently-above-chance AUC (0.56-0.79) -- real but
+    modest learning, clearest on very_easy (AUC=0.79) despite having the worst real F1 there.
+  - `section5_signal.py`: TF-IDF top features, top-15 TP/FN verses by MARBERT probability,
+    an explicit-marker check (كأن/مثل/كما/شبه) for تشبيه مطول, corpus-wide target
+    co-occurrence, and a label-noise indicator (exact span_text with >1 distinct subtype).
+    **Key finding: only 18.4%% of تشبيه مطول's 217 positive verses contain any of the checked
+    markers** (vs 4.2%% corpus baseline -- real enrichment, but a small minority); several
+    high-confidence false negatives DO contain كأن/كما yet are still missed, and multiple TP/
+    FN span_texts visibly cross the verse boundary the classifier cannot see (one verse of a
+    2-verse بيت at MAX_LEN=32, single-verse framing) -- consistent with تشبيه مطول's own
+    name ("extended simile") being a multi-verse structural device the task's verse-level
+    framing partially truncates. 6.56%% of all unique span_texts carry >1 distinct subtype
+    somewhere in the corpus (real, non-trivial annotation-inconsistency rate, not isolated
+    to these 2 targets).
+  - `section6_distribution_shift.py`: train/test poet overlap per split/seed (76-88%% of test
+    poems have their poet also in train -- not a severe unseen-poet problem), per-target
+    positive-verse concentration (top-5 poets hold 34-48%% of each target's positives --
+    moderate, not extreme, concentration for all 5 targets alike), and per-poet/per-period F1
+    on S2 test (MARBERT, pooled 3 seeds) -- high poet-to-poet and period-to-period variance
+    but no single poet/period that fully explains either easy target's weak aggregate F1.
+  - `section4_learning_curve.py`: **new local-only training runs** (no API calls) -- a real
+    learning-curve experiment, not just the existing 5-point cross-target correlation.
+    MARBERT only (won 4/5 S2 targets), targets = easy (استعارة تمثيلية) + medium
+    (استعارة فعل), S2 val/test held fixed per seed, TRAIN subsampled to nested
+    10/25/50/100%% prefixes (seeded per-seed shuffle, so 10%% subset of 25%% subset of 50%%
+    subset of 100%% for the same seed), 3 seeds x 4 fractions x 2 targets = 24 new training
+    runs, ~16-30s each on the RTX 3060 Ti (smoke-tested first: 1 run in ~9s incl. model load).
+    Does NOT edit `train.py` -- duplicates its training loop in the analysis script, importing
+    its `VerseDataset`/`predict_probs`/`set_seed` helpers unchanged. No weights saved to disk
+    (same as the main Phase 5 grid). Results land in
+    `results/phase5_local_ft/analysis/raw_lc/*.json` (separate from the main grid's `raw/`).
+    Fits both a power-law (log-log least squares) and a saturating curve
+    (`c*(1-exp(-x/tau))`, nonlinear least squares) to F1/AUC vs. positive-training-verse count,
+    both within-target (many points from the 4 fractions x 3 seeds) and across the 5 targets
+    at full data (extending Phase 5's existing 5-point Pearson r=0.996 with an actual fit +
+    R^2, not just a correlation coefficient on 5 points) -- run in background, continuing to
+    section 7 synthesis once it completes.
+- **Section 4 finished** (24/24 runs, ~5 min total). **Key result, resolves the central
+  confound**: within-target learning curves are nearly FLAT (easy: F1 0.164->0.180->0.180->
+  0.192 and medium: F1 0.544->0.541->0.542->0.554, across 10%%->25%%->50%%->100%% of train data)
+  -- medium's F1 is already at its ceiling with only ~90 positive training verses; a 10x
+  increase to ~900 buys almost nothing. Cross-target Pearson r(F1,train_pos)=0.945 (p=0.015,
+  close to Phase 5's original 0.996) but **r(AUC,train_pos)=-0.322 (p=0.597, wrong sign, not
+  significant)** -- positive-verse count predicts F1 across targets but NOT real discrimination
+  (AUC) at all. Reframe: since total verses/poem is ~fixed corpus-wide, "positive count" in
+  this corpus is almost the same variable as "prevalence" -- medium's real advantage is
+  **imbalance severity (36%% positive), not training-set size**. Figure
+  `docs/phase5/figs/section4_learning_curve.png` plots both curves + all 5 targets' full-data
+  points on log-x: **very_easy's diamond sits above easy's entire learning-curve line with
+  FEWER positives (151 vs 212)** -- best AUC (0.790) of all 5 targets, worst F1 -- directly
+  visualizing the F1-vs-AUC disconnect from section 3.
+- Wrote `docs/phase5/LOCAL_FT_DIAGNOSIS.md` (full English report, 8 sections per task spec,
+  ranked causes: #1 class-imbalance/threshold dynamics (strongest), #2 metric-choice obscures
+  real learning for very_easy specifically (AUC=0.790 best-in-grid despite worst F1), #3
+  task-definition mismatch for تشبيه مطول (annotation spans cross verse boundaries,
+  MAX_LEN=32 single-verse framing can't see them), #4 weak/no real learning for
+  camelbert_ca/arabert_v2 on 4/5 targets (chance-or-below AUC), #5 statistical noise flattens
+  part of the apparent ranking (very_easy/very_hard and easy/hard/very_hard pairwise CI
+  overlap -- only medium's superiority is solid), #6 label-noise/co-occurrence/distribution-
+  shift are real but spread evenly across all 5 targets, not concentrated on the 2 worst) and
+  `docs/phase5/LOCAL_FT_DIAGNOSIS_AR.md` (Arabic summary, same structure/numbers, condensed).
+  Did not touch the existing `docs/phase4/E1_V2_REPORT*.html` files (not modified, per task
+  instruction) or any Phase 1-4 frozen file.
+- Verified before committing: `git status` shows only new untracked files (6
+  `experiments/phase5_local_ft/analysis/*.py` + `common.py`, `results/phase5_local_ft/
+  analysis/` incl. `raw_lc/` (24 small JSON files, metrics+predictions only, no weights),
+  `docs/phase5/LOCAL_FT_DIAGNOSIS*.md`, `docs/phase5/figs/section4_learning_curve.png`) plus
+  this log's own modification -- no Phase 1-4 file and no existing Phase 5 file touched. Total
+  new-file size ~520KB, nothing near the project's 5MB confirmation threshold, no secrets
+  (plain JSON metrics/predictions + markdown + one PNG). Committing and pushing now.
