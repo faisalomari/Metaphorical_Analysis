@@ -1,0 +1,107 @@
+{
+  "very_easy": {
+    "target_level": "very_easy",
+    "split": "S2",
+    "status": "skipped",
+    "reason": "only 1 model(s) with val_predictions available"
+  },
+  "easy": {
+    "target_level": "easy",
+    "split": "S2",
+    "status": "skipped",
+    "reason": "only 1 model(s) with val_predictions available"
+  },
+  "medium": {
+    "target_level": "medium",
+    "split": "S2",
+    "status": "ok",
+    "members": [
+      "L2a_focal",
+      "L2b_cosine_llrd"
+    ],
+    "threshold": 0.36,
+    "val_f1": 0.5200534759358288,
+    "test_metrics": {
+      "tp": 416,
+      "fp": 643,
+      "fn": 48,
+      "tn": 138,
+      "precision": 0.392823418319169,
+      "recall": 0.896551724137931,
+      "f1": 0.54629021667761
+    },
+    "auc_roc": 0.6110286326107113,
+    "avg_precision": 0.4873106206483415,
+    "bootstrap_ci": {
+      "point": 0.54629021667761,
+      "ci_low": 0.498011137629276,
+      "ci_high": 0.5897435897435898,
+      "n_boot": 2000,
+      "n_poems": 62
+    }
+  },
+  "medium_S3": {
+    "target_level": "medium",
+    "split": "S3",
+    "status": "ok",
+    "members": [
+      "L2a_focal",
+      "L2b_cosine_llrd"
+    ],
+    "threshold": 0.25,
+    "val_f1": 0.5535545023696683,
+    "test_metrics": {
+      "tp": 127,
+      "fp": 196,
+      "fn": 0,
+      "tn": 4,
+      "precision": 0.3931888544891641,
+      "recall": 1.0,
+      "f1": 0.5644444444444444
+    },
+    "auc_roc": 0.6474803149606299,
+    "avg_precision": 0.5180532262456026,
+    "bootstrap_ci": {
+      "point": 0.5644444444444444,
+      "ci_low": 0.4878048780487805,
+      "ci_high": 0.6319018404907976,
+      "n_boot": 2000,
+      "n_poems": 25
+    }
+  },
+  "hard": {
+    "target_level": "hard",
+    "split": "S2",
+    "status": "skipped",
+    "reason": "only 1 model(s) with val_predictions available"
+  },
+  "very_hard": {
+    "target_level": "very_hard",
+    "split": "S2",
+    "status": "ok",
+    "members": [
+      "L3_arabert_large",
+      "L1_context"
+    ],
+    "threshold": 0.53,
+    "val_f1": 0.1898454746136865,
+    "test_metrics": {
+      "tp": 41,
+      "fp": 319,
+      "fn": 85,
+      "tn": 800,
+      "precision": 0.11388888888888889,
+      "recall": 0.3253968253968254,
+      "f1": 0.16872427983539096
+    },
+    "auc_roc": 0.5607827283430501,
+    "avg_precision": 0.1241587580142082,
+    "bootstrap_ci": {
+      "point": 0.16872427983539096,
+      "ci_low": 0.11059907834101383,
+      "ci_high": 0.22178217821782176,
+      "n_boot": 2000,
+      "n_poems": 62
+    }
+  }
+}

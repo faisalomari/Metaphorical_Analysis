@@ -1,0 +1,7542 @@
+{
+  "target_level": "medium",
+  "target_value": "استعارة فعل",
+  "model_key": "marbert",
+  "model_name": "UBC-NLP/MARBERT",
+  "split": "S2",
+  "seed": 2,
+  "config_name": "ctx0_focal_constant",
+  "use_context": false,
+  "loss_type": "focal",
+  "schedule": "constant",
+  "max_len": 32,
+  "batch_size": 64,
+  "base_lr": 2e-05,
+  "max_epochs": 15,
+  "early_stop_patience": 3,
+  "pos_weight": 1.78125,
+  "train_size": 2403,
+  "train_pos": 864,
+  "val_size": 449,
+  "val_pos": 160,
+  "test_size": 618,
+  "test_pos": 234,
+  "best_epoch": 1,
+  "best_val_f1": 0.5454545454545455,
+  "threshold": 0.51,
+  "total_train_seconds": 16.9,
+  "hit_time_cap": false,
+  "epoch_log": [
+    {
+      "epoch": 1,
+      "train_loss": 0.22307863992747792,
+      "val_f1": 0.5454545454545455,
+      "val_threshold": 0.51,
+      "epoch_seconds": 4.15
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.20167165282761806,
+      "val_f1": 0.5264900662251655,
+      "val_threshold": 0.3,
+      "epoch_seconds": 3.95
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.1251011770365886,
+      "val_f1": 0.5413870246085011,
+      "val_threshold": 0.31,
+      "epoch_seconds": 3.95
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.04122120165237029,
+      "val_f1": 0.5421052631578948,
+      "val_threshold": 0.5,
+      "epoch_seconds": 3.95
+    }
+  ],
+  "test_metrics": {
+    "tp": 177,
+    "fp": 208,
+    "fn": 57,
+    "tn": 176,
+    "precision": 0.4597402597402597,
+    "recall": 0.7564102564102564,
+    "f1": 0.5718901453957996
+  },
+  "predictions": [
+    {
+      "poem_id": "26477",
+      "verse_no": 1,
+      "label": 1,
+      "prob": 0.539074182510376,
+      "pred": 1
+    },
+    {
+      "poem_id": "26477",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.5439838767051697,
+      "pred": 1
+    },
+    {
+      "poem_id": "26477",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.5566707253456116,
+      "pred": 1
+    },
+    {
+      "poem_id": "26477",
+      "verse_no": 4,
+      "label": 1,
+      "prob": 0.5277577042579651,
+      "pred": 1
+    },
+    {
+      "poem_id": "26477",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.52252197265625,
+      "pred": 1
+    },
+    {
+      "poem_id": "26477",
+      "verse_no": 6,
+      "label": 1,
+      "prob": 0.49851229786872864,
+      "pred": 0
+    },
+    {
+      "poem_id": "26477",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.5231462717056274,
+      "pred": 1
+    },
+    {
+      "poem_id": "26477",
+      "verse_no": 8,
+      "label": 1,
+      "prob": 0.5150330066680908,
+      "pred": 1
+    },
+    {
+      "poem_id": "26477",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.5083686709403992,
+      "pred": 0
+    },
+    {
+      "poem_id": "26477",
+      "verse_no": 10,
+      "label": 1,
+      "prob": 0.5424391627311707,
+      "pred": 1
+    },
+    {
+      "poem_id": "26477",
+      "verse_no": 11,
+      "label": 0,
+      "prob": 0.5147128701210022,
+      "pred": 1
+    },
+    {
+      "poem_id": "26477",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.5227656364440918,
+      "pred": 1
+    },
+    {
+      "poem_id": "26477",
+      "verse_no": 13,
+      "label": 1,
+      "prob": 0.5293698310852051,
+      "pred": 1
+    },
+    {
+      "poem_id": "26477",
+      "verse_no": 14,
+      "label": 0,
+      "prob": 0.529582679271698,
+      "pred": 1
+    },
+    {
+      "poem_id": "26477",
+      "verse_no": 15,
+      "label": 0,
+      "prob": 0.5132796764373779,
+      "pred": 1
+    },
+    {
+      "poem_id": "26477",
+      "verse_no": 16,
+      "label": 0,
+      "prob": 0.5214406847953796,
+      "pred": 1
+    },
+    {
+      "poem_id": "26477",
+      "verse_no": 17,
+      "label": 1,
+      "prob": 0.5295523405075073,
+      "pred": 1
+    },
+    {
+      "poem_id": "26477",
+      "verse_no": 18,
+      "label": 0,
+      "prob": 0.5211665630340576,
+      "pred": 1
+    },
+    {
+      "poem_id": "26477",
+      "verse_no": 19,
+      "label": 0,
+      "prob": 0.5324251055717468,
+      "pred": 1
+    },
+    {
+      "poem_id": "26477",
+      "verse_no": 20,
+      "label": 0,
+      "prob": 0.509306788444519,
+      "pred": 0
+    },
+    {
+      "poem_id": "26477",
+      "verse_no": 21,
+      "label": 1,
+      "prob": 0.5284269452095032,
+      "pred": 1
+    },
+    {
+      "poem_id": "26477",
+      "verse_no": 22,
+      "label": 0,
+      "prob": 0.5085822343826294,
+      "pred": 0
+    },
+    {
+      "poem_id": "26477",
+      "verse_no": 23,
+      "label": 0,
+      "prob": 0.525155782699585,
+      "pred": 1
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.5118233561515808,
+      "pred": 1
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.517936646938324,
+      "pred": 1
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.5054548382759094,
+      "pred": 0
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.5043562650680542,
+      "pred": 0
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.49028903245925903,
+      "pred": 0
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.4974403381347656,
+      "pred": 0
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.5167631506919861,
+      "pred": 1
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 8,
+      "label": 1,
+      "prob": 0.5066334009170532,
+      "pred": 0
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 9,
+      "label": 1,
+      "prob": 0.49454519152641296,
+      "pred": 0
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.4922567903995514,
+      "pred": 0
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 11,
+      "label": 0,
+      "prob": 0.5174337029457092,
+      "pred": 1
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.5001330375671387,
+      "pred": 0
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 13,
+      "label": 1,
+      "prob": 0.5115488171577454,
+      "pred": 1
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 14,
+      "label": 0,
+      "prob": 0.5105041265487671,
+      "pred": 1
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 15,
+      "label": 1,
+      "prob": 0.493618369102478,
+      "pred": 0
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 16,
+      "label": 0,
+      "prob": 0.5113658308982849,
+      "pred": 1
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 17,
+      "label": 0,
+      "prob": 0.4892289936542511,
+      "pred": 0
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 18,
+      "label": 0,
+      "prob": 0.47578802704811096,
+      "pred": 0
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 19,
+      "label": 0,
+      "prob": 0.48824524879455566,
+      "pred": 0
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 20,
+      "label": 1,
+      "prob": 0.4933513402938843,
+      "pred": 0
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 21,
+      "label": 1,
+      "prob": 0.4994840621948242,
+      "pred": 0
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 22,
+      "label": 0,
+      "prob": 0.5171136856079102,
+      "pred": 1
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 23,
+      "label": 0,
+      "prob": 0.49878498911857605,
+      "pred": 0
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 24,
+      "label": 0,
+      "prob": 0.5124714970588684,
+      "pred": 1
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 25,
+      "label": 0,
+      "prob": 0.5134245157241821,
+      "pred": 1
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 26,
+      "label": 0,
+      "prob": 0.5112133622169495,
+      "pred": 1
+    },
+    {
+      "poem_id": "28559",
+      "verse_no": 27,
+      "label": 0,
+      "prob": 0.5108015537261963,
+      "pred": 1
+    },
+    {
+      "poem_id": "30219",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.4950830042362213,
+      "pred": 0
+    },
+    {
+      "poem_id": "30219",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.5243642330169678,
+      "pred": 1
+    },
+    {
+      "poem_id": "30219",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.49339330196380615,
+      "pred": 0
+    },
+    {
+      "poem_id": "30219",
+      "verse_no": 4,
+      "label": 1,
+      "prob": 0.49953529238700867,
+      "pred": 0
+    },
+    {
+      "poem_id": "30219",
+      "verse_no": 5,
+      "label": 1,
+      "prob": 0.518729031085968,
+      "pred": 1
+    },
+    {
+      "poem_id": "30219",
+      "verse_no": 6,
+      "label": 1,
+      "prob": 0.5150101780891418,
+      "pred": 1
+    },
+    {
+      "poem_id": "30219",
+      "verse_no": 7,
+      "label": 1,
+      "prob": 0.5100237131118774,
+      "pred": 1
+    },
+    {
+      "poem_id": "30219",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.5179823637008667,
+      "pred": 1
+    },
+    {
+      "poem_id": "30219",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.5098940134048462,
+      "pred": 0
+    },
+    {
+      "poem_id": "30219",
+      "verse_no": 10,
+      "label": 1,
+      "prob": 0.5169002413749695,
+      "pred": 1
+    },
+    {
+      "poem_id": "30219",
+      "verse_no": 11,
+      "label": 0,
+      "prob": 0.4962330758571625,
+      "pred": 0
+    },
+    {
+      "poem_id": "30219",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.514537513256073,
+      "pred": 1
+    },
+    {
+      "poem_id": "30219",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.4983196258544922,
+      "pred": 0
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 1,
+      "label": 1,
+      "prob": 0.5137218236923218,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.49915361404418945,
+      "pred": 0
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.5363432765007019,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.5246382355690002,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 5,
+      "label": 1,
+      "prob": 0.5112972259521484,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 6,
+      "label": 1,
+      "prob": 0.5275447368621826,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.4993119239807129,
+      "pred": 0
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 8,
+      "label": 1,
+      "prob": 0.5345821380615234,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 9,
+      "label": 1,
+      "prob": 0.520922839641571,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.5215929746627808,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 11,
+      "label": 1,
+      "prob": 0.5286399126052856,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 12,
+      "label": 1,
+      "prob": 0.512967050075531,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 13,
+      "label": 1,
+      "prob": 0.49744799733161926,
+      "pred": 0
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 14,
+      "label": 0,
+      "prob": 0.5053327679634094,
+      "pred": 0
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 15,
+      "label": 0,
+      "prob": 0.5158485770225525,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 16,
+      "label": 1,
+      "prob": 0.5196737051010132,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 17,
+      "label": 1,
+      "prob": 0.5301604866981506,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 18,
+      "label": 0,
+      "prob": 0.5108930468559265,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 19,
+      "label": 1,
+      "prob": 0.5268601179122925,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 20,
+      "label": 0,
+      "prob": 0.5257493257522583,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 21,
+      "label": 0,
+      "prob": 0.510854959487915,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 22,
+      "label": 1,
+      "prob": 0.4948198199272156,
+      "pred": 0
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 23,
+      "label": 1,
+      "prob": 0.515757143497467,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 24,
+      "label": 0,
+      "prob": 0.5063358545303345,
+      "pred": 0
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 25,
+      "label": 0,
+      "prob": 0.5027294158935547,
+      "pred": 0
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 26,
+      "label": 0,
+      "prob": 0.5240141153335571,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 27,
+      "label": 1,
+      "prob": 0.5314829349517822,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 28,
+      "label": 1,
+      "prob": 0.5256427526473999,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 29,
+      "label": 0,
+      "prob": 0.5114344954490662,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 30,
+      "label": 0,
+      "prob": 0.5055081844329834,
+      "pred": 0
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 31,
+      "label": 0,
+      "prob": 0.52486652135849,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 32,
+      "label": 0,
+      "prob": 0.509657621383667,
+      "pred": 0
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 33,
+      "label": 0,
+      "prob": 0.5197193622589111,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 34,
+      "label": 0,
+      "prob": 0.49537670612335205,
+      "pred": 0
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 35,
+      "label": 1,
+      "prob": 0.519871711730957,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 36,
+      "label": 0,
+      "prob": 0.5066829323768616,
+      "pred": 0
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 37,
+      "label": 1,
+      "prob": 0.5081627368927002,
+      "pred": 0
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 38,
+      "label": 0,
+      "prob": 0.5203439593315125,
+      "pred": 1
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 39,
+      "label": 0,
+      "prob": 0.506618082523346,
+      "pred": 0
+    },
+    {
+      "poem_id": "10539",
+      "verse_no": 40,
+      "label": 1,
+      "prob": 0.507087230682373,
+      "pred": 0
+    },
+    {
+      "poem_id": "29516",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.5047949552536011,
+      "pred": 0
+    },
+    {
+      "poem_id": "29516",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.5236791372299194,
+      "pred": 1
+    },
+    {
+      "poem_id": "29516",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.5179519057273865,
+      "pred": 1
+    },
+    {
+      "poem_id": "29516",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.5397717356681824,
+      "pred": 1
+    },
+    {
+      "poem_id": "29516",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.5274534225463867,
+      "pred": 1
+    },
+    {
+      "poem_id": "29516",
+      "verse_no": 6,
+      "label": 1,
+      "prob": 0.5252318382263184,
+      "pred": 1
+    },
+    {
+      "poem_id": "29516",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.5150330066680908,
+      "pred": 1
+    },
+    {
+      "poem_id": "29516",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.5260080099105835,
+      "pred": 1
+    },
+    {
+      "poem_id": "29516",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.529628336429596,
+      "pred": 1
+    },
+    {
+      "poem_id": "29516",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.5130356550216675,
+      "pred": 1
+    },
+    {
+      "poem_id": "29516",
+      "verse_no": 11,
+      "label": 1,
+      "prob": 0.5221717357635498,
+      "pred": 1
+    },
+    {
+      "poem_id": "29516",
+      "verse_no": 12,
+      "label": 1,
+      "prob": 0.5204505920410156,
+      "pred": 1
+    },
+    {
+      "poem_id": "29516",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.4919516444206238,
+      "pred": 0
+    },
+    {
+      "poem_id": "29516",
+      "verse_no": 14,
+      "label": 0,
+      "prob": 0.4913567900657654,
+      "pred": 0
+    },
+    {
+      "poem_id": "28517",
+      "verse_no": 1,
+      "label": 1,
+      "prob": 0.5114878416061401,
+      "pred": 1
+    },
+    {
+      "poem_id": "28517",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.49339330196380615,
+      "pred": 0
+    },
+    {
+      "poem_id": "28517",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.515284538269043,
+      "pred": 1
+    },
+    {
+      "poem_id": "28517",
+      "verse_no": 4,
+      "label": 1,
+      "prob": 0.5285942554473877,
+      "pred": 1
+    },
+    {
+      "poem_id": "28517",
+      "verse_no": 5,
+      "label": 1,
+      "prob": 0.5179671049118042,
+      "pred": 1
+    },
+    {
+      "poem_id": "28517",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.4982052147388458,
+      "pred": 0
+    },
+    {
+      "poem_id": "28517",
+      "verse_no": 7,
+      "label": 1,
+      "prob": 0.5318173170089722,
+      "pred": 1
+    },
+    {
+      "poem_id": "28517",
+      "verse_no": 8,
+      "label": 1,
+      "prob": 0.524897038936615,
+      "pred": 1
+    },
+    {
+      "poem_id": "28517",
+      "verse_no": 9,
+      "label": 1,
+      "prob": 0.5092000365257263,
+      "pred": 0
+    },
+    {
+      "poem_id": "28517",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.5141563415527344,
+      "pred": 1
+    },
+    {
+      "poem_id": "28517",
+      "verse_no": 11,
+      "label": 1,
+      "prob": 0.5249730944633484,
+      "pred": 1
+    },
+    {
+      "poem_id": "28517",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.5094059109687805,
+      "pred": 0
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.48688805103302,
+      "pred": 0
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.4960557222366333,
+      "pred": 0
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 3,
+      "label": 1,
+      "prob": 0.5032500624656677,
+      "pred": 0
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 4,
+      "label": 1,
+      "prob": 0.538103461265564,
+      "pred": 1
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 5,
+      "label": 1,
+      "prob": 0.5126315951347351,
+      "pred": 1
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.4967518150806427,
+      "pred": 0
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 7,
+      "label": 1,
+      "prob": 0.4907008707523346,
+      "pred": 0
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.4869338572025299,
+      "pred": 0
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.506831705570221,
+      "pred": 0
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.5090322494506836,
+      "pred": 0
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 11,
+      "label": 0,
+      "prob": 0.5013198852539062,
+      "pred": 0
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.5237552523612976,
+      "pred": 1
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.5293850302696228,
+      "pred": 1
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 14,
+      "label": 0,
+      "prob": 0.5270883440971375,
+      "pred": 1
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 15,
+      "label": 0,
+      "prob": 0.4935230016708374,
+      "pred": 0
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 16,
+      "label": 0,
+      "prob": 0.4980297088623047,
+      "pred": 0
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 17,
+      "label": 0,
+      "prob": 0.5181347727775574,
+      "pred": 1
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 18,
+      "label": 0,
+      "prob": 0.5174489617347717,
+      "pred": 1
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 19,
+      "label": 1,
+      "prob": 0.5220499038696289,
+      "pred": 1
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 20,
+      "label": 1,
+      "prob": 0.5225067138671875,
+      "pred": 1
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 21,
+      "label": 1,
+      "prob": 0.5283052921295166,
+      "pred": 1
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 22,
+      "label": 0,
+      "prob": 0.5196584463119507,
+      "pred": 1
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 23,
+      "label": 0,
+      "prob": 0.5322427749633789,
+      "pred": 1
+    },
+    {
+      "poem_id": "28747",
+      "verse_no": 24,
+      "label": 1,
+      "prob": 0.524394690990448,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 1,
+      "label": 1,
+      "prob": 0.544135332107544,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.5404994487762451,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 3,
+      "label": 1,
+      "prob": 0.5684756636619568,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.5674572587013245,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.5251709222793579,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 6,
+      "label": 1,
+      "prob": 0.5395594835281372,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.5339139103889465,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.5027312636375427,
+      "pred": 0
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.5088491439819336,
+      "pred": 0
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.4783460795879364,
+      "pred": 0
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 11,
+      "label": 1,
+      "prob": 0.5071749687194824,
+      "pred": 0
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.5230092406272888,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.5384068489074707,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 14,
+      "label": 0,
+      "prob": 0.5260688662528992,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 15,
+      "label": 0,
+      "prob": 0.5258862376213074,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 16,
+      "label": 1,
+      "prob": 0.5575441718101501,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 17,
+      "label": 0,
+      "prob": 0.4996738135814667,
+      "pred": 0
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 18,
+      "label": 0,
+      "prob": 0.5413785576820374,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 19,
+      "label": 1,
+      "prob": 0.513028085231781,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 20,
+      "label": 1,
+      "prob": 0.5260080099105835,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 21,
+      "label": 1,
+      "prob": 0.5177080631256104,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 22,
+      "label": 1,
+      "prob": 0.5335189700126648,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 23,
+      "label": 1,
+      "prob": 0.5277424454689026,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 24,
+      "label": 1,
+      "prob": 0.5015535354614258,
+      "pred": 0
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 25,
+      "label": 0,
+      "prob": 0.5116098523139954,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 26,
+      "label": 0,
+      "prob": 0.47268348932266235,
+      "pred": 0
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 27,
+      "label": 1,
+      "prob": 0.515757143497467,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 28,
+      "label": 1,
+      "prob": 0.5265101194381714,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 29,
+      "label": 0,
+      "prob": 0.5216844081878662,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 30,
+      "label": 1,
+      "prob": 0.5162753462791443,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 31,
+      "label": 0,
+      "prob": 0.5222173929214478,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 32,
+      "label": 0,
+      "prob": 0.4954110383987427,
+      "pred": 0
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 33,
+      "label": 0,
+      "prob": 0.5099855661392212,
+      "pred": 0
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 34,
+      "label": 1,
+      "prob": 0.5225372314453125,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 35,
+      "label": 0,
+      "prob": 0.5245773792266846,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 36,
+      "label": 1,
+      "prob": 0.5306773781776428,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 37,
+      "label": 1,
+      "prob": 0.5102676749229431,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 38,
+      "label": 0,
+      "prob": 0.5084220767021179,
+      "pred": 0
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 39,
+      "label": 0,
+      "prob": 0.523907482624054,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 40,
+      "label": 0,
+      "prob": 0.5248513221740723,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 41,
+      "label": 0,
+      "prob": 0.5278489589691162,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 42,
+      "label": 1,
+      "prob": 0.5197803378105164,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 43,
+      "label": 1,
+      "prob": 0.5212274789810181,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 44,
+      "label": 1,
+      "prob": 0.5307685732841492,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 45,
+      "label": 1,
+      "prob": 0.5456791520118713,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 46,
+      "label": 0,
+      "prob": 0.4881766140460968,
+      "pred": 0
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 47,
+      "label": 0,
+      "prob": 0.49926140904426575,
+      "pred": 0
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 48,
+      "label": 0,
+      "prob": 0.5324859023094177,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 49,
+      "label": 0,
+      "prob": 0.49966928362846375,
+      "pred": 0
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 50,
+      "label": 1,
+      "prob": 0.5487943887710571,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 51,
+      "label": 0,
+      "prob": 0.5231310129165649,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 52,
+      "label": 0,
+      "prob": 0.5231006145477295,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 53,
+      "label": 1,
+      "prob": 0.5476152896881104,
+      "pred": 1
+    },
+    {
+      "poem_id": "6174",
+      "verse_no": 54,
+      "label": 0,
+      "prob": 0.49218809604644775,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.5004370212554932,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.5235878229141235,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.5014314651489258,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.5047453045845032,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.5148271918296814,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.4840447008609772,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 7,
+      "label": 1,
+      "prob": 0.503982424736023,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 8,
+      "label": 1,
+      "prob": 0.5182414054870605,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 9,
+      "label": 1,
+      "prob": 0.5283812880516052,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 10,
+      "label": 1,
+      "prob": 0.515063464641571,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 11,
+      "label": 1,
+      "prob": 0.5291569828987122,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 12,
+      "label": 1,
+      "prob": 0.49199748039245605,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 13,
+      "label": 1,
+      "prob": 0.5049132108688354,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 14,
+      "label": 1,
+      "prob": 0.48826053738594055,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 15,
+      "label": 0,
+      "prob": 0.49233686923980713,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 16,
+      "label": 0,
+      "prob": 0.5033320784568787,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 17,
+      "label": 0,
+      "prob": 0.49965381622314453,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 18,
+      "label": 0,
+      "prob": 0.49424389004707336,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 19,
+      "label": 0,
+      "prob": 0.4669063687324524,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 20,
+      "label": 1,
+      "prob": 0.5155360698699951,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 21,
+      "label": 0,
+      "prob": 0.50022292137146,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 22,
+      "label": 1,
+      "prob": 0.4890459477901459,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 23,
+      "label": 0,
+      "prob": 0.5044974088668823,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 24,
+      "label": 0,
+      "prob": 0.4894806742668152,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 25,
+      "label": 0,
+      "prob": 0.5079415440559387,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 26,
+      "label": 0,
+      "prob": 0.492378830909729,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 27,
+      "label": 0,
+      "prob": 0.4974689483642578,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 28,
+      "label": 0,
+      "prob": 0.48380088806152344,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 29,
+      "label": 0,
+      "prob": 0.4824596047401428,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 30,
+      "label": 0,
+      "prob": 0.49983489513397217,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 31,
+      "label": 0,
+      "prob": 0.4966278672218323,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 32,
+      "label": 0,
+      "prob": 0.4954415261745453,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 33,
+      "label": 0,
+      "prob": 0.48922133445739746,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 34,
+      "label": 0,
+      "prob": 0.5146366357803345,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 35,
+      "label": 0,
+      "prob": 0.48675844073295593,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 36,
+      "label": 0,
+      "prob": 0.4911660850048065,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 37,
+      "label": 0,
+      "prob": 0.5145604014396667,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 38,
+      "label": 0,
+      "prob": 0.4937671422958374,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 39,
+      "label": 0,
+      "prob": 0.5024185180664062,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 40,
+      "label": 0,
+      "prob": 0.5231462717056274,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 41,
+      "label": 1,
+      "prob": 0.5333670973777771,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 42,
+      "label": 0,
+      "prob": 0.5147280693054199,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 43,
+      "label": 1,
+      "prob": 0.5021400451660156,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 44,
+      "label": 0,
+      "prob": 0.5022773742675781,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 45,
+      "label": 0,
+      "prob": 0.5140191316604614,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 46,
+      "label": 1,
+      "prob": 0.49834537506103516,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 47,
+      "label": 0,
+      "prob": 0.5159095525741577,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 48,
+      "label": 0,
+      "prob": 0.5096118450164795,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 49,
+      "label": 1,
+      "prob": 0.4968891739845276,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 50,
+      "label": 0,
+      "prob": 0.5181804895401001,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 51,
+      "label": 1,
+      "prob": 0.5082542300224304,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 52,
+      "label": 0,
+      "prob": 0.4975605309009552,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 53,
+      "label": 0,
+      "prob": 0.5161229372024536,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 54,
+      "label": 0,
+      "prob": 0.49283653497695923,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 55,
+      "label": 0,
+      "prob": 0.5136913061141968,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 56,
+      "label": 1,
+      "prob": 0.5314221382141113,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 57,
+      "label": 0,
+      "prob": 0.5184090733528137,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 58,
+      "label": 0,
+      "prob": 0.5205877423286438,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 59,
+      "label": 1,
+      "prob": 0.515696108341217,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 60,
+      "label": 1,
+      "prob": 0.4885197877883911,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 61,
+      "label": 0,
+      "prob": 0.48021969199180603,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 62,
+      "label": 1,
+      "prob": 0.5279858708381653,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 63,
+      "label": 1,
+      "prob": 0.5039519667625427,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 64,
+      "label": 1,
+      "prob": 0.4818957448005676,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 65,
+      "label": 1,
+      "prob": 0.5349162220954895,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 66,
+      "label": 0,
+      "prob": 0.5378910899162292,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 67,
+      "label": 1,
+      "prob": 0.5284269452095032,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 68,
+      "label": 0,
+      "prob": 0.5067515969276428,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 69,
+      "label": 0,
+      "prob": 0.4991602599620819,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 70,
+      "label": 0,
+      "prob": 0.52434903383255,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 71,
+      "label": 0,
+      "prob": 0.5159704685211182,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 72,
+      "label": 1,
+      "prob": 0.5192775726318359,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 73,
+      "label": 1,
+      "prob": 0.5028209686279297,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 74,
+      "label": 1,
+      "prob": 0.5083228945732117,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 75,
+      "label": 1,
+      "prob": 0.5083305239677429,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 76,
+      "label": 1,
+      "prob": 0.5226438045501709,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 77,
+      "label": 1,
+      "prob": 0.4981975257396698,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 78,
+      "label": 0,
+      "prob": 0.5484921336174011,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 79,
+      "label": 0,
+      "prob": 0.5030001997947693,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 80,
+      "label": 0,
+      "prob": 0.494186669588089,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 81,
+      "label": 0,
+      "prob": 0.5144612789154053,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 82,
+      "label": 0,
+      "prob": 0.5032710433006287,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 83,
+      "label": 0,
+      "prob": 0.5039634108543396,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 84,
+      "label": 0,
+      "prob": 0.5188509225845337,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 85,
+      "label": 1,
+      "prob": 0.5111827850341797,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 86,
+      "label": 0,
+      "prob": 0.5216691493988037,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 87,
+      "label": 0,
+      "prob": 0.5100237131118774,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 88,
+      "label": 0,
+      "prob": 0.4935078024864197,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 89,
+      "label": 0,
+      "prob": 0.49512502551078796,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 90,
+      "label": 1,
+      "prob": 0.5082390308380127,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 91,
+      "label": 0,
+      "prob": 0.5104583501815796,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 92,
+      "label": 0,
+      "prob": 0.5209532976150513,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 93,
+      "label": 0,
+      "prob": 0.5003900527954102,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 94,
+      "label": 0,
+      "prob": 0.5098940134048462,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 95,
+      "label": 0,
+      "prob": 0.5152616500854492,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 96,
+      "label": 0,
+      "prob": 0.5043905973434448,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 97,
+      "label": 0,
+      "prob": 0.504806399345398,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 98,
+      "label": 0,
+      "prob": 0.5193689465522766,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 99,
+      "label": 1,
+      "prob": 0.5092839002609253,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 100,
+      "label": 1,
+      "prob": 0.5294458866119385,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 101,
+      "label": 1,
+      "prob": 0.5060651302337646,
+      "pred": 0
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 102,
+      "label": 1,
+      "prob": 0.5547116994857788,
+      "pred": 1
+    },
+    {
+      "poem_id": "33473",
+      "verse_no": 103,
+      "label": 1,
+      "prob": 0.5436508059501648,
+      "pred": 1
+    },
+    {
+      "poem_id": "3197",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.5263275504112244,
+      "pred": 1
+    },
+    {
+      "poem_id": "3197",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.5124333500862122,
+      "pred": 1
+    },
+    {
+      "poem_id": "3197",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.5153074264526367,
+      "pred": 1
+    },
+    {
+      "poem_id": "3197",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.5184090733528137,
+      "pred": 1
+    },
+    {
+      "poem_id": "3197",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.501622200012207,
+      "pred": 0
+    },
+    {
+      "poem_id": "3197",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.5135159492492676,
+      "pred": 1
+    },
+    {
+      "poem_id": "3197",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.5091847777366638,
+      "pred": 0
+    },
+    {
+      "poem_id": "3197",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.5288528203964233,
+      "pred": 1
+    },
+    {
+      "poem_id": "3197",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.5159095525741577,
+      "pred": 1
+    },
+    {
+      "poem_id": "3197",
+      "verse_no": 10,
+      "label": 1,
+      "prob": 0.524440348148346,
+      "pred": 1
+    },
+    {
+      "poem_id": "3197",
+      "verse_no": 11,
+      "label": 1,
+      "prob": 0.5323643684387207,
+      "pred": 1
+    },
+    {
+      "poem_id": "3197",
+      "verse_no": 12,
+      "label": 1,
+      "prob": 0.5220803618431091,
+      "pred": 1
+    },
+    {
+      "poem_id": "3197",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.5018081665039062,
+      "pred": 0
+    },
+    {
+      "poem_id": "3197",
+      "verse_no": 14,
+      "label": 0,
+      "prob": 0.512883186340332,
+      "pred": 1
+    },
+    {
+      "poem_id": "3197",
+      "verse_no": 15,
+      "label": 0,
+      "prob": 0.48884764313697815,
+      "pred": 0
+    },
+    {
+      "poem_id": "3197",
+      "verse_no": 16,
+      "label": 0,
+      "prob": 0.5237096548080444,
+      "pred": 1
+    },
+    {
+      "poem_id": "3197",
+      "verse_no": 17,
+      "label": 1,
+      "prob": 0.5302212834358215,
+      "pred": 1
+    },
+    {
+      "poem_id": "3197",
+      "verse_no": 18,
+      "label": 0,
+      "prob": 0.4989452064037323,
+      "pred": 0
+    },
+    {
+      "poem_id": "3197",
+      "verse_no": 19,
+      "label": 0,
+      "prob": 0.5118538737297058,
+      "pred": 1
+    },
+    {
+      "poem_id": "3197",
+      "verse_no": 20,
+      "label": 0,
+      "prob": 0.5167936086654663,
+      "pred": 1
+    },
+    {
+      "poem_id": "3197",
+      "verse_no": 21,
+      "label": 0,
+      "prob": 0.5190642476081848,
+      "pred": 1
+    },
+    {
+      "poem_id": "30236",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.513866662979126,
+      "pred": 1
+    },
+    {
+      "poem_id": "30236",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.5269057154655457,
+      "pred": 1
+    },
+    {
+      "poem_id": "30236",
+      "verse_no": 3,
+      "label": 1,
+      "prob": 0.5031031966209412,
+      "pred": 0
+    },
+    {
+      "poem_id": "30236",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.5335189700126648,
+      "pred": 1
+    },
+    {
+      "poem_id": "30236",
+      "verse_no": 5,
+      "label": 1,
+      "prob": 0.5313310027122498,
+      "pred": 1
+    },
+    {
+      "poem_id": "30236",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.534278392791748,
+      "pred": 1
+    },
+    {
+      "poem_id": "30236",
+      "verse_no": 7,
+      "label": 1,
+      "prob": 0.531604528427124,
+      "pred": 1
+    },
+    {
+      "poem_id": "30236",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.507506787776947,
+      "pred": 0
+    },
+    {
+      "poem_id": "30236",
+      "verse_no": 9,
+      "label": 1,
+      "prob": 0.5061261057853699,
+      "pred": 0
+    },
+    {
+      "poem_id": "30236",
+      "verse_no": 10,
+      "label": 1,
+      "prob": 0.5105803608894348,
+      "pred": 1
+    },
+    {
+      "poem_id": "30236",
+      "verse_no": 11,
+      "label": 1,
+      "prob": 0.509596586227417,
+      "pred": 0
+    },
+    {
+      "poem_id": "30236",
+      "verse_no": 12,
+      "label": 1,
+      "prob": 0.5128602981567383,
+      "pred": 1
+    },
+    {
+      "poem_id": "30236",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.4875742793083191,
+      "pred": 0
+    },
+    {
+      "poem_id": "30236",
+      "verse_no": 14,
+      "label": 1,
+      "prob": 0.5136836767196655,
+      "pred": 1
+    },
+    {
+      "poem_id": "30236",
+      "verse_no": 15,
+      "label": 1,
+      "prob": 0.5270578861236572,
+      "pred": 1
+    },
+    {
+      "poem_id": "30236",
+      "verse_no": 16,
+      "label": 0,
+      "prob": 0.5056378841400146,
+      "pred": 0
+    },
+    {
+      "poem_id": "30236",
+      "verse_no": 17,
+      "label": 1,
+      "prob": 0.523648738861084,
+      "pred": 1
+    },
+    {
+      "poem_id": "30236",
+      "verse_no": 18,
+      "label": 1,
+      "prob": 0.499267578125,
+      "pred": 0
+    },
+    {
+      "poem_id": "30236",
+      "verse_no": 19,
+      "label": 1,
+      "prob": 0.5136532187461853,
+      "pred": 1
+    },
+    {
+      "poem_id": "30681",
+      "verse_no": 1,
+      "label": 1,
+      "prob": 0.5204810500144958,
+      "pred": 1
+    },
+    {
+      "poem_id": "30681",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.5240902304649353,
+      "pred": 1
+    },
+    {
+      "poem_id": "30681",
+      "verse_no": 3,
+      "label": 1,
+      "prob": 0.5182262063026428,
+      "pred": 1
+    },
+    {
+      "poem_id": "30681",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.5408025979995728,
+      "pred": 1
+    },
+    {
+      "poem_id": "30681",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.5173575282096863,
+      "pred": 1
+    },
+    {
+      "poem_id": "30681",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.514430820941925,
+      "pred": 1
+    },
+    {
+      "poem_id": "30681",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.5246382355690002,
+      "pred": 1
+    },
+    {
+      "poem_id": "30681",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.5051229596138,
+      "pred": 0
+    },
+    {
+      "poem_id": "13166",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.48923659324645996,
+      "pred": 0
+    },
+    {
+      "poem_id": "13166",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.5410451292991638,
+      "pred": 1
+    },
+    {
+      "poem_id": "13166",
+      "verse_no": 3,
+      "label": 1,
+      "prob": 0.5268144607543945,
+      "pred": 1
+    },
+    {
+      "poem_id": "13166",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.5127154588699341,
+      "pred": 1
+    },
+    {
+      "poem_id": "13166",
+      "verse_no": 5,
+      "label": 1,
+      "prob": 0.49831387400627136,
+      "pred": 0
+    },
+    {
+      "poem_id": "13166",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.5035533308982849,
+      "pred": 0
+    },
+    {
+      "poem_id": "13166",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.5088263154029846,
+      "pred": 0
+    },
+    {
+      "poem_id": "13166",
+      "verse_no": 8,
+      "label": 1,
+      "prob": 0.4544418752193451,
+      "pred": 0
+    },
+    {
+      "poem_id": "13166",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.5338835716247559,
+      "pred": 1
+    },
+    {
+      "poem_id": "13166",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.5071558952331543,
+      "pred": 0
+    },
+    {
+      "poem_id": "13166",
+      "verse_no": 11,
+      "label": 0,
+      "prob": 0.507743239402771,
+      "pred": 0
+    },
+    {
+      "poem_id": "13166",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.5314525961875916,
+      "pred": 1
+    },
+    {
+      "poem_id": "13166",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.5035590529441833,
+      "pred": 0
+    },
+    {
+      "poem_id": "13166",
+      "verse_no": 14,
+      "label": 1,
+      "prob": 0.5187747478485107,
+      "pred": 1
+    },
+    {
+      "poem_id": "13166",
+      "verse_no": 15,
+      "label": 1,
+      "prob": 0.5294762849807739,
+      "pred": 1
+    },
+    {
+      "poem_id": "13166",
+      "verse_no": 16,
+      "label": 1,
+      "prob": 0.5231767296791077,
+      "pred": 1
+    },
+    {
+      "poem_id": "13166",
+      "verse_no": 17,
+      "label": 1,
+      "prob": 0.5280923247337341,
+      "pred": 1
+    },
+    {
+      "poem_id": "13166",
+      "verse_no": 18,
+      "label": 0,
+      "prob": 0.5059582591056824,
+      "pred": 0
+    },
+    {
+      "poem_id": "13166",
+      "verse_no": 19,
+      "label": 0,
+      "prob": 0.5210142135620117,
+      "pred": 1
+    },
+    {
+      "poem_id": "13166",
+      "verse_no": 20,
+      "label": 0,
+      "prob": 0.5174642205238342,
+      "pred": 1
+    },
+    {
+      "poem_id": "13166",
+      "verse_no": 21,
+      "label": 1,
+      "prob": 0.5172660946846008,
+      "pred": 1
+    },
+    {
+      "poem_id": "3264",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.5117775797843933,
+      "pred": 1
+    },
+    {
+      "poem_id": "3264",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.5055692195892334,
+      "pred": 0
+    },
+    {
+      "poem_id": "3264",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.4843495786190033,
+      "pred": 0
+    },
+    {
+      "poem_id": "3264",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.4962768852710724,
+      "pred": 0
+    },
+    {
+      "poem_id": "3264",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.5111904144287109,
+      "pred": 1
+    },
+    {
+      "poem_id": "3264",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.4915779232978821,
+      "pred": 0
+    },
+    {
+      "poem_id": "3264",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.4775998592376709,
+      "pred": 0
+    },
+    {
+      "poem_id": "3264",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.5017471313476562,
+      "pred": 0
+    },
+    {
+      "poem_id": "3264",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.516869843006134,
+      "pred": 1
+    },
+    {
+      "poem_id": "3264",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.47935134172439575,
+      "pred": 0
+    },
+    {
+      "poem_id": "3264",
+      "verse_no": 11,
+      "label": 0,
+      "prob": 0.48358747363090515,
+      "pred": 0
+    },
+    {
+      "poem_id": "3264",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.5179976224899292,
+      "pred": 1
+    },
+    {
+      "poem_id": "3264",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.4855615496635437,
+      "pred": 0
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.49718478322029114,
+      "pred": 0
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.5254753828048706,
+      "pred": 1
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.5179823637008667,
+      "pred": 1
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 4,
+      "label": 1,
+      "prob": 0.5235573649406433,
+      "pred": 1
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.5143012404441833,
+      "pred": 1
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 6,
+      "label": 1,
+      "prob": 0.5240597724914551,
+      "pred": 1
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.49968597292900085,
+      "pred": 0
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.5309357643127441,
+      "pred": 1
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.5373145341873169,
+      "pred": 1
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.5183785557746887,
+      "pred": 1
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 11,
+      "label": 1,
+      "prob": 0.5400446653366089,
+      "pred": 1
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.5202678442001343,
+      "pred": 1
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 13,
+      "label": 1,
+      "prob": 0.5110912919044495,
+      "pred": 1
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 14,
+      "label": 0,
+      "prob": 0.5291873216629028,
+      "pred": 1
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 15,
+      "label": 0,
+      "prob": 0.5083839297294617,
+      "pred": 0
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 16,
+      "label": 0,
+      "prob": 0.516839325428009,
+      "pred": 1
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 17,
+      "label": 0,
+      "prob": 0.48672035336494446,
+      "pred": 0
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 18,
+      "label": 0,
+      "prob": 0.5182871222496033,
+      "pred": 1
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 19,
+      "label": 0,
+      "prob": 0.50481778383255,
+      "pred": 0
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 20,
+      "label": 1,
+      "prob": 0.5058743357658386,
+      "pred": 0
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 21,
+      "label": 0,
+      "prob": 0.5047072172164917,
+      "pred": 0
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 22,
+      "label": 1,
+      "prob": 0.5281075239181519,
+      "pred": 1
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 23,
+      "label": 0,
+      "prob": 0.516946017742157,
+      "pred": 1
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 24,
+      "label": 0,
+      "prob": 0.5223544836044312,
+      "pred": 1
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 25,
+      "label": 0,
+      "prob": 0.5068393349647522,
+      "pred": 0
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 26,
+      "label": 0,
+      "prob": 0.5089254379272461,
+      "pred": 0
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 27,
+      "label": 0,
+      "prob": 0.5017309188842773,
+      "pred": 0
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 28,
+      "label": 1,
+      "prob": 0.5378910899162292,
+      "pred": 1
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 29,
+      "label": 0,
+      "prob": 0.48830628395080566,
+      "pred": 0
+    },
+    {
+      "poem_id": "2127",
+      "verse_no": 30,
+      "label": 1,
+      "prob": 0.5053709149360657,
+      "pred": 0
+    },
+    {
+      "poem_id": "16251",
+      "verse_no": 1,
+      "label": 1,
+      "prob": 0.5061795115470886,
+      "pred": 0
+    },
+    {
+      "poem_id": "16251",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.4990215301513672,
+      "pred": 0
+    },
+    {
+      "poem_id": "16251",
+      "verse_no": 3,
+      "label": 1,
+      "prob": 0.5130432844161987,
+      "pred": 1
+    },
+    {
+      "poem_id": "16251",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.4998457431793213,
+      "pred": 0
+    },
+    {
+      "poem_id": "16251",
+      "verse_no": 5,
+      "label": 1,
+      "prob": 0.5560681223869324,
+      "pred": 1
+    },
+    {
+      "poem_id": "16251",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.5405904054641724,
+      "pred": 1
+    },
+    {
+      "poem_id": "22819",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.5245316624641418,
+      "pred": 1
+    },
+    {
+      "poem_id": "22819",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.5227656364440918,
+      "pred": 1
+    },
+    {
+      "poem_id": "22819",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.518729031085968,
+      "pred": 1
+    },
+    {
+      "poem_id": "22819",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.5234812498092651,
+      "pred": 1
+    },
+    {
+      "poem_id": "22819",
+      "verse_no": 5,
+      "label": 1,
+      "prob": 0.5190337300300598,
+      "pred": 1
+    },
+    {
+      "poem_id": "22819",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.49163898825645447,
+      "pred": 0
+    },
+    {
+      "poem_id": "22819",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.504196047782898,
+      "pred": 0
+    },
+    {
+      "poem_id": "22819",
+      "verse_no": 8,
+      "label": 1,
+      "prob": 0.5123799443244934,
+      "pred": 1
+    },
+    {
+      "poem_id": "22819",
+      "verse_no": 9,
+      "label": 1,
+      "prob": 0.5141182541847229,
+      "pred": 1
+    },
+    {
+      "poem_id": "22819",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.4956551790237427,
+      "pred": 0
+    },
+    {
+      "poem_id": "22819",
+      "verse_no": 11,
+      "label": 0,
+      "prob": 0.5162753462791443,
+      "pred": 1
+    },
+    {
+      "poem_id": "22819",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.5170374512672424,
+      "pred": 1
+    },
+    {
+      "poem_id": "22819",
+      "verse_no": 13,
+      "label": 1,
+      "prob": 0.5256884098052979,
+      "pred": 1
+    },
+    {
+      "poem_id": "5555",
+      "verse_no": 1,
+      "label": 1,
+      "prob": 0.5139886140823364,
+      "pred": 1
+    },
+    {
+      "poem_id": "5555",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.5204353928565979,
+      "pred": 1
+    },
+    {
+      "poem_id": "5555",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.5315437316894531,
+      "pred": 1
+    },
+    {
+      "poem_id": "5555",
+      "verse_no": 4,
+      "label": 1,
+      "prob": 0.5179519057273865,
+      "pred": 1
+    },
+    {
+      "poem_id": "5555",
+      "verse_no": 5,
+      "label": 1,
+      "prob": 0.5206030011177063,
+      "pred": 1
+    },
+    {
+      "poem_id": "5555",
+      "verse_no": 6,
+      "label": 1,
+      "prob": 0.5198869705200195,
+      "pred": 1
+    },
+    {
+      "poem_id": "5555",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.5169002413749695,
+      "pred": 1
+    },
+    {
+      "poem_id": "5555",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.5464355945587158,
+      "pred": 1
+    },
+    {
+      "poem_id": "5555",
+      "verse_no": 9,
+      "label": 1,
+      "prob": 0.49524322152137756,
+      "pred": 0
+    },
+    {
+      "poem_id": "5555",
+      "verse_no": 10,
+      "label": 1,
+      "prob": 0.5176318287849426,
+      "pred": 1
+    },
+    {
+      "poem_id": "5555",
+      "verse_no": 11,
+      "label": 0,
+      "prob": 0.5210903882980347,
+      "pred": 1
+    },
+    {
+      "poem_id": "5555",
+      "verse_no": 12,
+      "label": 1,
+      "prob": 0.5231615304946899,
+      "pred": 1
+    },
+    {
+      "poem_id": "5555",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.4943811595439911,
+      "pred": 0
+    },
+    {
+      "poem_id": "5555",
+      "verse_no": 14,
+      "label": 0,
+      "prob": 0.5050771832466125,
+      "pred": 0
+    },
+    {
+      "poem_id": "4542",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.5212426781654358,
+      "pred": 1
+    },
+    {
+      "poem_id": "4542",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.5126696825027466,
+      "pred": 1
+    },
+    {
+      "poem_id": "4542",
+      "verse_no": 3,
+      "label": 1,
+      "prob": 0.5192470550537109,
+      "pred": 1
+    },
+    {
+      "poem_id": "4542",
+      "verse_no": 4,
+      "label": 1,
+      "prob": 0.5193537473678589,
+      "pred": 1
+    },
+    {
+      "poem_id": "4542",
+      "verse_no": 5,
+      "label": 1,
+      "prob": 0.535523533821106,
+      "pred": 1
+    },
+    {
+      "poem_id": "4542",
+      "verse_no": 6,
+      "label": 1,
+      "prob": 0.5192623138427734,
+      "pred": 1
+    },
+    {
+      "poem_id": "4542",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.5176928043365479,
+      "pred": 1
+    },
+    {
+      "poem_id": "4542",
+      "verse_no": 8,
+      "label": 1,
+      "prob": 0.5306469202041626,
+      "pred": 1
+    },
+    {
+      "poem_id": "4542",
+      "verse_no": 9,
+      "label": 1,
+      "prob": 0.5228112936019897,
+      "pred": 1
+    },
+    {
+      "poem_id": "4542",
+      "verse_no": 10,
+      "label": 1,
+      "prob": 0.5309205651283264,
+      "pred": 1
+    },
+    {
+      "poem_id": "4542",
+      "verse_no": 11,
+      "label": 1,
+      "prob": 0.5112133622169495,
+      "pred": 1
+    },
+    {
+      "poem_id": "4542",
+      "verse_no": 12,
+      "label": 1,
+      "prob": 0.5335189700126648,
+      "pred": 1
+    },
+    {
+      "poem_id": "4542",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.5118995904922485,
+      "pred": 1
+    },
+    {
+      "poem_id": "4542",
+      "verse_no": 14,
+      "label": 1,
+      "prob": 0.5114496946334839,
+      "pred": 1
+    },
+    {
+      "poem_id": "4542",
+      "verse_no": 15,
+      "label": 1,
+      "prob": 0.5083534121513367,
+      "pred": 0
+    },
+    {
+      "poem_id": "4542",
+      "verse_no": 16,
+      "label": 0,
+      "prob": 0.5065609216690063,
+      "pred": 0
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 1,
+      "label": 1,
+      "prob": 0.5189118981361389,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.5234964489936829,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 3,
+      "label": 1,
+      "prob": 0.5158180594444275,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 4,
+      "label": 1,
+      "prob": 0.5147128701210022,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 5,
+      "label": 1,
+      "prob": 0.5237552523612976,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 6,
+      "label": 1,
+      "prob": 0.5270426273345947,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.5255362391471863,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 8,
+      "label": 1,
+      "prob": 0.5122808218002319,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 9,
+      "label": 1,
+      "prob": 0.5091771483421326,
+      "pred": 0
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 10,
+      "label": 1,
+      "prob": 0.5252166390419006,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 11,
+      "label": 1,
+      "prob": 0.5132873058319092,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.5307989716529846,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 13,
+      "label": 1,
+      "prob": 0.5015087127685547,
+      "pred": 0
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 14,
+      "label": 0,
+      "prob": 0.5095508098602295,
+      "pred": 0
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 15,
+      "label": 0,
+      "prob": 0.5140191316604614,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 16,
+      "label": 0,
+      "prob": 0.5073732733726501,
+      "pred": 0
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 17,
+      "label": 0,
+      "prob": 0.4917229115962982,
+      "pred": 0
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 18,
+      "label": 1,
+      "prob": 0.511076033115387,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 19,
+      "label": 1,
+      "prob": 0.5120902061462402,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 20,
+      "label": 1,
+      "prob": 0.5127764344215393,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 21,
+      "label": 1,
+      "prob": 0.5168850421905518,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 22,
+      "label": 0,
+      "prob": 0.5205572843551636,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 23,
+      "label": 0,
+      "prob": 0.4824138581752777,
+      "pred": 0
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 24,
+      "label": 0,
+      "prob": 0.5089635252952576,
+      "pred": 0
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 25,
+      "label": 1,
+      "prob": 0.5175556540489197,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 26,
+      "label": 0,
+      "prob": 0.5044897794723511,
+      "pred": 0
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 27,
+      "label": 0,
+      "prob": 0.5216082334518433,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 28,
+      "label": 1,
+      "prob": 0.5352199077606201,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 29,
+      "label": 0,
+      "prob": 0.5185157060623169,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 30,
+      "label": 1,
+      "prob": 0.5424088835716248,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 31,
+      "label": 0,
+      "prob": 0.5124409794807434,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 32,
+      "label": 0,
+      "prob": 0.5205877423286438,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 33,
+      "label": 0,
+      "prob": 0.4916771352291107,
+      "pred": 0
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 34,
+      "label": 0,
+      "prob": 0.5215168595314026,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 35,
+      "label": 0,
+      "prob": 0.48890867829322815,
+      "pred": 0
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 36,
+      "label": 0,
+      "prob": 0.5151549577713013,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 37,
+      "label": 0,
+      "prob": 0.5155436992645264,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 38,
+      "label": 0,
+      "prob": 0.5173727869987488,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 39,
+      "label": 0,
+      "prob": 0.5240293145179749,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 40,
+      "label": 0,
+      "prob": 0.4987306594848633,
+      "pred": 0
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 41,
+      "label": 0,
+      "prob": 0.5115182995796204,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 42,
+      "label": 0,
+      "prob": 0.4994778037071228,
+      "pred": 0
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 43,
+      "label": 0,
+      "prob": 0.4843648374080658,
+      "pred": 0
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 44,
+      "label": 0,
+      "prob": 0.4999006688594818,
+      "pred": 0
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 45,
+      "label": 1,
+      "prob": 0.5395594835281372,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 46,
+      "label": 1,
+      "prob": 0.5159400105476379,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 47,
+      "label": 0,
+      "prob": 0.5125248432159424,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 48,
+      "label": 1,
+      "prob": 0.5250492095947266,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 49,
+      "label": 0,
+      "prob": 0.5106719136238098,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 50,
+      "label": 0,
+      "prob": 0.5229940414428711,
+      "pred": 1
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 51,
+      "label": 0,
+      "prob": 0.5079339146614075,
+      "pred": 0
+    },
+    {
+      "poem_id": "27110",
+      "verse_no": 52,
+      "label": 0,
+      "prob": 0.5066714882850647,
+      "pred": 0
+    },
+    {
+      "poem_id": "9078",
+      "verse_no": 1,
+      "label": 1,
+      "prob": 0.5249426960945129,
+      "pred": 1
+    },
+    {
+      "poem_id": "9078",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.4832216501235962,
+      "pred": 0
+    },
+    {
+      "poem_id": "9078",
+      "verse_no": 3,
+      "label": 1,
+      "prob": 0.5220041871070862,
+      "pred": 1
+    },
+    {
+      "poem_id": "9078",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.5011892318725586,
+      "pred": 0
+    },
+    {
+      "poem_id": "9078",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.5103668570518494,
+      "pred": 1
+    },
+    {
+      "poem_id": "9078",
+      "verse_no": 6,
+      "label": 1,
+      "prob": 0.5032176375389099,
+      "pred": 0
+    },
+    {
+      "poem_id": "9078",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.5238161683082581,
+      "pred": 1
+    },
+    {
+      "poem_id": "9078",
+      "verse_no": 8,
+      "label": 1,
+      "prob": 0.5366467833518982,
+      "pred": 1
+    },
+    {
+      "poem_id": "9078",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.5235573649406433,
+      "pred": 1
+    },
+    {
+      "poem_id": "9078",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.5337316393852234,
+      "pred": 1
+    },
+    {
+      "poem_id": "9078",
+      "verse_no": 11,
+      "label": 1,
+      "prob": 0.5311029553413391,
+      "pred": 1
+    },
+    {
+      "poem_id": "9078",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.5130356550216675,
+      "pred": 1
+    },
+    {
+      "poem_id": "9078",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.5152464509010315,
+      "pred": 1
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.49899008870124817,
+      "pred": 0
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.5421664714813232,
+      "pred": 1
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 3,
+      "label": 1,
+      "prob": 0.5188204646110535,
+      "pred": 1
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.4864916205406189,
+      "pred": 0
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.518805205821991,
+      "pred": 1
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 6,
+      "label": 1,
+      "prob": 0.5347643494606018,
+      "pred": 1
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.5047377347946167,
+      "pred": 0
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.4947625994682312,
+      "pred": 0
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.5300388336181641,
+      "pred": 1
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.49778175354003906,
+      "pred": 0
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 11,
+      "label": 1,
+      "prob": 0.4993939697742462,
+      "pred": 0
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.513706624507904,
+      "pred": 1
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 13,
+      "label": 1,
+      "prob": 0.5032634139060974,
+      "pred": 0
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 14,
+      "label": 0,
+      "prob": 0.5136074423789978,
+      "pred": 1
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 15,
+      "label": 0,
+      "prob": 0.5123037695884705,
+      "pred": 1
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 16,
+      "label": 1,
+      "prob": 0.4763208329677582,
+      "pred": 0
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 17,
+      "label": 0,
+      "prob": 0.5114116072654724,
+      "pred": 1
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 18,
+      "label": 0,
+      "prob": 0.5320300459861755,
+      "pred": 1
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 19,
+      "label": 0,
+      "prob": 0.5138209462165833,
+      "pred": 1
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 20,
+      "label": 0,
+      "prob": 0.5350073575973511,
+      "pred": 1
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 21,
+      "label": 0,
+      "prob": 0.49671369791030884,
+      "pred": 0
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 22,
+      "label": 0,
+      "prob": 0.5009102821350098,
+      "pred": 0
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 23,
+      "label": 1,
+      "prob": 0.5164735317230225,
+      "pred": 1
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 24,
+      "label": 0,
+      "prob": 0.5195822715759277,
+      "pred": 1
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 25,
+      "label": 1,
+      "prob": 0.5132262706756592,
+      "pred": 1
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 26,
+      "label": 1,
+      "prob": 0.5190337300300598,
+      "pred": 1
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 27,
+      "label": 0,
+      "prob": 0.5084220767021179,
+      "pred": 0
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 28,
+      "label": 0,
+      "prob": 0.4893128275871277,
+      "pred": 0
+    },
+    {
+      "poem_id": "32745",
+      "verse_no": 29,
+      "label": 0,
+      "prob": 0.5158790349960327,
+      "pred": 1
+    },
+    {
+      "poem_id": "29498",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.5182414054870605,
+      "pred": 1
+    },
+    {
+      "poem_id": "29498",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.5216844081878662,
+      "pred": 1
+    },
+    {
+      "poem_id": "29498",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.5214406847953796,
+      "pred": 1
+    },
+    {
+      "poem_id": "29498",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.4947320818901062,
+      "pred": 0
+    },
+    {
+      "poem_id": "29498",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.49925854802131653,
+      "pred": 0
+    },
+    {
+      "poem_id": "29498",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.4916999638080597,
+      "pred": 0
+    },
+    {
+      "poem_id": "29498",
+      "verse_no": 7,
+      "label": 1,
+      "prob": 0.50493985414505,
+      "pred": 0
+    },
+    {
+      "poem_id": "29498",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.5071864128112793,
+      "pred": 0
+    },
+    {
+      "poem_id": "29498",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.505153477191925,
+      "pred": 0
+    },
+    {
+      "poem_id": "29498",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.5139963030815125,
+      "pred": 1
+    },
+    {
+      "poem_id": "29498",
+      "verse_no": 11,
+      "label": 0,
+      "prob": 0.5161381959915161,
+      "pred": 1
+    },
+    {
+      "poem_id": "29498",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.5092915296554565,
+      "pred": 0
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.5223544836044312,
+      "pred": 1
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.5138742923736572,
+      "pred": 1
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.5003871917724609,
+      "pred": 0
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 4,
+      "label": 1,
+      "prob": 0.4968186020851135,
+      "pred": 0
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.5051992535591125,
+      "pred": 0
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.5104888677597046,
+      "pred": 1
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 7,
+      "label": 1,
+      "prob": 0.4995987117290497,
+      "pred": 0
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.4966278672218323,
+      "pred": 0
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 9,
+      "label": 1,
+      "prob": 0.5267992615699768,
+      "pred": 1
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 10,
+      "label": 1,
+      "prob": 0.5413179397583008,
+      "pred": 1
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 11,
+      "label": 1,
+      "prob": 0.5318173170089722,
+      "pred": 1
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 12,
+      "label": 1,
+      "prob": 0.5279554128646851,
+      "pred": 1
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.5218823552131653,
+      "pred": 1
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 14,
+      "label": 1,
+      "prob": 0.5074037909507751,
+      "pred": 0
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 15,
+      "label": 1,
+      "prob": 0.5257188677787781,
+      "pred": 1
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 16,
+      "label": 1,
+      "prob": 0.5242272019386292,
+      "pred": 1
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 17,
+      "label": 0,
+      "prob": 0.534673273563385,
+      "pred": 1
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 18,
+      "label": 0,
+      "prob": 0.5270122289657593,
+      "pred": 1
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 19,
+      "label": 1,
+      "prob": 0.5129746794700623,
+      "pred": 1
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 20,
+      "label": 0,
+      "prob": 0.5197650790214539,
+      "pred": 1
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 21,
+      "label": 0,
+      "prob": 0.5168240666389465,
+      "pred": 1
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 22,
+      "label": 0,
+      "prob": 0.5228264927864075,
+      "pred": 1
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 23,
+      "label": 1,
+      "prob": 0.5204963088035583,
+      "pred": 1
+    },
+    {
+      "poem_id": "9028",
+      "verse_no": 24,
+      "label": 0,
+      "prob": 0.517403244972229,
+      "pred": 1
+    },
+    {
+      "poem_id": "21047",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.5350984334945679,
+      "pred": 1
+    },
+    {
+      "poem_id": "21047",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.5391955375671387,
+      "pred": 1
+    },
+    {
+      "poem_id": "21047",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.5135083794593811,
+      "pred": 1
+    },
+    {
+      "poem_id": "21047",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.48787927627563477,
+      "pred": 0
+    },
+    {
+      "poem_id": "21047",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.5235726237297058,
+      "pred": 1
+    },
+    {
+      "poem_id": "21047",
+      "verse_no": 6,
+      "label": 1,
+      "prob": 0.510854959487915,
+      "pred": 1
+    },
+    {
+      "poem_id": "21047",
+      "verse_no": 7,
+      "label": 1,
+      "prob": 0.5221869349479675,
+      "pred": 1
+    },
+    {
+      "poem_id": "21047",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.49056360125541687,
+      "pred": 0
+    },
+    {
+      "poem_id": "21047",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.5172051191329956,
+      "pred": 1
+    },
+    {
+      "poem_id": "21047",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.526616632938385,
+      "pred": 1
+    },
+    {
+      "poem_id": "21047",
+      "verse_no": 11,
+      "label": 0,
+      "prob": 0.5158942937850952,
+      "pred": 1
+    },
+    {
+      "poem_id": "21047",
+      "verse_no": 12,
+      "label": 1,
+      "prob": 0.5321515798568726,
+      "pred": 1
+    },
+    {
+      "poem_id": "21047",
+      "verse_no": 13,
+      "label": 1,
+      "prob": 0.5325770974159241,
+      "pred": 1
+    },
+    {
+      "poem_id": "21047",
+      "verse_no": 14,
+      "label": 0,
+      "prob": 0.5090093016624451,
+      "pred": 0
+    },
+    {
+      "poem_id": "21047",
+      "verse_no": 15,
+      "label": 0,
+      "prob": 0.5322427749633789,
+      "pred": 1
+    },
+    {
+      "poem_id": "21047",
+      "verse_no": 16,
+      "label": 0,
+      "prob": 0.5246229767799377,
+      "pred": 1
+    },
+    {
+      "poem_id": "21047",
+      "verse_no": 17,
+      "label": 0,
+      "prob": 0.519201397895813,
+      "pred": 1
+    }
+  ],
+  "val_predictions": [
+    {
+      "poem_id": "3465",
+      "verse_no": 1,
+      "label": 1,
+      "prob": 0.5176470875740051,
+      "pred": 1
+    },
+    {
+      "poem_id": "3465",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.5279402136802673,
+      "pred": 1
+    },
+    {
+      "poem_id": "3465",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.5132796764373779,
+      "pred": 1
+    },
+    {
+      "poem_id": "3465",
+      "verse_no": 4,
+      "label": 1,
+      "prob": 0.5272709131240845,
+      "pred": 1
+    },
+    {
+      "poem_id": "3465",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.5197346210479736,
+      "pred": 1
+    },
+    {
+      "poem_id": "3465",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.514621376991272,
+      "pred": 1
+    },
+    {
+      "poem_id": "3465",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.48273390531539917,
+      "pred": 0
+    },
+    {
+      "poem_id": "3465",
+      "verse_no": 8,
+      "label": 1,
+      "prob": 0.4802044630050659,
+      "pred": 0
+    },
+    {
+      "poem_id": "3465",
+      "verse_no": 9,
+      "label": 1,
+      "prob": 0.5194603800773621,
+      "pred": 1
+    },
+    {
+      "poem_id": "3465",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.5042799711227417,
+      "pred": 0
+    },
+    {
+      "poem_id": "3465",
+      "verse_no": 11,
+      "label": 1,
+      "prob": 0.4912804663181305,
+      "pred": 0
+    },
+    {
+      "poem_id": "3465",
+      "verse_no": 12,
+      "label": 1,
+      "prob": 0.5064464807510376,
+      "pred": 0
+    },
+    {
+      "poem_id": "3465",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.5202678442001343,
+      "pred": 1
+    },
+    {
+      "poem_id": "3465",
+      "verse_no": 14,
+      "label": 1,
+      "prob": 0.49886319041252136,
+      "pred": 0
+    },
+    {
+      "poem_id": "28609",
+      "verse_no": 1,
+      "label": 1,
+      "prob": 0.48441821336746216,
+      "pred": 0
+    },
+    {
+      "poem_id": "28609",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.5345821380615234,
+      "pred": 1
+    },
+    {
+      "poem_id": "28609",
+      "verse_no": 3,
+      "label": 1,
+      "prob": 0.5270426273345947,
+      "pred": 1
+    },
+    {
+      "poem_id": "28609",
+      "verse_no": 4,
+      "label": 1,
+      "prob": 0.5068659782409668,
+      "pred": 0
+    },
+    {
+      "poem_id": "28609",
+      "verse_no": 5,
+      "label": 1,
+      "prob": 0.4968319535255432,
+      "pred": 0
+    },
+    {
+      "poem_id": "28609",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.49276402592658997,
+      "pred": 0
+    },
+    {
+      "poem_id": "28609",
+      "verse_no": 7,
+      "label": 1,
+      "prob": 0.5222326517105103,
+      "pred": 1
+    },
+    {
+      "poem_id": "28609",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.5054662227630615,
+      "pred": 0
+    },
+    {
+      "poem_id": "28609",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.5009608268737793,
+      "pred": 0
+    },
+    {
+      "poem_id": "28609",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.5204658508300781,
+      "pred": 1
+    },
+    {
+      "poem_id": "28609",
+      "verse_no": 11,
+      "label": 0,
+      "prob": 0.5016393661499023,
+      "pred": 0
+    },
+    {
+      "poem_id": "28609",
+      "verse_no": 12,
+      "label": 1,
+      "prob": 0.5138819813728333,
+      "pred": 1
+    },
+    {
+      "poem_id": "28609",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.5107481479644775,
+      "pred": 1
+    },
+    {
+      "poem_id": "28609",
+      "verse_no": 14,
+      "label": 0,
+      "prob": 0.5108243823051453,
+      "pred": 1
+    },
+    {
+      "poem_id": "27939",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.49045678973197937,
+      "pred": 0
+    },
+    {
+      "poem_id": "27939",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.5162601470947266,
+      "pred": 1
+    },
+    {
+      "poem_id": "27939",
+      "verse_no": 3,
+      "label": 1,
+      "prob": 0.5195213556289673,
+      "pred": 1
+    },
+    {
+      "poem_id": "27939",
+      "verse_no": 4,
+      "label": 1,
+      "prob": 0.5138437747955322,
+      "pred": 1
+    },
+    {
+      "poem_id": "27939",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.5432873964309692,
+      "pred": 1
+    },
+    {
+      "poem_id": "27939",
+      "verse_no": 6,
+      "label": 1,
+      "prob": 0.5181195139884949,
+      "pred": 1
+    },
+    {
+      "poem_id": "27939",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.5104278326034546,
+      "pred": 1
+    },
+    {
+      "poem_id": "27939",
+      "verse_no": 8,
+      "label": 1,
+      "prob": 0.49398836493492126,
+      "pred": 0
+    },
+    {
+      "poem_id": "27939",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.5187137722969055,
+      "pred": 1
+    },
+    {
+      "poem_id": "27939",
+      "verse_no": 10,
+      "label": 1,
+      "prob": 0.5000649094581604,
+      "pred": 0
+    },
+    {
+      "poem_id": "27939",
+      "verse_no": 11,
+      "label": 1,
+      "prob": 0.5181956887245178,
+      "pred": 1
+    },
+    {
+      "poem_id": "27939",
+      "verse_no": 12,
+      "label": 1,
+      "prob": 0.5090779662132263,
+      "pred": 0
+    },
+    {
+      "poem_id": "27939",
+      "verse_no": 13,
+      "label": 1,
+      "prob": 0.5153912305831909,
+      "pred": 1
+    },
+    {
+      "poem_id": "27939",
+      "verse_no": 14,
+      "label": 0,
+      "prob": 0.4950677454471588,
+      "pred": 0
+    },
+    {
+      "poem_id": "12820",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.4853099584579468,
+      "pred": 0
+    },
+    {
+      "poem_id": "12820",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.523907482624054,
+      "pred": 1
+    },
+    {
+      "poem_id": "12820",
+      "verse_no": 3,
+      "label": 1,
+      "prob": 0.5056607723236084,
+      "pred": 0
+    },
+    {
+      "poem_id": "12820",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.5271795988082886,
+      "pred": 1
+    },
+    {
+      "poem_id": "12820",
+      "verse_no": 5,
+      "label": 1,
+      "prob": 0.5098863840103149,
+      "pred": 0
+    },
+    {
+      "poem_id": "12820",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.5149796009063721,
+      "pred": 1
+    },
+    {
+      "poem_id": "12820",
+      "verse_no": 7,
+      "label": 1,
+      "prob": 0.5334886312484741,
+      "pred": 1
+    },
+    {
+      "poem_id": "12820",
+      "verse_no": 8,
+      "label": 1,
+      "prob": 0.5281227827072144,
+      "pred": 1
+    },
+    {
+      "poem_id": "12820",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.4893204867839813,
+      "pred": 0
+    },
+    {
+      "poem_id": "12820",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.4910593032836914,
+      "pred": 0
+    },
+    {
+      "poem_id": "12820",
+      "verse_no": 11,
+      "label": 0,
+      "prob": 0.5282444357872009,
+      "pred": 1
+    },
+    {
+      "poem_id": "12820",
+      "verse_no": 12,
+      "label": 1,
+      "prob": 0.5019187927246094,
+      "pred": 0
+    },
+    {
+      "poem_id": "12820",
+      "verse_no": 13,
+      "label": 1,
+      "prob": 0.5167936086654663,
+      "pred": 1
+    },
+    {
+      "poem_id": "12820",
+      "verse_no": 14,
+      "label": 1,
+      "prob": 0.5326986312866211,
+      "pred": 1
+    },
+    {
+      "poem_id": "12820",
+      "verse_no": 15,
+      "label": 1,
+      "prob": 0.5180890560150146,
+      "pred": 1
+    },
+    {
+      "poem_id": "12820",
+      "verse_no": 16,
+      "label": 0,
+      "prob": 0.5007491111755371,
+      "pred": 0
+    },
+    {
+      "poem_id": "12820",
+      "verse_no": 17,
+      "label": 1,
+      "prob": 0.49893665313720703,
+      "pred": 0
+    },
+    {
+      "poem_id": "12820",
+      "verse_no": 18,
+      "label": 1,
+      "prob": 0.5191861391067505,
+      "pred": 1
+    },
+    {
+      "poem_id": "8523",
+      "verse_no": 1,
+      "label": 1,
+      "prob": 0.4958840012550354,
+      "pred": 0
+    },
+    {
+      "poem_id": "8523",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.5111294388771057,
+      "pred": 1
+    },
+    {
+      "poem_id": "8523",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.49634748697280884,
+      "pred": 0
+    },
+    {
+      "poem_id": "8523",
+      "verse_no": 4,
+      "label": 1,
+      "prob": 0.5322123765945435,
+      "pred": 1
+    },
+    {
+      "poem_id": "8523",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.5101990699768066,
+      "pred": 1
+    },
+    {
+      "poem_id": "8523",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.5263275504112244,
+      "pred": 1
+    },
+    {
+      "poem_id": "8523",
+      "verse_no": 7,
+      "label": 1,
+      "prob": 0.48543959856033325,
+      "pred": 0
+    },
+    {
+      "poem_id": "8523",
+      "verse_no": 8,
+      "label": 1,
+      "prob": 0.5116479992866516,
+      "pred": 1
+    },
+    {
+      "poem_id": "8523",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.5236334800720215,
+      "pred": 1
+    },
+    {
+      "poem_id": "8523",
+      "verse_no": 10,
+      "label": 1,
+      "prob": 0.5239227414131165,
+      "pred": 1
+    },
+    {
+      "poem_id": "8523",
+      "verse_no": 11,
+      "label": 0,
+      "prob": 0.5017309188842773,
+      "pred": 0
+    },
+    {
+      "poem_id": "8523",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.5216234922409058,
+      "pred": 1
+    },
+    {
+      "poem_id": "8523",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.5114192366600037,
+      "pred": 1
+    },
+    {
+      "poem_id": "8523",
+      "verse_no": 14,
+      "label": 0,
+      "prob": 0.5029067397117615,
+      "pred": 0
+    },
+    {
+      "poem_id": "8523",
+      "verse_no": 15,
+      "label": 0,
+      "prob": 0.5022621154785156,
+      "pred": 0
+    },
+    {
+      "poem_id": "8523",
+      "verse_no": 16,
+      "label": 0,
+      "prob": 0.49980536103248596,
+      "pred": 0
+    },
+    {
+      "poem_id": "8523",
+      "verse_no": 17,
+      "label": 0,
+      "prob": 0.5173118114471436,
+      "pred": 1
+    },
+    {
+      "poem_id": "8523",
+      "verse_no": 18,
+      "label": 1,
+      "prob": 0.514705240726471,
+      "pred": 1
+    },
+    {
+      "poem_id": "8523",
+      "verse_no": 19,
+      "label": 0,
+      "prob": 0.520283043384552,
+      "pred": 1
+    },
+    {
+      "poem_id": "8523",
+      "verse_no": 20,
+      "label": 1,
+      "prob": 0.4886951744556427,
+      "pred": 0
+    },
+    {
+      "poem_id": "8523",
+      "verse_no": 21,
+      "label": 0,
+      "prob": 0.5186375975608826,
+      "pred": 1
+    },
+    {
+      "poem_id": "8523",
+      "verse_no": 22,
+      "label": 1,
+      "prob": 0.514514684677124,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.515093982219696,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.5292025804519653,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.5147738456726074,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.504714846611023,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.5023555755615234,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.5197041630744934,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.4889696538448334,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.5072473883628845,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.5226590633392334,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.49744606018066406,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 11,
+      "label": 0,
+      "prob": 0.5210751295089722,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.531604528427124,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.52486652135849,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 14,
+      "label": 0,
+      "prob": 0.4911508560180664,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 15,
+      "label": 0,
+      "prob": 0.5021381378173828,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 16,
+      "label": 0,
+      "prob": 0.4986886978149414,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 17,
+      "label": 0,
+      "prob": 0.5093830227851868,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 18,
+      "label": 0,
+      "prob": 0.514430820941925,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 19,
+      "label": 0,
+      "prob": 0.5054929256439209,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 20,
+      "label": 0,
+      "prob": 0.52220219373703,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 21,
+      "label": 0,
+      "prob": 0.4974422752857208,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 22,
+      "label": 0,
+      "prob": 0.504379153251648,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 23,
+      "label": 0,
+      "prob": 0.505634069442749,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 24,
+      "label": 0,
+      "prob": 0.4997527599334717,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 25,
+      "label": 0,
+      "prob": 0.5241815447807312,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 26,
+      "label": 0,
+      "prob": 0.5233137607574463,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 27,
+      "label": 0,
+      "prob": 0.49653252959251404,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 28,
+      "label": 0,
+      "prob": 0.5083686709403992,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 29,
+      "label": 0,
+      "prob": 0.512196958065033,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 30,
+      "label": 0,
+      "prob": 0.5037402510643005,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 31,
+      "label": 0,
+      "prob": 0.5121207237243652,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 32,
+      "label": 0,
+      "prob": 0.5367985367774963,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 33,
+      "label": 0,
+      "prob": 0.5175709128379822,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 34,
+      "label": 0,
+      "prob": 0.506648600101471,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 35,
+      "label": 0,
+      "prob": 0.5402871966362,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 36,
+      "label": 0,
+      "prob": 0.5181499719619751,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 37,
+      "label": 0,
+      "prob": 0.5098254084587097,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 38,
+      "label": 0,
+      "prob": 0.5193689465522766,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 39,
+      "label": 0,
+      "prob": 0.5348251461982727,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 40,
+      "label": 0,
+      "prob": 0.5132415294647217,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 41,
+      "label": 0,
+      "prob": 0.5197803378105164,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 42,
+      "label": 0,
+      "prob": 0.4857217073440552,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 43,
+      "label": 0,
+      "prob": 0.4959183633327484,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 44,
+      "label": 0,
+      "prob": 0.5171746611595154,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 45,
+      "label": 0,
+      "prob": 0.529065728187561,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 46,
+      "label": 0,
+      "prob": 0.5083915591239929,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 47,
+      "label": 0,
+      "prob": 0.5155741572380066,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 48,
+      "label": 0,
+      "prob": 0.5074953436851501,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 49,
+      "label": 0,
+      "prob": 0.5116631984710693,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 50,
+      "label": 0,
+      "prob": 0.5334886312484741,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 51,
+      "label": 0,
+      "prob": 0.5156123042106628,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 52,
+      "label": 0,
+      "prob": 0.5071749687194824,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 53,
+      "label": 0,
+      "prob": 0.5064579248428345,
+      "pred": 0
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 54,
+      "label": 0,
+      "prob": 0.5168088674545288,
+      "pred": 1
+    },
+    {
+      "poem_id": "2068",
+      "verse_no": 55,
+      "label": 0,
+      "prob": 0.5367075204849243,
+      "pred": 1
+    },
+    {
+      "poem_id": "2187",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.5290048718452454,
+      "pred": 1
+    },
+    {
+      "poem_id": "2187",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.49247416853904724,
+      "pred": 0
+    },
+    {
+      "poem_id": "2187",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.5302821397781372,
+      "pred": 1
+    },
+    {
+      "poem_id": "2187",
+      "verse_no": 4,
+      "label": 1,
+      "prob": 0.5242729187011719,
+      "pred": 1
+    },
+    {
+      "poem_id": "2187",
+      "verse_no": 5,
+      "label": 1,
+      "prob": 0.521928071975708,
+      "pred": 1
+    },
+    {
+      "poem_id": "2187",
+      "verse_no": 6,
+      "label": 1,
+      "prob": 0.515726625919342,
+      "pred": 1
+    },
+    {
+      "poem_id": "2187",
+      "verse_no": 7,
+      "label": 1,
+      "prob": 0.5271947979927063,
+      "pred": 1
+    },
+    {
+      "poem_id": "2187",
+      "verse_no": 8,
+      "label": 1,
+      "prob": 0.5193689465522766,
+      "pred": 1
+    },
+    {
+      "poem_id": "2187",
+      "verse_no": 9,
+      "label": 1,
+      "prob": 0.527027428150177,
+      "pred": 1
+    },
+    {
+      "poem_id": "2187",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.5048292875289917,
+      "pred": 0
+    },
+    {
+      "poem_id": "2187",
+      "verse_no": 11,
+      "label": 1,
+      "prob": 0.5105117559432983,
+      "pred": 1
+    },
+    {
+      "poem_id": "2187",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.5251100659370422,
+      "pred": 1
+    },
+    {
+      "poem_id": "2187",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.5100465416908264,
+      "pred": 1
+    },
+    {
+      "poem_id": "2187",
+      "verse_no": 14,
+      "label": 1,
+      "prob": 0.5197955369949341,
+      "pred": 1
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.5107786655426025,
+      "pred": 1
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.5421967506408691,
+      "pred": 1
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.5204049348831177,
+      "pred": 1
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.5020656585693359,
+      "pred": 0
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.5276968479156494,
+      "pred": 1
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 6,
+      "label": 1,
+      "prob": 0.5109463930130005,
+      "pred": 1
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 7,
+      "label": 1,
+      "prob": 0.5073961615562439,
+      "pred": 0
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.5005841255187988,
+      "pred": 0
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.5138590931892395,
+      "pred": 1
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.5409845113754272,
+      "pred": 1
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 11,
+      "label": 1,
+      "prob": 0.5177842378616333,
+      "pred": 1
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 12,
+      "label": 1,
+      "prob": 0.5180737972259521,
+      "pred": 1
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.5047682523727417,
+      "pred": 0
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 14,
+      "label": 0,
+      "prob": 0.5126392245292664,
+      "pred": 1
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 15,
+      "label": 0,
+      "prob": 0.49740028381347656,
+      "pred": 0
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 16,
+      "label": 0,
+      "prob": 0.5016794204711914,
+      "pred": 0
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 17,
+      "label": 1,
+      "prob": 0.49607861042022705,
+      "pred": 0
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 18,
+      "label": 0,
+      "prob": 0.49422863125801086,
+      "pred": 0
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 19,
+      "label": 1,
+      "prob": 0.5090627074241638,
+      "pred": 0
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 20,
+      "label": 1,
+      "prob": 0.4934314489364624,
+      "pred": 0
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 21,
+      "label": 1,
+      "prob": 0.5151091814041138,
+      "pred": 1
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 22,
+      "label": 1,
+      "prob": 0.507743239402771,
+      "pred": 0
+    },
+    {
+      "poem_id": "33381",
+      "verse_no": 23,
+      "label": 0,
+      "prob": 0.5162753462791443,
+      "pred": 1
+    },
+    {
+      "poem_id": "18791",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.4890001714229584,
+      "pred": 0
+    },
+    {
+      "poem_id": "18791",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.5035838484764099,
+      "pred": 0
+    },
+    {
+      "poem_id": "18791",
+      "verse_no": 3,
+      "label": 1,
+      "prob": 0.4939921498298645,
+      "pred": 0
+    },
+    {
+      "poem_id": "18791",
+      "verse_no": 4,
+      "label": 1,
+      "prob": 0.5109769105911255,
+      "pred": 1
+    },
+    {
+      "poem_id": "18791",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.5033320784568787,
+      "pred": 0
+    },
+    {
+      "poem_id": "18791",
+      "verse_no": 6,
+      "label": 1,
+      "prob": 0.4990205764770508,
+      "pred": 0
+    },
+    {
+      "poem_id": "18791",
+      "verse_no": 7,
+      "label": 1,
+      "prob": 0.5286246538162231,
+      "pred": 1
+    },
+    {
+      "poem_id": "12331",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.48104241490364075,
+      "pred": 0
+    },
+    {
+      "poem_id": "12331",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.5128222107887268,
+      "pred": 1
+    },
+    {
+      "poem_id": "12331",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.4985074996948242,
+      "pred": 0
+    },
+    {
+      "poem_id": "12331",
+      "verse_no": 4,
+      "label": 1,
+      "prob": 0.5103897452354431,
+      "pred": 1
+    },
+    {
+      "poem_id": "12331",
+      "verse_no": 5,
+      "label": 1,
+      "prob": 0.5378607511520386,
+      "pred": 1
+    },
+    {
+      "poem_id": "12331",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.5086508393287659,
+      "pred": 0
+    },
+    {
+      "poem_id": "12331",
+      "verse_no": 7,
+      "label": 1,
+      "prob": 0.5339442491531372,
+      "pred": 1
+    },
+    {
+      "poem_id": "12331",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.5204505920410156,
+      "pred": 1
+    },
+    {
+      "poem_id": "12331",
+      "verse_no": 9,
+      "label": 1,
+      "prob": 0.5128374695777893,
+      "pred": 1
+    },
+    {
+      "poem_id": "12331",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.4938357472419739,
+      "pred": 0
+    },
+    {
+      "poem_id": "12331",
+      "verse_no": 11,
+      "label": 0,
+      "prob": 0.4985943138599396,
+      "pred": 0
+    },
+    {
+      "poem_id": "12331",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.4834807813167572,
+      "pred": 0
+    },
+    {
+      "poem_id": "12331",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.5007104873657227,
+      "pred": 0
+    },
+    {
+      "poem_id": "27926",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.46207860112190247,
+      "pred": 0
+    },
+    {
+      "poem_id": "27926",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.4971199035644531,
+      "pred": 0
+    },
+    {
+      "poem_id": "27926",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.5203287601470947,
+      "pred": 1
+    },
+    {
+      "poem_id": "27926",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.48852741718292236,
+      "pred": 0
+    },
+    {
+      "poem_id": "27926",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.5169307589530945,
+      "pred": 1
+    },
+    {
+      "poem_id": "27926",
+      "verse_no": 6,
+      "label": 1,
+      "prob": 0.5053098797798157,
+      "pred": 0
+    },
+    {
+      "poem_id": "27926",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.5056378841400146,
+      "pred": 0
+    },
+    {
+      "poem_id": "27926",
+      "verse_no": 8,
+      "label": 1,
+      "prob": 0.5301604866981506,
+      "pred": 1
+    },
+    {
+      "poem_id": "27926",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.5247752666473389,
+      "pred": 1
+    },
+    {
+      "poem_id": "27926",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.4978961944580078,
+      "pred": 0
+    },
+    {
+      "poem_id": "27926",
+      "verse_no": 11,
+      "label": 0,
+      "prob": 0.5181804895401001,
+      "pred": 1
+    },
+    {
+      "poem_id": "27926",
+      "verse_no": 12,
+      "label": 1,
+      "prob": 0.5149263143539429,
+      "pred": 1
+    },
+    {
+      "poem_id": "27926",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.5161686539649963,
+      "pred": 1
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 1,
+      "label": 1,
+      "prob": 0.5246229767799377,
+      "pred": 1
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.5261145234107971,
+      "pred": 1
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 3,
+      "label": 1,
+      "prob": 0.5412269830703735,
+      "pred": 1
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 4,
+      "label": 1,
+      "prob": 0.5190489888191223,
+      "pred": 1
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 5,
+      "label": 1,
+      "prob": 0.5314525961875916,
+      "pred": 1
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 6,
+      "label": 1,
+      "prob": 0.520922839641571,
+      "pred": 1
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 7,
+      "label": 1,
+      "prob": 0.5203135013580322,
+      "pred": 1
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 8,
+      "label": 1,
+      "prob": 0.545981764793396,
+      "pred": 1
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.5428935885429382,
+      "pred": 1
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 10,
+      "label": 1,
+      "prob": 0.5306773781776428,
+      "pred": 1
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 11,
+      "label": 1,
+      "prob": 0.5256427526473999,
+      "pred": 1
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.5294458866119385,
+      "pred": 1
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 13,
+      "label": 1,
+      "prob": 0.5235269069671631,
+      "pred": 1
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 14,
+      "label": 1,
+      "prob": 0.5195213556289673,
+      "pred": 1
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 15,
+      "label": 0,
+      "prob": 0.525505781173706,
+      "pred": 1
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 16,
+      "label": 0,
+      "prob": 0.5083991885185242,
+      "pred": 0
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 17,
+      "label": 0,
+      "prob": 0.5301300883293152,
+      "pred": 1
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 18,
+      "label": 0,
+      "prob": 0.5185309648513794,
+      "pred": 1
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 19,
+      "label": 1,
+      "prob": 0.5234964489936829,
+      "pred": 1
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 20,
+      "label": 1,
+      "prob": 0.5100846886634827,
+      "pred": 1
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 21,
+      "label": 1,
+      "prob": 0.5003538131713867,
+      "pred": 0
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 22,
+      "label": 1,
+      "prob": 0.4942057132720947,
+      "pred": 0
+    },
+    {
+      "poem_id": "25685",
+      "verse_no": 23,
+      "label": 0,
+      "prob": 0.5259319543838501,
+      "pred": 1
+    },
+    {
+      "poem_id": "28093",
+      "verse_no": 1,
+      "label": 1,
+      "prob": 0.5196889042854309,
+      "pred": 1
+    },
+    {
+      "poem_id": "28093",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.5067744851112366,
+      "pred": 0
+    },
+    {
+      "poem_id": "28093",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.4971981644630432,
+      "pred": 0
+    },
+    {
+      "poem_id": "28093",
+      "verse_no": 4,
+      "label": 1,
+      "prob": 0.5247295498847961,
+      "pred": 1
+    },
+    {
+      "poem_id": "28093",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.5347643494606018,
+      "pred": 1
+    },
+    {
+      "poem_id": "28093",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.5411057472229004,
+      "pred": 1
+    },
+    {
+      "poem_id": "5081",
+      "verse_no": 1,
+      "label": 1,
+      "prob": 0.5299628376960754,
+      "pred": 1
+    },
+    {
+      "poem_id": "5081",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.5221412777900696,
+      "pred": 1
+    },
+    {
+      "poem_id": "5081",
+      "verse_no": 3,
+      "label": 1,
+      "prob": 0.5123189687728882,
+      "pred": 1
+    },
+    {
+      "poem_id": "5081",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.5161381959915161,
+      "pred": 1
+    },
+    {
+      "poem_id": "5081",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.5040167570114136,
+      "pred": 0
+    },
+    {
+      "poem_id": "5081",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.49022799730300903,
+      "pred": 0
+    },
+    {
+      "poem_id": "5081",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.4972991943359375,
+      "pred": 0
+    },
+    {
+      "poem_id": "5081",
+      "verse_no": 8,
+      "label": 1,
+      "prob": 0.5062710046768188,
+      "pred": 0
+    },
+    {
+      "poem_id": "5081",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.504714846611023,
+      "pred": 0
+    },
+    {
+      "poem_id": "5081",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.5138590931892395,
+      "pred": 1
+    },
+    {
+      "poem_id": "5081",
+      "verse_no": 11,
+      "label": 0,
+      "prob": 0.5053175091743469,
+      "pred": 0
+    },
+    {
+      "poem_id": "5081",
+      "verse_no": 12,
+      "label": 1,
+      "prob": 0.5188813805580139,
+      "pred": 1
+    },
+    {
+      "poem_id": "5081",
+      "verse_no": 13,
+      "label": 1,
+      "prob": 0.48724642395973206,
+      "pred": 0
+    },
+    {
+      "poem_id": "5081",
+      "verse_no": 14,
+      "label": 1,
+      "prob": 0.4665721356868744,
+      "pred": 0
+    },
+    {
+      "poem_id": "5081",
+      "verse_no": 15,
+      "label": 0,
+      "prob": 0.5003430843353271,
+      "pred": 0
+    },
+    {
+      "poem_id": "5081",
+      "verse_no": 16,
+      "label": 0,
+      "prob": 0.49469777941703796,
+      "pred": 0
+    },
+    {
+      "poem_id": "5081",
+      "verse_no": 17,
+      "label": 0,
+      "prob": 0.532181978225708,
+      "pred": 1
+    },
+    {
+      "poem_id": "5081",
+      "verse_no": 18,
+      "label": 0,
+      "prob": 0.4538669288158417,
+      "pred": 0
+    },
+    {
+      "poem_id": "11994",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.5065113306045532,
+      "pred": 0
+    },
+    {
+      "poem_id": "11994",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.4787116050720215,
+      "pred": 0
+    },
+    {
+      "poem_id": "11994",
+      "verse_no": 3,
+      "label": 1,
+      "prob": 0.5026091933250427,
+      "pred": 0
+    },
+    {
+      "poem_id": "11994",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.4929471015930176,
+      "pred": 0
+    },
+    {
+      "poem_id": "11994",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.5209075808525085,
+      "pred": 1
+    },
+    {
+      "poem_id": "11994",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.5050581097602844,
+      "pred": 0
+    },
+    {
+      "poem_id": "11994",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.5368592739105225,
+      "pred": 1
+    },
+    {
+      "poem_id": "11994",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.5172356367111206,
+      "pred": 1
+    },
+    {
+      "poem_id": "11994",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.5269361734390259,
+      "pred": 1
+    },
+    {
+      "poem_id": "11994",
+      "verse_no": 10,
+      "label": 1,
+      "prob": 0.5272252559661865,
+      "pred": 1
+    },
+    {
+      "poem_id": "11994",
+      "verse_no": 11,
+      "label": 0,
+      "prob": 0.5186071395874023,
+      "pred": 1
+    },
+    {
+      "poem_id": "11994",
+      "verse_no": 12,
+      "label": 1,
+      "prob": 0.5108625292778015,
+      "pred": 1
+    },
+    {
+      "poem_id": "11994",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.5075372457504272,
+      "pred": 0
+    },
+    {
+      "poem_id": "11994",
+      "verse_no": 14,
+      "label": 1,
+      "prob": 0.5408935546875,
+      "pred": 1
+    },
+    {
+      "poem_id": "11994",
+      "verse_no": 15,
+      "label": 1,
+      "prob": 0.519978404045105,
+      "pred": 1
+    },
+    {
+      "poem_id": "11994",
+      "verse_no": 16,
+      "label": 0,
+      "prob": 0.5198107957839966,
+      "pred": 1
+    },
+    {
+      "poem_id": "11994",
+      "verse_no": 17,
+      "label": 1,
+      "prob": 0.526038408279419,
+      "pred": 1
+    },
+    {
+      "poem_id": "11994",
+      "verse_no": 18,
+      "label": 0,
+      "prob": 0.49621593952178955,
+      "pred": 0
+    },
+    {
+      "poem_id": "3754",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.5163516402244568,
+      "pred": 1
+    },
+    {
+      "poem_id": "3754",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.5133940577507019,
+      "pred": 1
+    },
+    {
+      "poem_id": "3754",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.504440188407898,
+      "pred": 0
+    },
+    {
+      "poem_id": "3754",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.5188813805580139,
+      "pred": 1
+    },
+    {
+      "poem_id": "3754",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.503807008266449,
+      "pred": 0
+    },
+    {
+      "poem_id": "3754",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.5284117460250854,
+      "pred": 1
+    },
+    {
+      "poem_id": "3754",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.5264492630958557,
+      "pred": 1
+    },
+    {
+      "poem_id": "3754",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.5264797210693359,
+      "pred": 1
+    },
+    {
+      "poem_id": "3754",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.5043104887008667,
+      "pred": 0
+    },
+    {
+      "poem_id": "3754",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.5307077765464783,
+      "pred": 1
+    },
+    {
+      "poem_id": "3754",
+      "verse_no": 11,
+      "label": 0,
+      "prob": 0.543832540512085,
+      "pred": 1
+    },
+    {
+      "poem_id": "3754",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.5271795988082886,
+      "pred": 1
+    },
+    {
+      "poem_id": "13118",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.49322935938835144,
+      "pred": 0
+    },
+    {
+      "poem_id": "13118",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.5007719993591309,
+      "pred": 0
+    },
+    {
+      "poem_id": "13118",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.5152083039283752,
+      "pred": 1
+    },
+    {
+      "poem_id": "13118",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.5146137475967407,
+      "pred": 1
+    },
+    {
+      "poem_id": "13118",
+      "verse_no": 5,
+      "label": 1,
+      "prob": 0.5082771182060242,
+      "pred": 0
+    },
+    {
+      "poem_id": "13118",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.5313917994499207,
+      "pred": 1
+    },
+    {
+      "poem_id": "13118",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.5092381834983826,
+      "pred": 0
+    },
+    {
+      "poem_id": "13118",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.5249274373054504,
+      "pred": 1
+    },
+    {
+      "poem_id": "13118",
+      "verse_no": 9,
+      "label": 1,
+      "prob": 0.5205572843551636,
+      "pred": 1
+    },
+    {
+      "poem_id": "13118",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.5006003379821777,
+      "pred": 0
+    },
+    {
+      "poem_id": "13118",
+      "verse_no": 11,
+      "label": 1,
+      "prob": 0.5176622867584229,
+      "pred": 1
+    },
+    {
+      "poem_id": "13118",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.5356146693229675,
+      "pred": 1
+    },
+    {
+      "poem_id": "13118",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.4820481240749359,
+      "pred": 0
+    },
+    {
+      "poem_id": "13118",
+      "verse_no": 14,
+      "label": 0,
+      "prob": 0.5060917735099792,
+      "pred": 0
+    },
+    {
+      "poem_id": "13118",
+      "verse_no": 15,
+      "label": 0,
+      "prob": 0.4962025582790375,
+      "pred": 0
+    },
+    {
+      "poem_id": "12079",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.5054891109466553,
+      "pred": 0
+    },
+    {
+      "poem_id": "12079",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.5079033970832825,
+      "pred": 0
+    },
+    {
+      "poem_id": "12079",
+      "verse_no": 3,
+      "label": 1,
+      "prob": 0.5172660946846008,
+      "pred": 1
+    },
+    {
+      "poem_id": "12079",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.5117242336273193,
+      "pred": 1
+    },
+    {
+      "poem_id": "12079",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.5073427557945251,
+      "pred": 0
+    },
+    {
+      "poem_id": "12079",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.48781827092170715,
+      "pred": 0
+    },
+    {
+      "poem_id": "12079",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.48898494243621826,
+      "pred": 0
+    },
+    {
+      "poem_id": "12079",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.47883346676826477,
+      "pred": 0
+    },
+    {
+      "poem_id": "12079",
+      "verse_no": 9,
+      "label": 1,
+      "prob": 0.5142936110496521,
+      "pred": 1
+    },
+    {
+      "poem_id": "12079",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.5021553039550781,
+      "pred": 0
+    },
+    {
+      "poem_id": "12079",
+      "verse_no": 11,
+      "label": 0,
+      "prob": 0.5075487494468689,
+      "pred": 0
+    },
+    {
+      "poem_id": "12079",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.49693113565444946,
+      "pred": 0
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.5158028602600098,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.49779319763183594,
+      "pred": 0
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.5030803084373474,
+      "pred": 0
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 4,
+      "label": 1,
+      "prob": 0.5275142788887024,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 5,
+      "label": 1,
+      "prob": 0.5437416434288025,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 6,
+      "label": 1,
+      "prob": 0.5135159492492676,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.5311333537101746,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.5337012410163879,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.4977741241455078,
+      "pred": 0
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.5170374512672424,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 11,
+      "label": 0,
+      "prob": 0.5250034928321838,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.5014238357543945,
+      "pred": 0
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.5060383677482605,
+      "pred": 0
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 14,
+      "label": 0,
+      "prob": 0.5254753828048706,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 15,
+      "label": 1,
+      "prob": 0.5143164396286011,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 16,
+      "label": 1,
+      "prob": 0.5293242335319519,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 17,
+      "label": 0,
+      "prob": 0.5130356550216675,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 18,
+      "label": 1,
+      "prob": 0.5382248163223267,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 19,
+      "label": 1,
+      "prob": 0.5227808356285095,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 20,
+      "label": 0,
+      "prob": 0.4936451017856598,
+      "pred": 0
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 21,
+      "label": 1,
+      "prob": 0.4947664141654968,
+      "pred": 0
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 22,
+      "label": 1,
+      "prob": 0.5141563415527344,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 23,
+      "label": 1,
+      "prob": 0.5185157060623169,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 24,
+      "label": 1,
+      "prob": 0.5371931195259094,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 25,
+      "label": 1,
+      "prob": 0.5200697779655457,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 26,
+      "label": 1,
+      "prob": 0.5079110264778137,
+      "pred": 0
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 27,
+      "label": 1,
+      "prob": 0.5087576508522034,
+      "pred": 0
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 28,
+      "label": 0,
+      "prob": 0.5114649534225464,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 29,
+      "label": 1,
+      "prob": 0.5053442120552063,
+      "pred": 0
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 30,
+      "label": 0,
+      "prob": 0.5186375975608826,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 31,
+      "label": 0,
+      "prob": 0.5155513286590576,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 32,
+      "label": 1,
+      "prob": 0.5102372169494629,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 33,
+      "label": 1,
+      "prob": 0.5274534225463867,
+      "pred": 1
+    },
+    {
+      "poem_id": "11835",
+      "verse_no": 34,
+      "label": 1,
+      "prob": 0.5111980438232422,
+      "pred": 1
+    },
+    {
+      "poem_id": "3261",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.5175709128379822,
+      "pred": 1
+    },
+    {
+      "poem_id": "3261",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.4896559715270996,
+      "pred": 0
+    },
+    {
+      "poem_id": "3789",
+      "verse_no": 1,
+      "label": 1,
+      "prob": 0.5351287722587585,
+      "pred": 1
+    },
+    {
+      "poem_id": "3789",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.5058743357658386,
+      "pred": 0
+    },
+    {
+      "poem_id": "3789",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.5261145234107971,
+      "pred": 1
+    },
+    {
+      "poem_id": "3789",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.49512502551078796,
+      "pred": 0
+    },
+    {
+      "poem_id": "3789",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.49885180592536926,
+      "pred": 0
+    },
+    {
+      "poem_id": "3789",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.5057637691497803,
+      "pred": 0
+    },
+    {
+      "poem_id": "3789",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.5198565125465393,
+      "pred": 1
+    },
+    {
+      "poem_id": "3789",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.5354931950569153,
+      "pred": 1
+    },
+    {
+      "poem_id": "3789",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.5128145813941956,
+      "pred": 1
+    },
+    {
+      "poem_id": "3789",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.5093601942062378,
+      "pred": 0
+    },
+    {
+      "poem_id": "3789",
+      "verse_no": 11,
+      "label": 0,
+      "prob": 0.5271795988082886,
+      "pred": 1
+    },
+    {
+      "poem_id": "3789",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.5169307589530945,
+      "pred": 1
+    },
+    {
+      "poem_id": "3789",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.5172051191329956,
+      "pred": 1
+    },
+    {
+      "poem_id": "3789",
+      "verse_no": 14,
+      "label": 0,
+      "prob": 0.5111446976661682,
+      "pred": 1
+    },
+    {
+      "poem_id": "3789",
+      "verse_no": 15,
+      "label": 0,
+      "prob": 0.49003732204437256,
+      "pred": 0
+    },
+    {
+      "poem_id": "3789",
+      "verse_no": 16,
+      "label": 0,
+      "prob": 0.5046499967575073,
+      "pred": 0
+    },
+    {
+      "poem_id": "3789",
+      "verse_no": 17,
+      "label": 0,
+      "prob": 0.5159857273101807,
+      "pred": 1
+    },
+    {
+      "poem_id": "3789",
+      "verse_no": 18,
+      "label": 0,
+      "prob": 0.5200393199920654,
+      "pred": 1
+    },
+    {
+      "poem_id": "3789",
+      "verse_no": 19,
+      "label": 0,
+      "prob": 0.5216691493988037,
+      "pred": 1
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 1,
+      "label": 1,
+      "prob": 0.4994492530822754,
+      "pred": 0
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.5189270973205566,
+      "pred": 1
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 3,
+      "label": 1,
+      "prob": 0.5318476557731628,
+      "pred": 1
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 4,
+      "label": 1,
+      "prob": 0.5294458866119385,
+      "pred": 1
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 5,
+      "label": 1,
+      "prob": 0.5273773670196533,
+      "pred": 1
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.4868270754814148,
+      "pred": 0
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.519536554813385,
+      "pred": 1
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 8,
+      "label": 1,
+      "prob": 0.527818500995636,
+      "pred": 1
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 9,
+      "label": 1,
+      "prob": 0.5083915591239929,
+      "pred": 0
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.5155665278434753,
+      "pred": 1
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 11,
+      "label": 1,
+      "prob": 0.5277577042579651,
+      "pred": 1
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.49405696988105774,
+      "pred": 0
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.5235421657562256,
+      "pred": 1
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 14,
+      "label": 0,
+      "prob": 0.5315437316894531,
+      "pred": 1
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 15,
+      "label": 1,
+      "prob": 0.5112972259521484,
+      "pred": 1
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 16,
+      "label": 1,
+      "prob": 0.5201459527015686,
+      "pred": 1
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 17,
+      "label": 1,
+      "prob": 0.5322731733322144,
+      "pred": 1
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 18,
+      "label": 0,
+      "prob": 0.5209075808525085,
+      "pred": 1
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 19,
+      "label": 0,
+      "prob": 0.49941155314445496,
+      "pred": 0
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 20,
+      "label": 0,
+      "prob": 0.5227503776550293,
+      "pred": 1
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 21,
+      "label": 1,
+      "prob": 0.5457397103309631,
+      "pred": 1
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 22,
+      "label": 1,
+      "prob": 0.5268144607543945,
+      "pred": 1
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 23,
+      "label": 0,
+      "prob": 0.5317261219024658,
+      "pred": 1
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 24,
+      "label": 0,
+      "prob": 0.5300084352493286,
+      "pred": 1
+    },
+    {
+      "poem_id": "22601",
+      "verse_no": 25,
+      "label": 0,
+      "prob": 0.5285181999206543,
+      "pred": 1
+    },
+    {
+      "poem_id": "17373",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.5306165814399719,
+      "pred": 1
+    },
+    {
+      "poem_id": "17373",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.5082390308380127,
+      "pred": 0
+    },
+    {
+      "poem_id": "17373",
+      "verse_no": 3,
+      "label": 1,
+      "prob": 0.5383461713790894,
+      "pred": 1
+    },
+    {
+      "poem_id": "17373",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.5226285457611084,
+      "pred": 1
+    },
+    {
+      "poem_id": "17373",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.5405904054641724,
+      "pred": 1
+    },
+    {
+      "poem_id": "17373",
+      "verse_no": 6,
+      "label": 1,
+      "prob": 0.5337316393852234,
+      "pred": 1
+    },
+    {
+      "poem_id": "20449",
+      "verse_no": 1,
+      "label": 0,
+      "prob": 0.5041617155075073,
+      "pred": 0
+    },
+    {
+      "poem_id": "20449",
+      "verse_no": 2,
+      "label": 0,
+      "prob": 0.5096347332000732,
+      "pred": 0
+    },
+    {
+      "poem_id": "20449",
+      "verse_no": 3,
+      "label": 0,
+      "prob": 0.5247600078582764,
+      "pred": 1
+    },
+    {
+      "poem_id": "20449",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.5054090023040771,
+      "pred": 0
+    },
+    {
+      "poem_id": "20449",
+      "verse_no": 5,
+      "label": 1,
+      "prob": 0.5337012410163879,
+      "pred": 1
+    },
+    {
+      "poem_id": "20449",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.5216996073722839,
+      "pred": 1
+    },
+    {
+      "poem_id": "20449",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.5211208462715149,
+      "pred": 1
+    },
+    {
+      "poem_id": "20449",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.48510420322418213,
+      "pred": 0
+    },
+    {
+      "poem_id": "20449",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.49849510192871094,
+      "pred": 0
+    },
+    {
+      "poem_id": "20449",
+      "verse_no": 10,
+      "label": 0,
+      "prob": 0.5105575323104858,
+      "pred": 1
+    },
+    {
+      "poem_id": "20449",
+      "verse_no": 11,
+      "label": 1,
+      "prob": 0.5303581357002258,
+      "pred": 1
+    },
+    {
+      "poem_id": "20449",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.5138819813728333,
+      "pred": 1
+    },
+    {
+      "poem_id": "20449",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.5070986747741699,
+      "pred": 0
+    },
+    {
+      "poem_id": "20449",
+      "verse_no": 14,
+      "label": 1,
+      "prob": 0.5396201014518738,
+      "pred": 1
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 1,
+      "label": 1,
+      "prob": 0.5207705497741699,
+      "pred": 1
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 2,
+      "label": 1,
+      "prob": 0.5179213881492615,
+      "pred": 1
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 3,
+      "label": 1,
+      "prob": 0.5144689083099365,
+      "pred": 1
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 4,
+      "label": 0,
+      "prob": 0.49054065346717834,
+      "pred": 0
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 5,
+      "label": 0,
+      "prob": 0.5100312829017639,
+      "pred": 1
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 6,
+      "label": 0,
+      "prob": 0.49857044219970703,
+      "pred": 0
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 7,
+      "label": 0,
+      "prob": 0.5070376396179199,
+      "pred": 0
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 8,
+      "label": 0,
+      "prob": 0.5215473175048828,
+      "pred": 1
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 9,
+      "label": 0,
+      "prob": 0.5099321603775024,
+      "pred": 0
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 10,
+      "label": 1,
+      "prob": 0.5112819671630859,
+      "pred": 1
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 11,
+      "label": 1,
+      "prob": 0.5152692794799805,
+      "pred": 1
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 12,
+      "label": 0,
+      "prob": 0.5044668912887573,
+      "pred": 0
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 13,
+      "label": 0,
+      "prob": 0.5209380388259888,
+      "pred": 1
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 14,
+      "label": 0,
+      "prob": 0.49519363045692444,
+      "pred": 0
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 15,
+      "label": 0,
+      "prob": 0.5035094618797302,
+      "pred": 0
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 16,
+      "label": 0,
+      "prob": 0.5052717328071594,
+      "pred": 0
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 17,
+      "label": 1,
+      "prob": 0.5193384885787964,
+      "pred": 1
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 18,
+      "label": 0,
+      "prob": 0.5177689790725708,
+      "pred": 1
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 19,
+      "label": 1,
+      "prob": 0.5143926739692688,
+      "pred": 1
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 20,
+      "label": 0,
+      "prob": 0.5123952627182007,
+      "pred": 1
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 21,
+      "label": 0,
+      "prob": 0.5230701565742493,
+      "pred": 1
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 22,
+      "label": 0,
+      "prob": 0.5086660981178284,
+      "pred": 0
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 23,
+      "label": 0,
+      "prob": 0.5195822715759277,
+      "pred": 1
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 24,
+      "label": 0,
+      "prob": 0.465934157371521,
+      "pred": 0
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 25,
+      "label": 0,
+      "prob": 0.49904540181159973,
+      "pred": 0
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 26,
+      "label": 0,
+      "prob": 0.5026912689208984,
+      "pred": 0
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 27,
+      "label": 0,
+      "prob": 0.49714475870132446,
+      "pred": 0
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 28,
+      "label": 0,
+      "prob": 0.5069194436073303,
+      "pred": 0
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 29,
+      "label": 1,
+      "prob": 0.519978404045105,
+      "pred": 1
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 30,
+      "label": 0,
+      "prob": 0.5142936110496521,
+      "pred": 1
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 31,
+      "label": 0,
+      "prob": 0.5035971999168396,
+      "pred": 0
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 32,
+      "label": 0,
+      "prob": 0.4899686872959137,
+      "pred": 0
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 33,
+      "label": 0,
+      "prob": 0.5111980438232422,
+      "pred": 1
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 34,
+      "label": 1,
+      "prob": 0.5181804895401001,
+      "pred": 1
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 35,
+      "label": 1,
+      "prob": 0.5059124827384949,
+      "pred": 0
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 36,
+      "label": 1,
+      "prob": 0.5201459527015686,
+      "pred": 1
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 37,
+      "label": 0,
+      "prob": 0.5168850421905518,
+      "pred": 1
+    },
+    {
+      "poem_id": "13658",
+      "verse_no": 38,
+      "label": 0,
+      "prob": 0.5209532976150513,
+      "pred": 1
+    }
+  ],
+  "complete": true
+}

@@ -2353,3 +2353,179 @@ code/results; new code in `experiments/phase5_local_ft/analysis/`, new outputs i
   this log's own modification -- no Phase 1-4 file and no existing Phase 5 file touched. Total
   new-file size ~520KB, nothing near the project's 5MB confirmation threshold, no secrets
   (plain JSON metrics/predictions + markdown + one PNG). Committing and pushing now.
+
+---
+
+**2026-10-17 -- New task: Phase 6, "stronger fine-tuning" -- try to beat Phase 5 on the
+same 5 targets (تشبيه مطول, استعارة تمثيلية, استعارة فعل, طباق إيجاب, كناية عن فعل)
+via 3 levers (L1 context window, L2 loss/training changes, L3 bigger models), reusing
+Phase 5's exact targets/labels/poem-level splits (S2 3 seeds, S3 for استعارة فعل) so
+results are directly comparable. No paid API calls; public HF downloads only, no token in
+code. New code in `experiments/phase6_stronger_ft/`, outputs in
+`results/phase6_stronger_ft/`; Phase 1-5 code/results not edited; no
+weights/checkpoints/caches in git.**
+- Read `CLAUDE.md`, `PROJECT_STATE.md` (full file -- confirmed it only covers Phase 1-2 and
+  is stale relative to Phase 3-5; trusted the newer `docs/phase4/`, `docs/phase5/` docs and
+  the code itself over it, per CLAUDE.md's own "trust the code" rule), `docs/phase5/
+  LOCAL_FT_RESULTS.md` + `LOCAL_FT_DIAGNOSIS.md` in full, this log's tail (Phase 5 build +
+  diagnosis entries), every file under `experiments/phase5_local_ft/` (`phase5_config.py`,
+  `data_io.py`, `dataset.py`, `splitting.py`, `train.py`, `metrics_utils.py`, `baselines.py`,
+  `normalize.py`, `run_grid.py`) and skimmed `docs/phase4/E1_V2_RESULTS.md` for the exact
+  استعارة فعل LLM comparison numbers already summarized in `LOCAL_FT_RESULTS.md` §8.
+- **Step 0 -- environment check (read-only, nothing installed yet):**
+  - GPU: NVIDIA GeForce RTX 3060 Ti, 8.59 GB VRAM, driver/CUDA stack healthy
+    (`nvidia-smi` OK). **~3.0 GB already in use by other desktop/GPU processes at check time**
+    (browser, IDE, overlay apps -- no other ML job running) -- effective free VRAM right now
+    is closer to ~5.6 GB, not the full 8GB nominal; worth closing extra GPU-using apps before
+    any long training run, and factoring into L3 model-size choices next.
+  - `torch` 2.12.0.dev20260323+cu128, `torch.cuda.is_available()=True`, CUDA 12.8 -- the
+    exact same already-working install Phase 5 used, confirmed again, no reinstall needed.
+  - Already installed (from Phase 5): `transformers` 5.20.1, `accelerate` 1.15.0,
+    `safetensors` 0.8.0, `sentencepiece` 0.2.2, `scikit-learn` 1.9.0, `numpy` 2.4.3.
+  - **Missing**: `peft`, `bitsandbytes`. Neither is installed in this environment yet.
+  - **Windows support check for `bitsandbytes` (done before proposing anything, per task
+    instruction)**: `pip install --dry-run` resolves cleanly to `bitsandbytes-0.50.2`, whose
+    PyPI classifiers explicitly list `Operating System :: Microsoft :: Windows` (alongside
+    Linux/macOS) -- current bitsandbytes ships official Windows CUDA wheels (post
+    multi-backend-refactor), so **4-bit QLoRA is viable on this machine as planned in L3**;
+    no fp16-only fallback is needed. `peft` dry-run also resolves cleanly to `peft-0.21.2`
+    with every dependency already satisfied by the existing environment (no version
+    conflicts with the installed `torch`/`transformers`/`accelerate`/`safetensors`).
+  - Disk: 169 GB free on `C:` -- ample room for a handful of additional model downloads
+    (a 1.5-3B decoder in fp16 is ~3-6GB; a large Arabic encoder is ~1.3GB; all land in the
+    existing gitignored `experiments/phase5_local_ft/hf_cache/`-style local cache, reused for
+    Phase 6 under its own directory, no HF token).
+  - **Exact pip commands proposed** (not yet run -- stopping here for confirmation per task
+    instruction): `pip install peft bitsandbytes`. Nothing else needs installing or
+    upgrading.
+  - **L3 candidate preview (for the user to review alongside the install confirmation, not
+    yet started)**: a ~1.5-3B decoder -- **Qwen2.5-3B** (and/or the smaller **Qwen2.5-1.5B**
+    if the 3B is too slow for the 30-min/run cap) -- ungated, strong general multilingual/
+    Arabic support, widely used; an Arabic-specific decoder alternative -- **inceptionai/
+    jais-family-1p3b** (public, ungated, Arabic-centric pretraining) -- to test on decoders
+    the same domain-pretraining question Phase 5 raised for encoders (CAMeL-BERT-CA's edge on
+    very_hard); and a large Arabic encoder -- **aubmindlab/bert-large-arabertv02** (AraBERT
+    large) -- the clearest public "large Arabic encoder" option (CAMeL-Lab/UBC-NLP don't
+    publish large variants). All 3 fit comfortably in 8GB (QLoRA 4-bit for the decoders, fp16
+    full fine-tune for the encoder) even accounting for the ~5.6GB currently-free VRAM noted
+    above. Final choice (2-3 of these) to be confirmed in Step 1 alongside a per-model
+    VRAM/time-per-epoch estimate before any long run, per task instruction.
+  - **Stopping here, as instructed, for explicit user confirmation before installing
+    `peft`/`bitsandbytes` or downloading any model.**
+
+**User confirmed ("Yes, install & continue"). Resuming:**
+- Installed `peft` 0.21.2 and `bitsandbytes` 0.50.2 cleanly, no conflicts.
+- Re-checked `inceptionai/jais-family-1p3b` with an anonymous (`token=False`) download
+  attempt before using it -- **GatedRepoError (401)**, so it was dropped despite `model_info`
+  initially showing `gated="auto"` (auto-approval still requires authentication). Replaced in
+  the L3 candidate list with `aubmindlab/aragpt2-mega` (~1.46B, Arabic-specific GPT2-style
+  decoder, confirmed ungated via the same anonymous-download check) -- see Step 1 below for
+  why this was later dropped too.
+- Built `experiments/phase6_stronger_ft/`: `phase6_config.py` (imports Phase 5's `phase5_config`/
+  `data_io`/`dataset`/`splitting`/`metrics_utils`/`baselines`/`normalize` unchanged, same
+  reuse convention CLAUDE.md already uses for Phase 2 importing Phase 1), `context_dataset.py`
+  (L1: builds `[PREV]`/`[VERSE]`/`[NEXT]`-tagged examples), `losses.py` (L2: focal loss),
+  `llrd.py` (L2: layer-wise LR decay param groups), `train_encoder.py` (generalized Phase 5
+  trainer parameterized over L1 context / L2 loss-type / L2 schedule, reproduces Phase 5's
+  exact recipe when all three are at their defaults -- smoke-tested against Phase5/marbert/
+  medium/seed0 and got a consistent F1), `train_decoder.py` (QLoRA 4-bit decoder trainer,
+  native `*ForSequenceClassification` classes only -- never `trust_remote_code`), `losses`/
+  `llrd`/`analysis_common.py`/`runners.py`/`select_best_configs.py`/`run_l1l2_ablation.py`/
+  `run_l3_bigger_models.py`/`run_final_grid.py`/`evaluate.py`/`ensemble.py`/`plot_figures.py`.
+  Added matching `.gitignore` rules for `experiments/phase6_stronger_ft/hf_cache/` and
+  `results/phase6_stronger_ft/checkpoints|*.pt|*.bin|*.safetensors` (same pattern as Phase 5).
+- **Import-order bug found while smoke-testing**: `transformers`/`huggingface_hub` resolve
+  their cache-directory constant the first time either is imported, so a couple of direct
+  `python train_*.py` invocations (which import `transformers` before `phase6_config` sets
+  `HF_HOME`) ended up caching Qwen2.5-3B/aragpt2-mega/AraBERT-large in the user's shared
+  default `~/.cache/huggingface` instead of the phase-local folder. Documented in
+  `phase6_config.py` and `docs/phase6/STRONGER_FT_RESULTS.md` rather than fixed mid-stream
+  (fixing it would have meant re-downloading several already-fetched GB); harmless for "no
+  weights/caches in git" since that cache is outside the repo either way. Scripts invoked via
+  their own orchestrators (`run_l1l2_ablation.py`, `run_l3_bigger_models.py`) which import
+  `phase6_config` first did cache correctly in the phase-local folder.
+- **L1 token-length check** (`context_dataset.py __main__`): p99 token length for
+  prev+target+next across Phase 5's 3 tokenizers was 68-69 (max 111) -- set
+  `MAX_LEN_CONTEXT=96` (same ~40% margin convention Phase 5 used for its own `MAX_LEN=32`).
+  ~3x Phase 5's verse-alone length -> ~3x per-epoch compute for L1 ("cost" per task instruction,
+  interpreted as compute since this phase has no API $ cost).
+- **aragpt2-mega smoke-tested and dropped**: its Conv1D-based layers under bitsandbytes 4-bit
+  quantization ran ~4x slower per optimizer step than Qwen2.5-3B despite being under half the
+  parameter count (>15 min for one epoch on the largest target vs Qwen's 243s) -- would have
+  made a 5-target grid infeasible in this session's time budget. Also needed a manual patch
+  (`train_decoder._patch_aragpt2_final_norm`, found via the LOAD REPORT showing
+  `transformer.ln_f.{weight,bias}` as MISSING and `emb_norm.{weight,bias}` as UNEXPECTED): its
+  final layer norm lives under a differently-named checkpoint key that only its own custom
+  modeling code wires up. The patch copies those two tensors directly from the already-
+  downloaded safetensors file (no `trust_remote_code`, just a tensor copy) and does work, but
+  the model was dropped from the actual grid anyway for the speed reason above. Final L3
+  candidates: **Qwen/Qwen2.5-3B** (QLoRA 4-bit, LoRA r=16 on q/k/v/o/gate/up/down_proj,
+  classification head full precision) and **aubmindlab/bert-large-arabertv02** (fp16 full
+  fine-tune).
+- **Step 1, L1+L2 ablation** (`run_l1l2_ablation.py`, seed0 only, Phase 5's best model per
+  target, one lever changed at a time against the Phase 5 baseline cell which was reused
+  as-is rather than retrained): 15 cells (5 targets x 3 new cells), 12.1 minutes total, 0
+  errors. Selection criterion: VAL F1 (never test). Full table in
+  `docs/phase6/STRONGER_FT_RESULTS.md` section 2.
+- **Step 1, L3 sweep** (`run_l3_bigger_models.py`, seed0, both candidates x 5 targets, reduced
+  1200s/20min per-run cap instead of the full 30min -- an explicit, documented time-budget
+  decision since Qwen2.5-3B's ~243s/epoch made the full cap impractical for a 10-cell
+  exploratory sweep): **hit one transient CUDA error** (`RuntimeError: CUDA error:
+  CUBLAS_STATUS_EXECUTION_FAILED`) on `easy/arabert_large`'s 6th epoch -- confirmed via a
+  fresh `torch` matmul sanity check immediately after that CUDA/cuBLAS were healthy again (not
+  a persistent hardware/driver problem, no OOM, GPU memory was back to idle). Added retry/
+  resilience logic to `run_l3_bigger_models.py` (each cell gets up to 2 attempts, failures are
+  collected and reported rather than killing the whole sweep) and to `run_final_grid.py` (same
+  pattern), then resumed the sweep -- it correctly skipped the 3 already-complete cells and
+  continued from `easy/arabert_large`, which succeeded on the retry. Final: 10/10 cells
+  complete, 0 failed cells, 87.9 minutes total. Neither L3 candidate beat the corresponding
+  Phase 5 base-encoder cell on VAL F1 for 4 of 5 targets; only very_hard (`arabert_large`)
+  won at seed0. Full table in `docs/phase6/STRONGER_FT_RESULTS.md` section 3.
+- **Config selection** (`select_best_configs.py`): top-2 per target by seed0 VAL F1 across all
+  of L1/L2/L3 + the Phase 5 baseline. **No L3 (bigger-model) candidate made the top-2 for 4 of
+  5 targets** -- base Phase 5 encoders (marbert/camelbert_ca), untouched or with one L1/L2
+  tweak, out-VAL'd both Qwen2.5-3B and AraBERT-large everywhere except very_hard.
+- **Final grid promotion** (`run_final_grid.py`): selected configs run to 3 seeds on S2 (seed0
+  reused where already computed, Phase-5-baseline cells reused directly from Phase 5's own raw
+  files with zero retraining) + 3 seeds on S3 for medium's 2 configs. 23.1 minutes, 0 errors
+  (the added resilience logic wasn't needed this time -- no further CUDA faults).
+- **Step 2 evaluation** (`evaluate.py`): verse-level F1 (val-tuned threshold) mean±std over 3
+  seeds, AUC-ROC, average precision, bootstrap 95% CI over poems (same method as Phase 5's
+  `analyze.py`). **Bug caught and fixed before trusting the output**: `build_table()` was
+  double-counting the Phase 5 baseline row whenever it was also one of the selected top-2
+  configs (it always appended a baseline row unconditionally, then appended it again from the
+  `selected` loop) -- fixed to check first. **Headline finding: once bootstrap CIs are
+  accounted for, no Phase 6 configuration beats the untouched Phase 5 baseline outside noise,
+  on any of the 5 targets** -- every Phase 6 cell's CI overlaps the Phase 5 baseline's CI. The
+  two most promising point-estimate wins (focal loss on very_easy, +0.068 F1; context window
+  on hard, +0.072 F1, tightest std in the whole grid at 0.007) are both directionally
+  consistent across all 3 seeds individually but neither clears the 95%-CI bar. very_hard's
+  seed0-flagged `L1_context` cell (§2's VAL/TEST mismatch warning) is **confirmed as noise** at
+  3 seeds -- its mean F1 (0.152±0.050) stays far below the baseline's (0.217±0.020). On
+  استعارة فعل (medium, S3, fixed 25-poem LLM-comparison pool): Phase 6's best config
+  (L2b_cosine_llrd, 0.573±0.006) ties Phase 5's already-LLM-matching result (0.570±0.005) and
+  the best single LLM (0.576) -- three different "stronger" attempts (focal, cosine+LLRD,
+  Qwen2.5-3B, AraBERT-large) all converge on the same ceiling rather than breaking through it,
+  reinforcing Phase 5's class-prevalence-governs-this-target finding.
+- **Step 3 ensemble** (`ensemble.py`): cheap probability-average ensemble of each target's
+  selected top-2, threshold tuned on the averaged VAL probabilities. Only possible for
+  medium and very_hard (Phase 5's baseline cell predates the `val_predictions` field this
+  phase added to `train_encoder.py`/`train_decoder.py`'s output schema, so targets where
+  baseline was one of the top-2 -- very_easy/easy/hard -- are reported standalone instead of
+  silently dropped). **The ensemble helped nowhere it could be computed**: medium's ensemble
+  (0.546) is worse than either individual member (0.556/0.558); very_hard's (0.169) sits
+  between its two members but still well below the untouched baseline (0.217) -- same
+  conclusion as Phase 1's LLM-ensemble check (§3e, `PROJECT_STATE.md`): averaging correlated-
+  error models from the same base/recipe family buys nothing.
+- Wrote `docs/phase6/STRONGER_FT_RESULTS.md` (full English report: environment, L1 token-
+  length/cost, L1+L2 ablation table + which-lever-helped-what, L3 sweep table + VRAM/time,
+  selected configs, Step 2 evaluation table + CI-overlap analysis, S3-vs-LLM table, Step 3
+  ensemble, "do the bigger models fit/train acceptably" answer, plain answer) and
+  `docs/phase6/STRONGER_FT_SUMMARY_AR.md` (Arabic summary, same headline findings condensed).
+  Figure: `docs/phase6/figs/phase6_f1_comparison.png` (per-target F1 bars, Phase 5 baseline vs
+  selected Phase 6 configs vs ensemble where available, consistent per-label coloring).
+- Verified before committing: no weights/checkpoints/HF caches tracked (`.gitignore` rules for
+  `experiments/phase6_stronger_ft/hf_cache/` and `results/phase6_stronger_ft/checkpoints|*.pt|
+  *.bin|*.safetensors` added at the start of this session, confirmed still correct); no Phase
+  1-5 file edited; `results/phase6_stronger_ft/raw/*.json` holds metrics + per-verse
+  predictions only (same discipline as Phase 5). Total new code+docs+results committed next.
