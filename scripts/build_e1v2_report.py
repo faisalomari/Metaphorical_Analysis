@@ -95,6 +95,12 @@ SOURCE_FILES_USED = [
     "docs/phase4/E1_V2_OPUS_A.md",
     "docs/phase4/PROMPT_INVENTORY.md",
     "writing/paper_plan/TOP_5_BLOCKERS.md",
+    "results/phase4_e1_v2/analysis_report_multipoet.json",
+    "experiments/phase4_e1_v2/config/eval_pool_50_multipoet.json",
+    "experiments/phase4_e1_v2/config/multipoet_example_sets.json",
+    "experiments/phase4_e1_v2/config/prompt_preview_F5.txt",
+    "experiments/phase4_e1_v2/config/prompt_preview_F10.txt",
+    "docs/phase4/E1_V2_MULTIPOET.md",
 ]
 
 
@@ -262,6 +268,30 @@ analysis_opus_a = json.loads(ANALYSIS_OPUS_A_PATH.read_text(encoding="utf-8")) i
 opus_a_doc_exists = OPUS_A_DOC_PATH.exists()
 opus_a_doc_text = OPUS_A_DOC_PATH.read_text(encoding="utf-8") if opus_a_doc_exists else None
 
+# Multi-poet F5/F10 (added 2026-10-22, docs/phase4/E1_V2_MULTIPOET.md) -- own 50-poem pool
+# (NOT POOL_PATH's eval_pool_25.json), own analysis report, own example-sets file. Guarded
+# with an existence check (same convention as set_d_exists/opus_a_exists above) so this
+# script still runs cleanly if that experiment is ever reverted/not yet present.
+MULTIPOET_DOC_PATH = DOCS_DIR / "E1_V2_MULTIPOET.md"
+ANALYSIS_MULTIPOET_PATH = RESULTS_DIR / "analysis_report_multipoet.json"
+MULTIPOET_EXAMPLE_SETS_PATH = E1V2_DIR / "config" / "multipoet_example_sets.json"
+MULTIPOET_POOL_PATH = E1V2_DIR / "config" / "eval_pool_50_multipoet.json"
+multipoet_exists = ANALYSIS_MULTIPOET_PATH.exists()
+if multipoet_exists:
+    analysis_multipoet = json.loads(ANALYSIS_MULTIPOET_PATH.read_text(encoding="utf-8"))
+    multipoet_example_sets = json.loads(MULTIPOET_EXAMPLE_SETS_PATH.read_text(encoding="utf-8"))["sets"]
+    multipoet_pool_doc = json.loads(MULTIPOET_POOL_PATH.read_text(encoding="utf-8"))
+    multipoet_doc_text = MULTIPOET_DOC_PATH.read_text(encoding="utf-8") if MULTIPOET_DOC_PATH.exists() else None
+    multipoet_prompt_previews = {
+        s: (E1V2_DIR / "config" / f"prompt_preview_{s}.txt").read_text(encoding="utf-8")
+        for s in ("F5", "F10")
+    }
+    multipoet_manifest_records = [r for r in manifest if r["set_name"] in ("F5", "F10")]
+    multipoet_pool_25_overlap = sorted(
+        {p["poem_id"] for p in multipoet_pool_doc["poems"]} & {p["poem_id"] for p in pool["poems"]},
+        key=int,
+    )
+
 # `analysis`: per_set lookups use analysis_d (it has all 6 sets, Z/A/B/C recomputed the same
 # way as analysis_zabc -- checked in verify_f1_matches_json below). `analysis`'s
 # pairwise_bootstrap_ci is the UNION of analysis_zabc's 6 ZABC pairs and analysis_d's 9
@@ -336,6 +366,15 @@ opus_a_calls_err = 0
 for r in manifest:
     p = r["provider"]
     s = r["set_name"]
+    if s not in SET_NAMES_FULL and p != "anthropic_opus":
+        # The multi-poet F5/F10/F5b sets (added 2026-10-22, docs/phase4/E1_V2_MULTIPOET.md)
+        # run on a DIFFERENT 50-poem pool and are additive-only to this SAME shared
+        # run_manifest.json. Without this guard, calls_per_set[s] (keyed only by
+        # SET_NAMES_FULL) would KeyError on an "F5"/"F10" record, and spend/calls_ok would
+        # silently absorb multi-poet cost/counts into this report's existing Z/A/B/C/D/D2
+        # totals -- scoped out here; the multi-poet section below computes its own totals
+        # directly from analysis_report_multipoet.json instead.
+        continue
     if p == "anthropic_opus":
         if r.get("error") is None:
             opus_a_spend += call_cost(p, r.get("usage"))
@@ -355,7 +394,13 @@ for r in manifest:
         if mv:
             gemini_model_versions.add(mv)
 
+scoped_manifest_count = sum(
+    1 for r in manifest if r["set_name"] in SET_NAMES_FULL or r["provider"] == "anthropic_opus"
+)  # excludes F5/F10/F5b (own badge/section below), matches what panels a-j actually describe
 total_spend = sum(spend.values())
+if multipoet_exists:
+    multipoet_spend = sum(call_cost(r["provider"], r.get("usage"))
+                           for r in multipoet_manifest_records if r.get("error") is None)
 total_calls_ok = sum(calls_ok.values())
 total_calls_err = sum(calls_err.values())
 pool_verses = pool["pool_verses"]
@@ -828,6 +873,139 @@ def build_example_card_d(set_name: str) -> str:
     )
 
 
+def build_multipoet_example_card(set_name: str) -> str:
+    """Poet/period card for F5/F10 (added 2026-10-22) -- same example-card
+    markup as build_example_card/build_example_card_d, plus a poet+period
+    chip per example (the whole point of this experiment is DIFFERENT
+    poets, so each card names its poet, unlike A/B/C/D's single fixed
+    Abu Nuwas source)."""
+    examples = multipoet_example_sets[set_name]
+    verses = []
+    for e in examples:
+        ann_items = "".join(
+            f'<li>{rtl_wrap(a.get("span") or "(no span)")} '
+            f'— {rtl_wrap(a.get("analysis") or "(no analysis note)")}</li>'
+            for a in e["annotations"]
+        )
+        period_label = e["period"] or "period unknown"
+        verses.append(
+            f'<div class="example-verse">'
+            f'<div class="verse-text">{rtl_wrap(e["text"])}</div>'
+            f'<div class="poet-meta">{rtl_wrap(e["poet_name"])} '
+            f'<code>{esc(period_label)}</code> &middot; poem <code>{esc(e["poem_id"])}</code> '
+            f'v{e["verse_no"]}</div>'
+            f'<ul class="ann-list">{ann_items}</ul>'
+            f"</div>"
+        )
+    n_poets = len(set(e["poet_name"] for e in examples))
+    return (
+        f'<div class="example-card">'
+        f'<div class="example-head"><span class="set-chip">{set_name}</span> '
+        f'{len(examples)} examples, {n_poets} distinct poets</div>'
+        f"{''.join(verses)}"
+        f"</div>"
+    )
+
+
+def build_multipoet_f1_table(criterion: str) -> str:
+    """F5 vs F10 on their own full 50-poem/1000-verse pool, per model, with
+    the F5-F10 bootstrap CI -- the PRIMARY multi-poet comparison."""
+    vals = [analysis_multipoet["primary_pool"][p][criterion]["per_set"][s]["overall"]["f1"]
+            for p in MODEL_KEYS for s in ("F5", "F10")]
+    vmin, vmax = min(vals), max(vals)
+    rows = []
+    for p in MODEL_KEYS:
+        block = analysis_multipoet["primary_pool"][p][criterion]
+        for s in ("F5", "F10"):
+            c = block["per_set"][s]["overall"]
+            t = f1_color(c["f1"], vmin, vmax)
+            rows.append(
+                f'<tr><th>{esc(MODEL_SHORT[p])}</th><td><span class="set-chip">{s}</span></td>'
+                f'<td>{c["tp"]}</td><td>{c["fp"]}</td><td>{c["fn"]}</td>'
+                f'<td>{c["precision"]:.3f}</td><td>{c["recall"]:.3f}</td>'
+                f'<td class="f1cell" style="--t:{t}"><span>{c["f1"]:.3f}</span></td></tr>'
+            )
+        ci = block["F5_vs_F10"]["bootstrap_ci"]
+        sig = "SIG" if (ci["ci_95"][0] > 0 or ci["ci_95"][1] < 0) else "ns"
+        rows.append(
+            f'<tr class="diff-row"><th></th><td colspan="5">F5&nbsp;&minus;&nbsp;F10 '
+            f'(bootstrap 95% CI over poems)</td>'
+            f'<td colspan="2">{ci["point"]:+.3f} [{ci["ci_95"][0]:+.3f},{ci["ci_95"][1]:+.3f}] '
+            f'<strong>({sig})</strong></td></tr>'
+        )
+    return (
+        f'<table class="f1table" data-criterion="{criterion}">'
+        f"<thead><tr><th>Model</th><th>Set</th><th>TP</th><th>FP</th><th>FN</th>"
+        f"<th>P</th><th>R</th><th>F1</th></tr></thead><tbody>{''.join(rows)}</tbody></table>"
+    )
+
+
+def build_multipoet_prompt_block(set_name: str) -> str:
+    """Same markup as build_prompt_block, reading from multipoet_prompt_previews
+    (F5/F10) instead of prompt_previews (Z/A/B/C/D/D2) -- kept separate so
+    prompt_previews itself (and every existing function keyed off it) stays
+    untouched."""
+    text = multipoet_prompt_previews[set_name]
+    uid = f"prompt-{set_name}"
+    direction = "rtl" if is_majority_arabic(text) else "ltr"
+    return (
+        f'<div class="prompt-block">'
+        f'<div class="prompt-head"><span class="set-chip">{set_name}</span>'
+        f'<button class="copy-btn" data-copy-target="{uid}" type="button">Copy</button></div>'
+        f'<pre id="{uid}" dir="{direction}" class="bidi prompt-pre">{esc(text)}</pre>'
+        f"</div>"
+    )
+
+
+def build_multipoet_section() -> str:
+    if not multipoet_exists:
+        return ""
+    overlap_n = len(multipoet_pool_25_overlap)
+    toggle_row = (
+        '<div class="crit-toggle">'
+        '<button class="crit-btn" data-target="verse" onclick="toggleCriterion(\'verse\')">Verse (primary)</button>'
+        '<button class="crit-btn" data-target="strict" onclick="toggleCriterion(\'strict\')">Strict (secondary)</button>'
+        '<button class="crit-btn" data-target="token" onclick="toggleCriterion(\'token\')">Token-overlap (secondary)</button>'
+        "</div>"
+    )
+    f1_tables = "".join(f'<div data-criterion="{c}">{build_multipoet_f1_table(c)}</div>' for c in CRITERIA)
+    example_cards = build_multipoet_example_card("F5") + build_multipoet_example_card("F10")
+    doc_html = (
+        md_block(multipoet_doc_text) if multipoet_doc_text else
+        "<p><em>docs/phase4/E1_V2_MULTIPOET.md not found.</em></p>"
+    )
+    return f"""
+<details>
+<summary>k. Multi-poet few-shot: F5 vs F10 (own 50-poem pool, added 2026-10-22)</summary>
+<div class="warning-banner">&#9888; <strong>Different pool.</strong> F5/F10 run on their own
+50-poem pool (<code>config/eval_pool_50_multipoet.json</code>, 1000 verse-units) --
+<code>eval_pool.json</code>'s 50 poems minus the 3 poems used as F10 example sources,
+replaced via a verified continuation of the same seed-43 draw. Only
+<strong>{overlap_n}/25</strong> poems overlap with <code>eval_pool_25.json</code> (the pool
+Z/A/B/C/D ran on), so every F5/F10-vs-Z/A/B/C/D comparison below is restricted to that thin,
+Abu-Nuwas-skewed overlap and is indicative only -- F5's own and F10's own numbers (primary
+table just below) use the full 1000-verse pool and are NOT affected by this caveat.</div>
+<p>Supervisor request: 5 examples from 5 different poets (F5) vs. 10 examples from 10
+different poets (F10, with F5's 5 poets included) on the same استعارة فعل subtype prompt --
+isolating "number of examples" from "which examples," which A/B/C/D (2 examples each, all
+from 3 fixed Abu Nuwas poems) could not test. Real cost: <strong>${multipoet_spend:.4f}</strong>
+(1 run &times; 3 models &times; 2 sets &times; 1000 verse-units = 6000 calls, 0 errors, full
+coverage).</p>
+<h4>Example sets (poet + period per example -- the variable this experiment manipulates)</h4>
+{example_cards}
+<h4>PRIMARY: F5 vs F10, full 50-poem pool</h4>
+{toggle_row}
+{f1_tables}
+<h4>Prompts</h4>
+{build_multipoet_prompt_block("F5") if "F5" in multipoet_prompt_previews else ""}
+{build_multipoet_prompt_block("F10") if "F10" in multipoet_prompt_previews else ""}
+<h4>Full analysis (secondary vs. Z/A/B/C/D on the 9-poem overlap, ensemble, plain answer,
+caveats) -- from <code>docs/phase4/E1_V2_MULTIPOET.md</code></h4>
+{doc_html}
+</details>
+"""
+
+
 def build_pool_table() -> str:
     rows = []
     for poem in pool["poems"]:
@@ -1076,6 +1254,9 @@ button.active { background: var(--accent); color: #fff; border-color: var(--acce
 .verse-text { font-size: 1.05rem; margin-bottom: .3rem; }
 .ann-list { margin: 0; padding-inline-start: 1.2rem; font-size: .88rem; color: var(--muted); }
 .example-note { font-size: .85rem; color: var(--muted); font-style: italic; }
+.poet-meta { font-size: .82rem; color: var(--accent-2); margin-bottom: .25rem; }
+.diff-row td, .diff-row th { background: var(--panel); font-style: italic; }
+.crit-toggle { margin: .5rem 0; }
 .total-spend { font-weight: 700; }
 .md-table-wrap { overflow-x: auto; }
 .md-table-wrap table { font-size: .8rem; }
@@ -1147,12 +1328,13 @@ html_parts.append(f"""<!doctype html>
     <span class="badge">3 models</span>
     <span class="badge">6 sets (Z/A/B/C/D/D2)</span>
     <span class="badge">25 poems</span>
-    <span class="badge">{len(manifest)} calls</span>
+    <span class="badge">{scoped_manifest_count} calls</span>
     <span class="badge">1 run per cell</span>
     <span class="badge">actual cost ${total_spend:.4f}</span>
     <span class="badge">Gemini served as gemini-3.6-flash</span>
     <span class="badge">primary metric: verse (2026-10-14)</span>
     <span class="badge">+Opus 5.5 (set A only)</span>
+    <span class="badge">+F5/F10 multi-poet (own 50-poem pool)</span>
   </div>
   <div class="warning-banner">&#9888; Indicative only: single run, no noise baseline.</div>
   <div class="warning-banner" style="margin-top:.5rem">&#9888; Verse (the PRIMARY metric here, by
@@ -1418,6 +1600,7 @@ comparison), then <code>python scripts/build_e1v2_report.py</code> (writes this 
 calls in any step — all read already-collected data.</li>
 </ul>
 </details>
+{build_multipoet_section()}
 </section>
 """)
 
