@@ -2529,3 +2529,118 @@ weights/checkpoints/caches in git.**
   *.bin|*.safetensors` added at the start of this session, confirmed still correct); no Phase
   1-5 file edited; `results/phase6_stronger_ft/raw/*.json` holds metrics + per-verse
   predictions only (same discipline as Phase 5). Total new code+docs+results committed next.
+
+---
+
+**2026-10-22 -- New task: supervisor-requested multi-poet few-shot experiment on E1 v2's
+استعارة فعل subtype prompt -- F5 (5 examples, 5 different poets) vs F10 (10 examples, 10
+different poets, F5 ⊆ F10) vs the existing 2-example sets A/B/C/D, each on its own 50-poem
+pool. No API calls yet (Step 1/2 only); additive-only, same convention as Set D/D2.**
+- Read `CLAUDE.md`, `docs/phase4/E1_V2_RESULTS.md`, this log's tail, every file under
+  `experiments/phase4_e1_v2/` (`e1v2_config.py`, `prompt_builder.py`, `runner.py`,
+  `providers_v2.py`, `parsing_v2.py`, `gt_v2.py`, `scoring_v2.py`, `dryrun_v2.py`,
+  `unit_checks.py`, `analyze_v2.py`, `ensemble_v2.py`, `verse_analysis.py`,
+  `preview_and_diff_D.py`, `dryrun_D.py`, `analyze_D.py`), `experiments/phase4_e1/`
+  (`e1_config.py`, `ali_poems_io.py`, `fewshot_examples.py`, `build_pool.py`),
+  `experiments/phase3_subelements/` (`subtype_defs.py`, `subtype_prompts.py`,
+  `fewshot_prompts.py`, `providers_fixed.py`), `experiments/phase4_e1/config/eval_pool.json`
+  + `example_sets.json`, and `data/ali_poems/manifest.csv`. Backed up
+  `docs/phase4/E1_V2_REPORT.html` -> `docs/phase4/E1_V2_REPORT_before_multipoet.html` first,
+  per task instruction (same convention as the existing `_before_ensemble`/`_before_opus`
+  backups already in that directory). Did not edit v1 (`phase4_e1/`), `phase3_subelements/`,
+  `pilot_3models/`, phase5/6, `CLAUDE.md`, or any existing results/manifest record -- only new
+  files added under `experiments/phase4_e1_v2/` and `experiments/phase4_e1_v2/config/`.
+- **Step 1 (no API calls) -- new files, all additive:**
+  - `multipoet_config.py`: constants (F5_N=5, F10_N=10, F5B_N=5, example-draw
+    seed=42 [a SEPARATE random.seed() call from v1's own EXAMPLE_SEED=42 stream, not shared
+    state], pool-continuation seed=43 matching `e1_config.POOL_SEED` exactly, the Abu-Nuwas-
+    specific exclusion set `OLD_EVAL_POOL_ABU_NUWAS_IDS`).
+  - `multipoet_examples.py`: finds **47 eligible poets** (>=1 poem with an exact-subtype
+    استعارة فعل annotation carrying a non-empty `analysis` note, after the standard
+    NO_TEXT/ALREADY_USED/old-EXAMPLE_POEM_IDS exclusions, plus -- only for أبو نواس -- excluding
+    the original eval_pool.json's own 10 Abu Nuwas poems) spanning 8 periods (العصر الجاهلي=7,
+    مخضرم=5, مخضرم الدولتين=2, العصر الأموي=16, العصر العباسي=12, الخلفاء الراشدون=1,
+    العصر المملوكي=1, blank/unknown=3). Poet-selection order is a DETERMINISTIC
+    period-diversity round robin (not randomized) -- periods visited in a fixed chronological-
+    ish order, poets within a period ordered by poet_id -- so F5 = first 5 of this order, F10 =
+    first 10 (F5 is a strict prefix of F10 by construction), optional F5b = next 5. Only the
+    PER-POET VERSE draw is randomized: one `random.seed(42)` call, then one
+    `random.sample(eligible_verses_for_poet, 1)` per poet IN SELECTION ORDER -- verified this
+    makes F5's 5 draws byte-identical whether or not F10/F5b are ever built (sequential RNG
+    consumption, never reseeded mid-draw). Abu Nuwas was NOT selected into F5/F10/F5b by this
+    round robin (other poets filled the العصر العباسي period slots first by poet_id order), so
+    the Abu-Nuwas-specific eval-pool exclusion never actually had to fire for this draw --
+    noted as such, not hidden.
+    **Selected poets/periods/poems/verses printed in full** (also written to
+    `config/multipoet_example_sets.json`): F5 = الأعشى ميمون (جاهلي, poem 6574 v6) / أبو ذؤيب
+    الهذلي (مخضرم, poem 5661 v6) / بشار بن برد (مخضرم الدولتين, poem 27110 v45) / الفرزدق
+    (أموي, poem 7891 v2) / أبو تمّام (عباسي, poem 4480 v62). F10 adds: زياد بن حنظلة (راشدون,
+    poem 34779 v2) / عفيف الدين التلمساني (مملوكي, poem 29516 v12) / مُليح بن الحكم (period
+    blank, poem 7408 v42) / النابغة الذبياني (جاهلي, poem 3331 v2) / ربيعة بن مقروم (مخضرم,
+    poem 2187 v5). F5b (not run, costed only) adds: أبو دلامة / عمر بن أبي ربيعة / المتنبي /
+    الحمدوي / طرفة بن العبد. Every example verse, its GT span(s), and Dr. Hussein's analysis
+    note were printed and independently re-verified against the poem JSON (not just trusted
+    from the draw) in Step 1's unit checks -- all passed.
+  - `multipoet_prompt_builder.py`: generalizes `prompt_builder.py`'s 2-example fewshot
+    scaffold to N examples (Example 1 = unchanged definition example, Example 2..N+1 = the
+    multipoet draw), reusing `prompt_builder._format_example_verse` unchanged for per-example
+    note formatting -- same "Example i (from the annotated corpus - verse: ...): ..." line
+    format as A/B/C, just more of them. Does NOT edit `prompt_builder.py`,
+    `fewshot_prompts.py`, or `subtype_prompts.py`.
+  - `multipoet_pool.py`: new 50-poem pool = v1's existing `eval_pool.json` 50 poems MINUS the
+    poems used as F5/F10 example sources, replaced by "the next poems from the same seed-43
+    stratified draw" -- **method verified empirically first** (not assumed): CPython's
+    `random.sample(pop, k)` under a fixed seed has the property that `sample(pop, k)[:j] ==
+    sample(pop, j)` for any `j <= k` on the same population/order, so asking for MORE items
+    from the same seeded draw deterministically reproduces the original prefix and extends it.
+    Implemented as two independently-reseeded strata draws (abu_nuwas stratum: fresh
+    `seed(43)` then `sample(abu_nuwas_candidates, len(...))`; other stratum: `seed(43)`, replay
+    the original `sample(abu_nuwas_candidates, 10)` call to reach the identical RNG state v1's
+    code would have had, THEN `sample(other_candidates, len(...))`) -- **verified this
+    continuation reproduces eval_pool.json's exact original 50 poems as the prefix before
+    using it for any replacement.** Default (F5+F10 only) run: 3 poems removed (5661, 29516,
+    34779 -- all tag "other"), replaced by [23986, 27929, 28093] (also "other", preserving
+    10 abu_nuwas + 40 other exactly). Final pool: 50 poems, 1000 verse-units, 421
+    استعارة فعل GT instances, 47/50 overlap with the original eval_pool.json, **9/25 overlap
+    with eval_pool_25.json** (the pool Z/A/B/C/D/D2 actually ran on -- the number requested for
+    comparison). Saved to `config/eval_pool_50_multipoet.json`. (If F5b were ever run, 2 more
+    poems -- 4554, 28095 -- would also need removing/replacing, giving a 991-verse pool
+    slightly different from the F5/F10 pool -- computed and reported for costing purposes only,
+    NOT written over the canonical F5/F10 pool file.)
+  - `unit_checks_multipoet.py`: all 5 checks passed -- (1) A/B/C/Z prompt previews regenerate
+    byte-identical to the already-committed `config/prompt_preview_{Z,A,B,C}.txt` (proves
+    adding F5/F10 touched nothing existing); (2) zero overlap between the new 50-poem pool and
+    the 10 example-source poems; (3) F5's poets ⊆ F10's poets, F10 has exactly 10 distinct
+    poets, one poet per example; (4) every drawn example verse independently reconfirmed (fresh
+    `gt_v2.gt_spans_for_subtype` call, not reusing the draw step's own computation) to carry a
+    real استعارة فعل GT span; (5) wrote `config/prompt_preview_F5.txt` /
+    `prompt_preview_F10.txt`. Rendered F10's full system prompt and confirmed it is the same
+    scaffold as A/B/C/D, just with 10 "Example i (from the annotated corpus - verse: ...): ..."
+    blocks instead of 2.
+- **Step 2 (no API calls) -- `dryrun_multipoet.py`:** real tiktoken `cl100k_base` input-token
+  counts for the ACTUAL F5/F10 prompts x the new pool's real verses (NOT a flat $/call average
+  carried over from D/D2 -- F10's prompt is much longer than A/B/C/D's 2-example scaffold, so a
+  flat average would have understated it), combined with REAL average output-tokens/call per
+  provider computed directly from the completed `run_manifest.json` (anthropic mean=192.3
+  tok/call n=1962, openai mean=98.5 n=1962, google mean=81.8 n=1962 -- confirms output length
+  stays ~input-length-independent, the same assumption `dryrun_v2.py` made for the original
+  Z/A/B/C estimate, now checked against real multi-set data instead of just Phase 3's number).
+  Gemini still priced under all 3 scenarios from `dryrun_v2.py` (config.py legacy / 3.6-flash
+  ESTIMATE_LOW / ESTIMATE_HIGH) given the still-unresolved served-vs-requested model-id
+  ambiguity documented there.
+  **Costs (3 models x 1000 verse-units x 1 run each, worst-case Gemini pricing):**
+  F5 = **$12.40** (1,586,971 input tokens), F10 = **$17.58** (2,573,971 input tokens). Optional
+  Z add-on (dry-run only, not yet run) -- Z on the 41 of the new pool's 50 poems NOT already
+  covered by the existing Z run on `eval_pool_25.json` (9 already are), 906 verse-units -- =
+  **$6.45**. **Required subtotal (F5 + F10 + Z add-on): $36.43.** Optional F5b add-on (its own
+  slightly different 991-verse pool, computed standalone, not written over the canonical
+  F5/F10 pool file) = **+$11.82**, bringing the all-in grand total to **~$48.25** if every
+  optional piece is run. All figures are the worst-case across the 3 Gemini pricing scenarios;
+  the config.py legacy rate happens to coincide with the worst case here (both ≈$3.12/$4.60/
+  $1.46 for F5/F10/Z-addon respectively), noted explicitly rather than silently picking
+  whichever scenario looked smaller.
+- **STOPPING HERE per task instruction and CLAUDE.md rule 5** -- no API call has been made.
+  Presenting the cost breakdown and awaiting the user's explicit "go" + a hard
+  `--max-additional-usd` cap before running `runner.py --confirm` for Step 3. Committing and
+  pushing this session's Step 1/2 code + config (new files only, no existing file content
+  changed) now, per the task's explicit instruction to commit/push before the stop.
