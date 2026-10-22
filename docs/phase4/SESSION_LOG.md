@@ -2644,3 +2644,116 @@ pool. No API calls yet (Step 1/2 only); additive-only, same convention as Set D/
   `--max-additional-usd` cap before running `runner.py --confirm` for Step 3. Committing and
   pushing this session's Step 1/2 code + config (new files only, no existing file content
   changed) now, per the task's explicit instruction to commit/push before the stop.
+
+**User confirmed: F5 + F10 only (not the Z add-on, not F5b), hard cap $40.**
+
+- **Step 3 (API calls).** Wrote `run_multipoet.py` -- a standalone runner (not a modification
+  of `runner.py`) because F5/F10 need `multipoet_prompt_builder.build_system_message_n`
+  (variable-N examples) and the new `eval_pool_50_multipoet.json` pool instead of
+  `runner.py`'s fixed Z/A/B/C/D/D2 call shape; reuses `runner.py`'s manifest/cost/
+  resumability/hard-cap/quota-stop machinery (`spend_so_far`, `call_cost`, `cell_key`,
+  `is_quota_error`, `_save`, `_print_summary`) unchanged, writing into the SAME
+  `results/phase4_e1_v2/run_manifest.json` Z/A/B/C/D/D2 already use (new set_name values
+  F5/F10 never collide with an existing cell_key, purely additive). Dry-run first confirmed
+  the plan (6000 calls, 0 already done) before `--confirm`.
+  - First invocation (`--confirm --max-additional-usd 40`, backgrounded): ran for ~3.5 hours,
+    reached 5554/6000 cells, then **stopped itself** on the runner's existing
+    5-consecutive-error rule -- **Anthropic's API credit balance ran dry** ("Your credit
+    balance is too low to access the Anthropic API"), concentrated in the pool's two largest
+    poems (33381, 33473, both near the end of poem-id sort order) processed last. 120 calls
+    errored + 326 never attempted, 0 silent gaps (every one accounted for in the manifest or
+    the plan). Spend before the stop: $25.25 on F5/F10 (anthropic $16.73, openai $2.91,
+    google $5.61) -- under the $29.97 estimate, nowhere near the $40 cap; the stop was a
+    billing issue, not a cost-cap or code issue. Same precedent already on record in this
+    project (`PROJECT_STATE.md` §3g's Nabigha per-verse retry).
+  - User topped up Anthropic credits and confirmed resume. Second invocation
+    (`--confirm --max-additional-usd 5`, backgrounded): completed in ~10 min, 0 new errors.
+    **Full coverage verified programmatically** (expected 6000 cells == present-and-ok 6000
+    cells, 0 missing, 0 erroring) before proceeding. **Final real cost: $28.0272** (anthropic
+    $18.94, openai $3.10, google $5.99) -- under the $29.97 pre-run estimate despite the
+    detour.
+- **Step 4 (analysis, no API calls).** `analyze_multipoet.py`: first attempt called
+  `scoring_v2.score_set` directly (re-reads/re-parses the ENTIRE `run_manifest.json` from
+  disk on every single verse lookup) against the now-12k+-record manifest thousands of
+  times -- hit the 120s foreground timeout. **Fixed by switching to `ensemble_v2`'s
+  cache-based `score_set_single_model`** (build one parsed cache up front, same fix
+  `ensemble_v2.py`'s own docstring already documents for its own need) -- completed in
+  well under 2 minutes afterward, verified to produce byte-identical F1 values to the slow
+  path via the existing `verify_single_model_cache_scorer` check already in `ensemble_v2.py`.
+  **A second, more consequential bug was then caught before writing anything up**:
+  `scoring_v2.bootstrap_ci_pairwise`'s own `point` field is computed from `score_total()`,
+  which sums over EVERY poem in each input `per_poem` dict -- correct for every prior use of
+  that function (Z/A/B/C/D/D2 always share the SAME 25-poem pool), but wrong for an
+  F5/F10 (50-poem pool) vs. Z/A/B/C/D (25-poem pool) comparison, where `point` would
+  silently mix in poems outside the 9-poem overlap the CI's own bootstrap resampling is
+  actually restricted to (confirmed by inspecting the first-printed numbers: several `point`
+  values fell OUTSIDE their own stated CI95 bounds, which is only possible if `point` and
+  the CI are drawn from different populations). Fixed in `analyze_multipoet.py` by
+  overriding `point` with the same overlap-restricted F1 difference the resampling actually
+  draws from -- the CI *bounds* themselves were always correct (the function's resampling
+  already intersects `set(per_poem_a) & set(per_poem_b))`, so every earlier SIG/ns
+  significance call stands; only the point estimates needed correcting, and were corrected
+  before any number reached `E1_V2_MULTIPOET.md` or the HTML report.
+  - **Primary (F5 vs F10, full 1000-verse pool)**: 8 of 9 model&times;criterion comparisons
+    are `ns`; the one exception is Claude on the primary verse metric, where F10
+    significantly beats F5 (+0.027 F1). Going from 5 to 10 different-poet examples is
+    mostly indistinguishable from noise.
+  - **Secondary (vs. Z/A/B/C/D, 9-poem overlap, flagged thin and 56% Abu-Nuwas-skewed)**:
+    Claude and Gemini both get a real lift from F5/F10 over Z (same pattern as every prior
+    Z-vs-fewshot finding in this project) and land roughly level with or above A/B/D;
+    **GPT is significantly WORSE under F5/F10 than under A/B/D** -- sharper version of GPT's
+    already-known "fewshot doesn't help, sometimes hurts" pattern (Set C finding,
+    `E1_V2_RESULTS.md`).
+  - **Ensemble**: same conclusion as every prior ensemble check in this project (Phase 1
+    §3e, `E1_V2_ENSEMBLE.md`) -- majority vote never beats the best single model, does beat
+    the average of the 3 singles.
+- **Step 5 (write-up + report, no API calls).** Wrote `docs/phase4/E1_V2_MULTIPOET.md` (full
+  design/tables/plain-answer/caveats). Updated `docs/phase4/E1_V2_REPORT.html` via
+  `scripts/build_e1v2_report.py` -- added a new function `build_multipoet_section()` (panel
+  "k", metric toggle, poet+period example cards, different-pool warning banner, full
+  `E1_V2_MULTIPOET.md` embedded via the existing `md_block` helper) and a small, separate
+  `build_multipoet_prompt_block()` (reads `multipoet_prompt_previews`, not the existing
+  `prompt_previews` dict, so nothing keyed off the latter needed touching).
+  **Two real bugs in the EXISTING script were found and fixed before this ran cleanly**,
+  both caused by F5/F10 sharing the same `run_manifest.json` Z/A/B/C/D/D2 already use: (1)
+  the manifest-scanning loop that builds `spend`/`calls_per_set` would `KeyError` on an
+  "F5"/"F10" record (`calls_per_set` is keyed only by `SET_NAMES_FULL`) -- guarded with an
+  explicit `if s not in SET_NAMES_FULL and p != "anthropic_opus": continue`; (2) without that
+  guard, `spend[p]` would have silently absorbed F5/F10's $28.03 into the existing Z/A/B/C/D/
+  D2 cost totals the whole rest of the report relies on, and the header's `{len(manifest)}
+  calls` badge would have jumped to include F5/F10's 6000 calls -- fixed by introducing a
+  separate `scoped_manifest_count` for the badge. **Verified via `diff` against the
+  `E1_V2_REPORT_before_multipoet.html` backup that every existing section (a-j) is
+  byte-identical before/after** except the generation date, the new badge, the provenance
+  file list, and the entirely new panel k -- confirms the fix didn't perturb anything
+  existing. Visually rendered the output in-browser (mandatory per `CLAUDE.md`'s RTL rule):
+  confirmed Arabic verse text/poet names/notes render RTL correctly in the new example
+  cards, the metric toggle (verse/strict/token) correctly switches the new F5/F10 table, and
+  the embedded markdown (wide comparison tables, bold/bullets, the plain-answer section) all
+  render correctly via the existing `md_block` helper. One cosmetic fix made to
+  `E1_V2_MULTIPOET.md` itself before the final render: two single-asterisk `*italic*` spans
+  (not supported by `md_block`, which only handles `**bold**`/`` `code` ``) were showing as
+  literal asterisks in the rendered HTML -- changed to `**bold**` to match the rest of the
+  doc's style, then the report was regenerated once more.
+- Committed and pushed Steps 3-5 (`run_multipoet.py`, `analyze_multipoet.py`,
+  `E1_V2_MULTIPOET.md`, `results/phase4_e1_v2/analysis_report_multipoet.json`, 6000 new
+  `results/phase4_e1_v2/raw/F5_*`/`F10_*` response files, the updated `run_manifest.json`
+  (additive only -- verified every pre-existing Z/A/B/C/D/D2/anthropic_opus record
+  untouched), and the updated `build_e1v2_report.py` + `E1_V2_REPORT.html`) -- commit
+  `4bee6b9`. No Phase 1-4-frozen file, `phase3_subelements/`, `pilot_3models/`, or
+  pre-existing results/manifest record was edited anywhere in this task; everything was
+  additive, per the task's explicit scope instruction.
+
+**Final summary (short, per task's requested closing format)**: cost **$28.0272** (F5+F10
+only, under the $29.97 estimate despite a mid-run Anthropic billing interruption); pool
+composition 50 poems / 1000 verse-units / 10 abu_nuwas + 40 other (3 poems swapped out for
+example sources, replaced via a verified seed-43 draw continuation); verse-level F1 for
+F5/F10 next to the 2-example sets is in `E1_V2_MULTIPOET.md` §2-3 and the HTML report's new
+panel k; CI verdicts: F10 beats F5 significantly only for Claude on the primary verse metric
+(8 of 9 model&times;criterion checks are `ns`), and F5/F10 beat Z significantly for Claude/
+Gemini but are significantly worse than A/B/D for GPT on the thin 9-poem overlap; **plain
+answer: more examples from more poets mostly does not help (10 does not clearly beat 5), and
+whether multi-poet examples beat the existing 2-example sets is strongly model-dependent**
+(helps/neutral for Claude and Gemini, hurts GPT) -- caveats: one run, one draw of
+poets/verses, no noise baseline, and the vs-baseline comparison rests on a thin,
+Abu-Nuwas-skewed 9-poem overlap.
