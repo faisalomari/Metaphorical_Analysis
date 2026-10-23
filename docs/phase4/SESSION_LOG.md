@@ -2757,3 +2757,137 @@ whether multi-poet examples beat the existing 2-example sets is strongly model-d
 (helps/neutral for Claude and Gemini, hurts GPT) -- caveats: one run, one draw of
 poets/verses, no noise baseline, and the vs-baseline comparison rests on a thin,
 Abu-Nuwas-skewed 9-poem overlap.
+
+---
+
+**2026-10-23 — Poet-era few-shot task, Part 1 (analytics) + Part 2 Steps 1-3 (no API calls
+except the planned Step 4, which is gated on user "go")**
+
+Task: for each of the 52 corpus poets, research death years; build era/timeline analytics
+(docs/phase4/ERAS_ANALYTICS.md/.html); build six NEW 2-example fewshot sets (M1/M2/E1/E2/H1/H2)
+selecting example poets by where they fall on the death-year axis (middle band / earliest+latest
+extremes / middle of each half); cost the planned run; STOP for explicit "go" + hard cap before
+any API call. Scope discipline followed: only ADDED files; v1, phase3_subelements, pilot_3models,
+phase5/6, CLAUDE.md, and existing results/manifest records were not touched. Backed up
+`docs/phase4/E1_V2_REPORT.html` to `docs/phase4/E1_V2_REPORT_before_eras.html` before any change
+(copy only, no edits made to E1_V2_REPORT.html yet -- that happens in Step 6, after the run).
+
+**Step 1 (death years, no API calls).** Delegated the 52-poet WebSearch/WebFetch research to a
+background subagent (fork) to keep the lookups out of the main session's context. Wrote
+`data/ali_poems/poet_dates.csv` (poet_id, poet_name, site_period, death_year_ce, death_year_ah,
+approximate, confidence, source_url, note). Result: 36/52 poets have a death year (14 high
+confidence, 10 medium, 12 low); 16 are blank -- 2 are non-individuals (`القرآن الكريم` = Qur'anic
+text; `مجهول (شعراء عباسيون منسيون)` = anonymous collective attribution, poem 28601, the corpus's
+only no-text poem) and 14 are genuinely obscure poets with no death year found in any search
+(ربيعة بن مقروم, ابن قيس الرُّقيّات, مُليح بن الحكم, المُرقِّشُ الأَصغر, السموأل بن عادياء,
+تأبّطَ شَرًّا, النجاشي الحارثي, يزيد بن مفرغ الحميري, أيمن بن خريم, الحمدوي, عبيد بن الأخطل,
+عبد الله بن عبد الحميد اللاحقي, المُرَقِّشُ الأكبر, زياد بن حنظلة). Several dates were flagged as
+disputed/approximate rather than silently picked (عمر بن أبي ربيعة 712/719 split; الخنساء
+645/646 vs. "after 630"; عبد الله بن عمر العرجي and محمد بن يسير الرياشي only a range known,
+midpoint recorded; عفيف الدين التلمساني's 690 AH confirmed against an initially-checked but
+unsupported 688 AH). Full table printed for review in-session; every row carries a `source_url`
+and a `note` with the sourcing/disagreement detail.
+
+**Step 2 (analytics, no API calls).** `experiments/phase4_e1_v2/eras_analytics.py`: joins
+poet_dates.csv against `data/ali_poems/manifest.csv` + `data/ali_poems/poems/*.json`
+(verse/poem counts and استعارة فعل positive-verse counts per poet, poem 28601 excluded from
+verse counts per the task's explicit instruction -- it has verse_count=0 anyway, no text).
+Declared definitions (see the script's own docstring + `experiments/phase4_e1_v2/eras_config.py`):
+PRIMARY = verse-weighted median (784.0 CE) -- chosen over poems-weighted (814.0) or plain
+per-poet (730.5) because every other metric in this project is verse-primary (CLAUDE.md rule 4,
+the 2026-10-14 verse-primary decision); midpoint of the axis = (min+max)/2 = 917.5 CE (range
+544-1291), a distinct concept from the median (axis range vs. distribution center); middle band
+= median ± 75 years; first half/second half split at the median; extremes = earliest/latest 15%
+of dated poets by rank (ties at the boundary year all included). Output:
+`experiments/phase4_e1_v2/config/eras_axis.json` (bins, cumulative curve, per-poet table, band
+membership) plus `docs/phase4/ERAS_ANALYTICS.md` and the interactive single-file
+`docs/phase4/ERAS_ANALYTICS.html` (inline CSS/JS/SVG, no external deps, RTL-aware via
+`pilot_3models.rtl_utils.is_majority_arabic`, collapsible `<details>` sections, light/dark via
+`data-theme` + a toggle button), both built by `scripts/build_eras_report.py` (no hand-typed
+numbers -- verified by rendering it in the built-in browser and reading back its text).
+One bug caught before shipping: the 100-year bins were being sorted as strings (`"1200-1299"`
+sorting before `"500-599"`), not numerically -- fixed in `eras_analytics.py` and both outputs
+regenerated.
+
+**Step 2 (Part 2's eligibility + note-quality filter, no API calls).**
+`experiments/phase4_e1_v2/eras_config.py`'s `note_quality()`: a verse's analysis note is excluded
+if it contains a question mark (؟/?, marks the annotator's own uncertainty), or if (absent any
+of a diacritic-insensitive set of metaphor-reasoning keyword stems -- ستعار/مجاز/كناية/شبه/
+تشبيه/تشابه/كأن) it has <=3 whitespace tokens or matches a leading "word(s): definition"
+colon-gloss pattern (a bare dictionary definition, not an analysis connecting source and target
+of the metaphor). Calibrated against the full 858-note candidate pool before use (printed sample
+exclusions/inclusions in-session for review): question_mark removes 203, colon_gloss removes 66,
+too_short removes 68 (337 total removed); keyword keeps 418, default_keep (longer, no keyword,
+not colon-shaped -- treated as a genuine interpretive paraphrase even without explicit
+terminology) keeps 103 (521 total kept, before the eras-specific poem exclusions below reduce
+the candidate pool further).
+
+**Step 2 (example selection, no API calls).** `experiments/phase4_e1_v2/eras_examples.py`.
+Eligibility: a poem is a candidate source iff not NO_TEXT_POEM_ID / ALREADY_USED_POEM_IDS (5
+Phase-1-frozen) / EXAMPLE_POEM_IDS (3 Abu-Nuwas v1 example poems) / the 10 F5/F10 example-source
+poems / any of eval_pool_25.json's 25 poems (the pool M1..H2 are themselves evaluated on --
+eval_pool_25.json stays byte-unchanged, verified). A poet is eligible iff not القرآن الكريم (not
+an individual), has >=1 candidate verse carrying a genuine-per-`note_quality()` استعارة فعل
+annotation, AND has confidence high/medium in poet_dates.csv (eras_config.SELECTION_CONFIDENCE_
+LEVELS) -- "poets need a reliable death year," per the task.
+
+**Important deviation, declared rather than silently patched**: applying Part 1's full-36-poet-
+corpus year-threshold bands directly to Part 2's selection crashed (`ValueError: pool exhausted`)
+-- most of the full axis's extreme-dated poets (النابغة الذبياني، الأعشى ميمون، امرؤ القيس,
+among others) turned out to have ZERO usable candidate verses in this corpus (their استعارة فعل
+annotations carry EMPTY analysis notes, failing eligibility before `note_quality()` even runs),
+so the population actually available to draw from is only 14 poets (confidence high/medium +
+eligible, out of the 36 dated), and several roles (earliest-extreme, first-half-middle) were
+competing for the same 2-3 of those 14. Fix: Part 2 computes its own bands by RANK within this
+14-poet selection-eligible population (not by absolute year threshold over the full corpus) --
+`k_extreme = max(2, ceil(0.15 * 14)) = 3` poets from each end (earliest_extreme, latest_extreme);
+`middle_band` = the `SELECTION_MIDDLE_N=4` poets whose rank is nearest the population's center
+(exactly enough for M1+M2); first half/second half = an even rank split; `h1_pool`/`h2_pool` =
+each half's ranks minus whatever the extreme/middle roles already claimed. For this run, the 5
+resulting pools came out pairwise disjoint by construction (verified programmatically) --
+middle_band (4): الكميت بن زيد الأسدي(743)/أبو دلامة(777)/أبو نواس(814)/أبو تمّام(845);
+earliest_extreme (3): طرفة بن العبد(569)/قطري بن الفجاءة(698)/جميل بن معمر(701); latest_extreme
+(3): الصنوبري(945)/أبو فراس الحمداني(968)/محمد بن هاشم الخالدي(996); h1_pool (2): الفرزدق(728)/
+جرير بن عطيّة(728); h2_pool (2): ديك الجن(849)/ابن الرومي(896). This changes nothing about Part
+1's own ERAS_ANALYTICS.md bands/extremes, which stay computed over the full 36-poet axis exactly
+as specified.
+
+Selection (fixed order M1,M2,E1,E2,H1,H2, one global used-poet set, seed=42 for the per-poet
+verse draw -- `random.seed(42)` then one `random.sample(eligible_verses, 1)` per poet in
+selection order, sequential, never reseeded mid-draw, same convention as
+`multipoet_examples.py`): M1=(الكميت بن زيد الأسدي, أبو دلامة), M2=(أبو نواس, أبو تمّام),
+E1=(طرفة بن العبد, الصنوبري), E2=(قطري بن الفجاءة المازني, أبو فراس الحمداني),
+H1=(الفرزدق, جرير بن عطيّة), H2=(ديك الجن, ابن الرومي) -- 12 globally distinct poets, verified.
+`experiments/phase4_e1_v2/unit_checks_eras.py`: (1) Z/A/B/C previews still byte-identical (0
+regression); (2) 0 overlap between the 12 example-source poems and eval_pool_25.json's 25; (3)
+exactly 2 distinct poets per set, 12 distinct overall; (4) every drawn verse independently
+reconfirmed (fresh `gt_v2.gt_spans_for_subtype` call) to carry a real استعارة فعل GT span
+matching its drawn annotation; (5) all six sets' rendered prompts share the byte-identical
+header + Example-1 scaffold as set A (multipoet_prompt_builder.build_system_message_n with N=2,
+reusing prompt_builder's own per-example formatting, unchanged) -- only Example 2/3 differ.
+All checks passed. Wrote `config/prompt_preview_{M1,M2,E1,E2,H1,H2}.txt`. Full poet/death-year/
+era/poem/verse/span/note detail for all 12 examples and M1's full rendered prompt (648 tokens,
+cl100k_base) were printed in-session for review.
+
+Note: one kept example note (H1's الفرزدق poem 3197 v2, span "دائي، والشفاء") reads as a
+general discussion of the verse's rhetorical effect (hesitant vs. unhesitant speech) rather than
+a tight explanation of that specific span -- it passed `note_quality()` legitimately (a
+substantive, non-short, non-colon-gloss, non-question-marked paragraph) but is flagged here as a
+real editorial quirk in the underlying corpus annotation, not hand-"fixed" (the ground-truth data
+itself is not edited).
+
+**Step 3 (cost dry-run, no API calls).** `experiments/phase4_e1_v2/dryrun_eras.py` -- same method
+as `dryrun_multipoet.py` (real tiktoken `cl100k_base` input-token counts for the actual 6 built
+prompts x eval_pool_25.json's real 327 verse-units, real average output-tokens/call per provider
+from the completed `run_manifest.json`: anthropic mean=194.1 n=3962, openai mean=96.6 n=3962,
+google mean=82.1 n=3962). Unlike F5/F10, these six sets run on the SAME pool (eval_pool_25.json)
+Z/A/B/C/D/D2 already used, so Step 5's analysis will be a clean, non-thin comparison (no 9-poem-
+overlap caveat). **Planned run: 6 sets x 327 verse-units x 3 models x 1 run = 5,886 calls.
+Total estimated cost: $17.3096** (worst-case and config.py Gemini pricing coincide here) -- per
+set: M1 $2.97, M2 $2.86, E1 $2.72, E2 $2.79, H1 $3.06, H2 $2.91.
+
+**STOPPING HERE per task instruction and CLAUDE.md rule 5** -- no API call has been made.
+Presenting the cost breakdown and awaiting the user's explicit "go" + a hard
+`--max-additional-usd` cap before running `run_eras.py --confirm` (a standalone runner,
+analogous to `run_multipoet.py`, to be used for Step 4). Committing and pushing everything so
+far now, per the task's explicit instruction to commit/push before the stop.
