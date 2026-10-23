@@ -2891,3 +2891,95 @@ Presenting the cost breakdown and awaiting the user's explicit "go" + a hard
 `--max-additional-usd` cap before running `run_eras.py --confirm` (a standalone runner,
 analogous to `run_multipoet.py`, to be used for Step 4). Committing and pushing everything so
 far now, per the task's explicit instruction to commit/push before the stop.
+
+**User confirmed: go ahead, `--max-additional-usd 25`.**
+
+- **Step 4 (API calls).** `run_eras.py --confirm --max-additional-usd 25` (backgrounded): ran
+  6 sets × 327 verse-units × 3 models = 5,886 calls. **Mid-run incident, same root cause as the
+  2026-10-22 multipoet incident**: Anthropic's credit balance ran dry partway through. Unlike
+  that prior incident, this run's plan order interleaves providers per verse (anthropic → openai
+  → google for each verse in turn), so each anthropic failure was immediately followed by
+  successful openai/google calls that reset the existing 5-consecutive-error counter — the
+  self-stop rule never fired, and the run continued to completion, finishing openai/google at
+  327/327 for every set while silently accumulating 167 anthropic errors spread across all 6
+  sets (0 of them actually hidden — every one recorded in the manifest with its error string).
+  First invocation finished with `DONE: plan exhausted`, total manifest spend $65.1626
+  (anthropic $40.0243, openai $6.8359, google $12.9867, cap $73.36 — never hit the cap; the
+  incomplete coverage was a credits problem, not a cost-cap problem). User was asked how to
+  proceed (top up now vs. stop the process first); attempting to kill the background process on
+  my own was blocked by the Auto Mode classifier (`[Interfere With Workloads]`), so the user was
+  asked directly instead. **User topped up credits while the first invocation was still running**
+  — its remaining anthropic calls (for poems processed after the top-up) started succeeding
+  again automatically, no restart needed, confirmed by watching the log. A plain resume
+  (`run_eras.py --confirm --max-additional-usd 10`, no `--force`) then picked up exactly the 167
+  still-missing anthropic cells (resumability correctly skipped every already-succeeded cell) and
+  completed them with 0 further errors. **Final verified coverage: 327/327 ok cells for every
+  (set, provider) pair, 18/18 combinations, 0 errors** (`analyze_eras.py`'s own completeness
+  assertion, run before any scoring). **Final real cost: $16.7459** (manifest total before this
+  task: $48.3560; after: $65.1019) — under the $17.3096 pre-run estimate despite the detour.
+- **Step 5 (scoring/analysis, no API calls).** `analyze_eras.py`: first attempt called
+  `scoring_v2.score_set` directly, which rescans the ENTIRE run_manifest.json (now 18,099
+  records) on every single verse lookup — hit the same slowness `analyze_multipoet.py` already
+  documented hitting for the same reason. **Fixed the same way**: switched to
+  `ensemble_v2`'s cache-based `score_set_single_model`/`score_set_ensemble` (both already generic
+  over `set_name`, so no edits to `ensemble_v2.py` were needed to reuse them for M1..H2),
+  verified byte-identical to the existing frozen `analysis_report.json`/`analysis_report_D.json`/
+  `analysis_report_verse.json` F1 values first (`verify_single_model_cache_scorer`, 54/54 checked
+  values matched). Computed, per model × criterion (verse primary, strict/token secondary):
+  overall/abu_nuwas/other TP/FP/FN/P/R/F1 for all 6 sets; POOLED M=M1+M2/E=E1+E2/H=H1+H2
+  (per-poem TP/FP/FN summed across the two constituent sets, declared explicitly as answering
+  "does drawing from this band help regardless of which 2 poets," at the cost of doubling each
+  poem's verse-units for that comparison only); bootstrap 95% CIs (n=2000, seed=0, per-poem
+  resampling, `scoring_v2.bootstrap_ci_pairwise` reused unchanged) for within-pair noise
+  (M1-M2/E1-E2/H1-H2), pooled cross-category (M-E/M-H/E-H), each set vs Z, and each set vs
+  A/B/D2 (30 pairs × 3 criteria × 3 models); the 2-of-3 majority-vote ensemble for all 6 sets.
+  Wrote `results/phase4_e1_v2/analysis_report_eras.json`.
+  **Key findings (verse-primary)**: the era effect is model-dependent and in no case clearly
+  larger than ordinary example-choice noise. Claude: pooled M and H both beat E (M−E +0.052 SIG,
+  E−H −0.044 SIG), but the within-band noise (M1 vs M2 −0.069 SIG, E1 vs E2 −0.087 SIG) is
+  comparable to or larger than that signal. GPT: no pooled cross-category comparison is
+  significant at all — only within-pair noise (M1 vs M2 −0.068 SIG) is. Gemini: the cleanest
+  case for a real effect — pooled H beats both M (−0.042 SIG) and E (−0.044 SIG) — but H1 vs H2
+  itself is also significant (+0.078 SIG), tempering the read. Every set significantly beats Z
+  for Claude; GPT shows the opposite (fewshot sometimes hurts, its established pattern); Gemini's
+  gain over Z is concentrated in H1/H2 only. The one cross-model-consistent finding: **E1**
+  (طرفة بن العبد + الصنوبري) is significantly worse than the existing A/B/D2 sets for **all three
+  models** — a property of that specific poet pairing, not of "extremes" as a category (E2 does
+  not show the same pattern). Ensemble lands close to the best single model in every set (above
+  it in 3/6, below in 3/6), consistently above the average of the 3 singles — same pattern as
+  every other ensemble check in this project.
+- **Step 6 (write-up + report, no API calls).** Wrote `docs/phase4/E1_V2_ERAS_FEWSHOT.md` (full
+  design/rank-based-band-fix/tables/plain-answer/caveats). Updated
+  `docs/phase4/E1_V2_REPORT.html` via `scripts/build_e1v2_report.py` — added a new `eras_exists`-
+  guarded loading block (same convention as `multipoet_exists`), `build_eras_f1_table`/
+  `build_eras_pooled_table`/`build_eras_ci_table`/`build_eras_ensemble_table`/
+  `build_eras_example_card`/`build_eras_prompt_block`/`build_eras_section` (panel "l", metric
+  toggle shared with the rest of the page via the existing page-global `toggleCriterion`), a
+  link to `ERAS_ANALYTICS.html`, and the full `E1_V2_ERAS_FEWSHOT.md` embedded via the existing
+  `md_block` helper. No existing function or panel (a–k) was edited — confirmed by the script's
+  own post-write verification (every existing F1 value string still present) and by visually
+  rendering the new panel in-browser (mandatory per CLAUDE.md's RTL rule): Arabic poet
+  names/verse text/notes render RTL in the new example cards, the metric toggle correctly
+  switches the new F1/pooled/CI tables, SIG rows highlight correctly, and the embedded markdown
+  write-up (headers, bold, tables) renders via `md_block` exactly as the multipoet section's
+  already-working embed does.
+- Verified additive-only: `eval_pool_25.json` has zero diff (byte-unchanged); `run_manifest.json`
+  diff confirmed to be the old 12,213 records unchanged as an exact prefix of the new 18,099 (no
+  existing record edited, 5,886 new ones appended); no Phase 1-4-frozen file, `phase3_subelements/`,
+  `pilot_3models/`, `phase5/6`, or `CLAUDE.md` touched anywhere in this task.
+
+**Final summary (short, per task's requested closing format)**: cost **$16.7459** (6 sets ×
+327 verse-units × 3 models = 5,886 calls, under the $17.3096 estimate despite a mid-run
+Anthropic credit-balance detour); poet-date research covered 36/52 corpus poets (14 high / 10
+medium / 12 low confidence, 16 blank with reasons); group composition — M1=(الكميت بن زيد
+الأسدي, أبو دلامة), M2=(أبو نواس, أبو تمّام), E1=(طرفة بن العبد, الصنوبري), E2=(قطري بن الفجاءة
+المازني, أبو فراس الحمداني), H1=(الفرزدق, جرير بن عطيّة), H2=(ديك الجن, ابن الرومي) — 12 globally
+distinct poets, selected by RANK within a 14-poet selection-eligible population (a declared
+deviation from Part 1's full-corpus year-threshold bands, which left some roles pool-exhausted);
+verse-level F1 next to Z/A/B/D2 and full CI verdicts are in `E1_V2_ERAS_FEWSHOT.md` §2-3 and the
+HTML report's new panel l; **plain answer: whether poet era matters is model-dependent and the
+signal is rarely larger than ordinary example-choice noise** — Claude and Gemini each show some
+pooled band-level effect (by two different, non-overlapping routes), GPT shows none, and the one
+consistent cross-model finding is that set E1's specific poet pairing underperforms the existing
+A/B/D2 sets for all three models. Caveats: one run, one draw of poets/verses, no noise baseline,
+and only 14 of 36 dated poets survived the selection-eligibility restriction.

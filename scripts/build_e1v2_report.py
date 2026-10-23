@@ -101,6 +101,12 @@ SOURCE_FILES_USED = [
     "experiments/phase4_e1_v2/config/prompt_preview_F5.txt",
     "experiments/phase4_e1_v2/config/prompt_preview_F10.txt",
     "docs/phase4/E1_V2_MULTIPOET.md",
+    "results/phase4_e1_v2/analysis_report_eras.json",
+    "experiments/phase4_e1_v2/config/eras_example_sets.json",
+    "experiments/phase4_e1_v2/config/eras_axis.json",
+    "data/ali_poems/poet_dates.csv",
+    "docs/phase4/ERAS_ANALYTICS.md",
+    "docs/phase4/E1_V2_ERAS_FEWSHOT.md",
 ]
 
 
@@ -292,6 +298,27 @@ if multipoet_exists:
         key=int,
     )
 
+# Poet-era few-shot sets M1/M2/E1/E2/H1/H2 (added 2026-10-23, docs/phase4/E1_V2_ERAS_FEWSHOT.md)
+# -- run on the SAME eval_pool_25.json pool Z/A/B/C/D/D2 already use (no thin-overlap caveat,
+# unlike F5/F10). Guarded with an existence check, same convention as multipoet_exists above.
+ERAS_SET_NAMES = ["M1", "M2", "E1", "E2", "H1", "H2"]
+ERAS_DOC_PATH = DOCS_DIR / "E1_V2_ERAS_FEWSHOT.md"
+ANALYSIS_ERAS_PATH = RESULTS_DIR / "analysis_report_eras.json"
+ERAS_EXAMPLE_SETS_PATH = E1V2_DIR / "config" / "eras_example_sets.json"
+ERAS_AXIS_PATH = E1V2_DIR / "config" / "eras_axis.json"
+eras_exists = ANALYSIS_ERAS_PATH.exists()
+if eras_exists:
+    analysis_eras = json.loads(ANALYSIS_ERAS_PATH.read_text(encoding="utf-8"))
+    eras_example_sets = json.loads(ERAS_EXAMPLE_SETS_PATH.read_text(encoding="utf-8"))["sets"]
+    eras_axis = json.loads(ERAS_AXIS_PATH.read_text(encoding="utf-8"))
+    eras_doc_text = ERAS_DOC_PATH.read_text(encoding="utf-8") if ERAS_DOC_PATH.exists() else None
+    eras_prompt_previews = {
+        s: (E1V2_DIR / "config" / f"prompt_preview_{s}.txt").read_text(encoding="utf-8")
+        for s in ERAS_SET_NAMES
+    }
+    eras_manifest_records = [r for r in manifest if r["set_name"] in ERAS_SET_NAMES]
+    eras_per_poet_by_id = {p["poet_id"]: p for p in eras_axis["per_poet"]}
+
 # `analysis`: per_set lookups use analysis_d (it has all 6 sets, Z/A/B/C recomputed the same
 # way as analysis_zabc -- checked in verify_f1_matches_json below). `analysis`'s
 # pairwise_bootstrap_ci is the UNION of analysis_zabc's 6 ZABC pairs and analysis_d's 9
@@ -401,6 +428,9 @@ total_spend = sum(spend.values())
 if multipoet_exists:
     multipoet_spend = sum(call_cost(r["provider"], r.get("usage"))
                            for r in multipoet_manifest_records if r.get("error") is None)
+if eras_exists:
+    eras_spend = sum(call_cost(r["provider"], r.get("usage"))
+                      for r in eras_manifest_records if r.get("error") is None)
 total_calls_ok = sum(calls_ok.values())
 total_calls_err = sum(calls_err.values())
 pool_verses = pool["pool_verses"]
@@ -1006,6 +1036,176 @@ caveats) -- from <code>docs/phase4/E1_V2_MULTIPOET.md</code></h4>
 """
 
 
+def build_eras_prompt_block(set_name: str) -> str:
+    """Same markup as build_multipoet_prompt_block, reading from eras_prompt_previews."""
+    text = eras_prompt_previews[set_name]
+    uid = f"prompt-{set_name}"
+    direction = "rtl" if is_majority_arabic(text) else "ltr"
+    return (
+        f'<div class="prompt-block">'
+        f'<div class="prompt-head"><span class="set-chip">{set_name}</span>'
+        f'<button class="copy-btn" data-copy-target="{uid}" type="button">Copy</button></div>'
+        f'<pre id="{uid}" dir="{direction}" class="bidi prompt-pre">{esc(text)}</pre>'
+        f"</div>"
+    )
+
+
+def build_eras_f1_table(criterion: str) -> str:
+    vals = [analysis_eras["models"][p][criterion]["per_set"][s]["overall"]["f1"]
+            for p in MODEL_KEYS for s in ERAS_SET_NAMES]
+    vmin, vmax = min(vals), max(vals)
+    rows = []
+    for p in MODEL_KEYS:
+        row_vals = {s: analysis_eras["models"][p][criterion]["per_set"][s]["overall"]["f1"] for s in ERAS_SET_NAMES}
+        best_set = max(row_vals, key=row_vals.get)
+        cells = []
+        for s in ERAS_SET_NAMES:
+            v = row_vals[s]
+            t = f1_color(v, vmin, vmax)
+            best_cls = " best" if s == best_set else ""
+            cells.append(f'<td class="f1cell{best_cls}" style="--t:{t}"><span>{v:.3f}</span></td>')
+        rows.append(f"<tr><th>{esc(MODEL_SHORT[p])}</th>{''.join(cells)}</tr>")
+    header = "".join(f"<th>{s}</th>" for s in ERAS_SET_NAMES)
+    return (f'<table class="f1table" data-criterion="{criterion}">'
+            f"<thead><tr><th>Model</th>{header}</tr></thead><tbody>{''.join(rows)}</tbody></table>")
+
+
+def build_eras_pooled_table(criterion: str) -> str:
+    rows = []
+    for p in MODEL_KEYS:
+        for g in ("M", "E", "H"):
+            c = analysis_eras["pooled"][p][criterion]["per_group"][g]["overall"]
+            rows.append(f"<tr><td>{esc(MODEL_SHORT[p])}</td><td>{g}</td><td>{c['tp']}</td>"
+                        f"<td>{c['fp']}</td><td>{c['fn']}</td><td>{c['precision']:.3f}</td>"
+                        f"<td>{c['recall']:.3f}</td><td>{c['f1']:.3f}</td></tr>")
+    return ('<table class="detail-table" data-criterion="' + criterion + '"><thead><tr><th>Model</th><th>Group</th>'
+           "<th>TP</th><th>FP</th><th>FN</th><th>P</th><th>R</th><th>F1</th></tr></thead>"
+           f"<tbody>{''.join(rows)}</tbody></table>")
+
+
+def build_eras_ci_table(criterion: str) -> str:
+    pairs = (["M1-M2", "E1-E2", "H1-H2"]
+             + [f"{s}-{b}" for s in ERAS_SET_NAMES for b in ("Z", "A", "B", "D2")])
+    rows = []
+    for p in MODEL_KEYS:
+        for pair in pairs:
+            ci = analysis_eras["models"][p][criterion]["pairwise_bootstrap_ci"][pair]
+            d = analysis_eras["models"][p][criterion]["per_poem_diff_signs"][pair]
+            sig = not (ci["ci_95"][0] <= 0 <= ci["ci_95"][1])
+            cls = " sig" if sig else ""
+            rows.append(f'<tr><td>{esc(MODEL_SHORT[p])}</td><td>{pair}</td>'
+                       f'<td class="cicell{cls}">{ci["point"]:+.3f} [{ci["ci_95"][0]:+.3f},'
+                       f'{ci["ci_95"][1]:+.3f}]{" <b>SIG</b>" if sig else " ns"}</td>'
+                       f'<td>{d["a_greater"]}/{d["b_greater"]}/{d["tied"]}</td></tr>')
+    for p in MODEL_KEYS:
+        for a, b in [("M", "E"), ("M", "H"), ("E", "H")]:
+            key = f"{a}-{b}"
+            ci = analysis_eras["pooled"][p][criterion]["pairwise_bootstrap_ci"][key]
+            d = analysis_eras["pooled"][p][criterion]["per_poem_diff_signs"][key]
+            sig = not (ci["ci_95"][0] <= 0 <= ci["ci_95"][1])
+            cls = " sig" if sig else ""
+            rows.append(f'<tr class="pooled-row"><td>{esc(MODEL_SHORT[p])}</td><td>POOLED {key}</td>'
+                       f'<td class="cicell{cls}">{ci["point"]:+.3f} [{ci["ci_95"][0]:+.3f},'
+                       f'{ci["ci_95"][1]:+.3f}]{" <b>SIG</b>" if sig else " ns"}</td>'
+                       f'<td>{d["a_greater"]}/{d["b_greater"]}/{d["tied"]}</td></tr>')
+    return ('<table class="detail-table" data-criterion="' + criterion + '"><thead><tr><th>Model</th>'
+           "<th>Pair (F1_i&minus;F1_j)</th><th>Bootstrap 95% CI</th>"
+           "<th>per-poem signs (i&gt;j/j&gt;i/tied)</th></tr></thead>"
+           f"<tbody>{''.join(rows)}</tbody></table>")
+
+
+def build_eras_ensemble_table() -> str:
+    rows = []
+    for s in ERAS_SET_NAMES:
+        e = analysis_eras["ensemble"]["verse"][s]
+        rows.append(f"<tr><td>{s}</td><td>{e['ensemble']['overall']['f1']:.3f}</td>"
+                    f"<td>{esc(MODEL_SHORT.get(e['best_single']['model'], e['best_single']['model']))} "
+                    f"{e['best_single']['f1']:.3f}</td><td>{e['avg_single_f1']:.3f}</td></tr>")
+    return ('<table class="detail-table"><thead><tr><th>Set</th><th>Ensemble F1 (verse)</th>'
+           "<th>Best single</th><th>Avg of 3 singles</th></tr></thead>"
+           f"<tbody>{''.join(rows)}</tbody></table>")
+
+
+def build_eras_example_card(set_name: str) -> str:
+    examples = eras_example_sets[set_name]
+    verses = []
+    for e in examples:
+        ann_items = "".join(
+            f'<li>{rtl_wrap(a.get("span") or "(no span)")} '
+            f'— {rtl_wrap(a.get("analysis") or "(no analysis note)")}</li>'
+            for a in e["annotations"]
+        )
+        p = eras_per_poet_by_id.get(e["poet_id"], {})
+        death_year = p.get("death_year_ce")
+        period_label = e["period"] or "period unknown"
+        verses.append(
+            f'<div class="example-verse">'
+            f'<div class="verse-text">{rtl_wrap(e["text"])}</div>'
+            f'<div class="poet-meta">{rtl_wrap(e["poet_name"])} '
+            f'<code>{esc(period_label)}</code> &middot; death {death_year if death_year is not None else "?"} CE '
+            f'&middot; poem <code>{esc(e["poem_id"])}</code> v{e["verse_no"]}</div>'
+            f'<ul class="ann-list">{ann_items}</ul>'
+            f"</div>"
+        )
+    return (
+        f'<div class="example-card">'
+        f'<div class="example-head"><span class="set-chip">{set_name}</span> '
+        f'{len(examples)} examples, {len(set(e["poet_name"] for e in examples))} distinct poets</div>'
+        f"{''.join(verses)}"
+        f"</div>"
+    )
+
+
+def build_eras_section() -> str:
+    if not eras_exists:
+        return ""
+    toggle_row = (
+        '<div class="crit-toggle">'
+        '<button class="crit-btn" data-target="verse" onclick="toggleCriterion(\'verse\')">Verse (primary)</button>'
+        '<button class="crit-btn" data-target="strict" onclick="toggleCriterion(\'strict\')">Strict (secondary)</button>'
+        '<button class="crit-btn" data-target="token" onclick="toggleCriterion(\'token\')">Token-overlap (secondary)</button>'
+        "</div>"
+    )
+    f1_tables = "".join(f'<div data-criterion="{c}">{build_eras_f1_table(c)}</div>' for c in CRITERIA)
+    pooled_tables = "".join(f'<div data-criterion="{c}">{build_eras_pooled_table(c)}</div>' for c in CRITERIA)
+    ci_tables = "".join(f'<div data-criterion="{c}">{build_eras_ci_table(c)}</div>' for c in CRITERIA)
+    example_cards = "".join(build_eras_example_card(s) for s in ERAS_SET_NAMES)
+    prompt_blocks = "".join(build_eras_prompt_block(s) for s in ERAS_SET_NAMES)
+    doc_html = (
+        md_block(eras_doc_text) if eras_doc_text else
+        "<p><em>docs/phase4/E1_V2_ERAS_FEWSHOT.md not found.</em></p>"
+    )
+    return f"""
+<details>
+<summary>l. Poet-era few-shot: M1/M2/E1/E2/H1/H2 (same eval_pool_25 pool, added 2026-10-23)</summary>
+<p>Does the ERA of the example poets (by death year) matter -- middle of the distribution vs.
+the extremes vs. the middle of each half? All 6 sets run on the SAME 25-poem pool Z/A/B/C/D/D2
+already use (no thin-overlap caveat). Full corpus death-year analytics (poet_dates.csv research,
+median/midpoint/bands over all 52 poets): see
+<a href="ERAS_ANALYTICS.html" target="_blank" rel="noopener">ERAS_ANALYTICS.html</a> /
+<code>docs/phase4/ERAS_ANALYTICS.md</code>. Real cost: <strong>${eras_spend:.4f}</strong>
+(6 sets &times; 3 models &times; 327 verse-units = 5,886 calls, 0 errors in the final manifest
+after a mid-run Anthropic credit-balance resume).</p>
+<h4>Example sets (poet + death year + era per example)</h4>
+{example_cards}
+<h4>F1 by set and model</h4>
+{toggle_row}
+{f1_tables}
+<h4>Pooled (M=M1+M2, E=E1+E2, H=H1+H2)</h4>
+{pooled_tables}
+<h4>Bootstrap 95% CIs (within-pair noise, pooled cross-category, vs Z, vs A/B/D2)</h4>
+{ci_tables}
+<h4>Ensemble (2-of-3 majority vote, verse-primary)</h4>
+{build_eras_ensemble_table()}
+<h4>Prompts</h4>
+{prompt_blocks}
+<h4>Full write-up (design, rank-based band fix, every table, plain answer, caveats) -- from
+<code>docs/phase4/E1_V2_ERAS_FEWSHOT.md</code></h4>
+{doc_html}
+</details>
+"""
+
+
 def build_pool_table() -> str:
     rows = []
     for poem in pool["poems"]:
@@ -1601,6 +1801,7 @@ calls in any step — all read already-collected data.</li>
 </ul>
 </details>
 {build_multipoet_section()}
+{build_eras_section()}
 </section>
 """)
 
