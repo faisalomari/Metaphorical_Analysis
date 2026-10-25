@@ -2983,3 +2983,75 @@ pooled band-level effect (by two different, non-overlapping routes), GPT shows n
 consistent cross-model finding is that set E1's specific poet pairing underperforms the existing
 A/B/D2 sets for all three models. Caveats: one run, one draw of poets/verses, no noise baseline,
 and only 14 of 36 dated poets survived the selection-eligibility restriction.
+
+---
+
+**2026-10-25 — Quartile few-shot task (Q1/Q2), Step 0 (no API calls) — STOPPED at the >100-year
+guard, awaiting user decision**
+
+Task: supervisor-style quartile design — "timeline from 0 to 1000; take one poem from 250 and
+one from 750" — i.e. each new set = one example near the death-year axis's 25th percentile (P25)
++ one near its 75th percentile (P75), named **Q1** and **Q2** (different poets from each other),
+on top of the existing M1/M2 (middle), E1/E2 (extremes), H1/H2 (middle-of-each-half) sets. Scope
+discipline followed: nothing existing read, edited, or re-run; H1/H2 and all prior results/
+manifest records stay exactly as they are (H1/H2 are to be relabeled in the report as "H1/H2
+(same-half variant, not the requested design)" once Q1/Q2 exist, but their underlying data is
+untouched). Backed up `docs/phase4/E1_V2_REPORT.html` to `docs/phase4/E1_V2_REPORT_before_q.html`
+(copy only, byte-identical, before any change).
+
+**Axis** (same corpus axis as `ERAS_ANALYTICS.md`, dated-poet population, min=544 max=1291 CE,
+range 747 years):
+- **Range-axis targets** (min + 0.25×range, min + 0.75×range): **P25 = 730.75 CE, P75 = 1104.25
+  CE**.
+- **Verse-weighted-quantile alternative** (25th/75th percentile of death year, weighted by verse
+  count, over the same 36-poet dated axis `ERAS_ANALYTICS.md`'s verse-weighted median [784.0] is
+  built on — linear-interpolation percentile of the expanded multiset): **P25 = 649.0 CE, P75 =
+  845.0 CE**.
+
+**Nearest-5-eligible-poets check** (same eligibility as M1..H2: poem not NO_TEXT/ALREADY_USED/
+v1-EXAMPLE/F5-F10/eval_pool_25, >=1 candidate verse passing `eras_config.note_quality()`,
+`poet_dates.csv` confidence high/medium — this is exactly the same 14-poet selection-eligible
+population M1..H2 were drawn from), excluding the 8 poets already used in M1/M2/E1/E2 where
+possible (الكميت بن زيد الأسدي, أبو دلامة, أبو نواس, أبو تمّام, طرفة بن العبد, قطري بن الفجاءة
+المازني, الصنوبري, أبو فراس الحمداني):
+
+| Target | Nearest 5 eligible (excl. M/E) | death | distance | n candidate verses |
+|---|---|---|---|---|
+| P25 range (730.75) | الفرزدق *(H1)* | 728 | 2.75 | 5 |
+| | جرير بن عطيّة *(H1)* | 728 | 2.75 | 3 |
+| | جميل بن معمر *(unused)* | 701 | 29.75 | 20 |
+| | ديك الجن *(H2)* | 849 | 118.25 | 37 |
+| | ابن الرومي *(H2)* | 896 | 165.25 | 35 |
+| P75 range (1104.25) | محمد بن هاشم الخالدي *(unused)* | 996 | **108.25** | 4 |
+| | ابن الرومي *(H2)* | 896 | 208.25 | 35 |
+| | ديك الجن *(H2)* | 849 | 255.25 | 37 |
+| | الفرزدق *(H1)* | 728 | 376.25 | 5 |
+| | جرير بن عطيّة *(H1)* | 728 | 376.25 | 3 |
+
+**STOP condition hit, per task instruction**: the nearest eligible poet to P75 (range-axis) is
+**108.25 years away — over the 100-year threshold** — and this holds whether or not M1/M2/E1/E2's
+poets are excluded (محمد بن هاشم الخالدي was never used by any existing set, so excluding M/E
+changes nothing for this particular number). A second, independent problem surfaced by the same
+table: of the 14-poet selection-eligible population, **only 2 poets have never been used by any
+existing set (M1/M2/E1/E2/H1/H2)** — جميل بن معمر (701 CE) and محمد بن هاشم الخالدي (996 CE) —
+every other candidate near either quartile point is already an H1/H2 poet (الفرزدق/جرير بن عطيّة
+near P25; ديك الجن/ابن الرومي near P75). Since Q1 and Q2 together need 4 distinct poet slots (2
+sets × 2 poets, "different poets from each other" per the task), **the pool cannot supply two
+full, mutually-distinct Q-sets without either reusing H1/H2 poets or accepting a >100-year gap**
+no matter which axis definition is used — the quantile alternative does not fix this on its own
+(see below). Per task instruction: **stopping here, not choosing silently.** Options for the
+user to pick from (full detail, including the quantile-axis version of the same table, in the
+next log entry once a decision is made):
+  **(a) Range-axis points (P25=730.75, P75=1104.25) with the nearest available poets** — accepts
+  either the >100y-away محمد بن هاشم الخالدي for the P75 slot (count=4 candidate verses, the
+  thinnest of the whole 14-poet pool) or reusing an H1/H2 poet (ديك الجن/ابن الرومي, d=118-255 vs
+  a true P75 target) for one or both Q-sets.
+  **(b) Quantile-based points (P25=649.0, P75=845.0, verse-weighted)** — closer in absolute
+  distance for P75 (ديك الجن at d=4, ابن الرومي at d=51) but those are themselves H1/H2 poets, so
+  this still requires H1/H2 poet-reuse for at least the P75 slot; only marginally eases P25
+  (جميل بن معمر's distance drops from 29.75 to 52.0 relative to the quantile point — i.e. WORSE
+  for P25, better for P75). Neither option supplies 4 fully fresh, mutually-distinct poets without
+  reuse — that is a property of this corpus's thin eligible-poet population (only 14 of 36 dated
+  poets survive the standing eligibility filter), not of the axis-definition choice.
+No API calls made. Awaiting user's explicit choice between (a) and (b), and whether H1/H2-poet
+reuse is acceptable for Q1/Q2 given the above, before Step 0's poet/verse draw proceeds.
