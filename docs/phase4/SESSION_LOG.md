@@ -3055,3 +3055,98 @@ next log entry once a decision is made):
   poets survive the standing eligibility filter), not of the axis-definition choice.
 No API calls made. Awaiting user's explicit choice between (a) and (b), and whether H1/H2-poet
 reuse is acceptable for Q1/Q2 given the above, before Step 0's poet/verse draw proceeds.
+
+**User's decision**: quantile axis (P25=649.0, P75=845.0 CE, verse-weighted). H1/H2-poet reuse
+allowed for the **P75 slot only**, declared and printed wherever it happens; M1/M2/E1/E2 poets
+never reused, no exception; Q1 and Q2 use 4 distinct poets between them; P75 slot prefers H2's
+own two poets split across Q1/Q2 (ديك الجن for one, ابن الرومي for the other); P25 slot prefers
+the nearest poet(s) never used by ANY existing set.
+
+**Step 0 continued (no API calls): Q1/Q2 selection + draw.**
+`experiments/phase4_e1_v2/eras_quartile_config.py` (constants + an independent
+re-implementation of the weighted-percentile computation, asserted to reproduce
+`eras_axis.json`'s frozen median_by_verses=784.0 at q=0.5 as a self-check) +
+`experiments/phase4_e1_v2/eras_quartile_examples.py` (selection + draw, reusing
+`eras_examples.build_eligible_poets`/`draw_examples` UNCHANGED — same poem-exclusion set as
+every eras set: NO_TEXT/ALREADY_USED/v1-EXAMPLE/F5-F10/eval_pool_25).
+
+**P25-slot bug caught and fixed before any file was written**: a first version of
+`pick_p25_candidates()` ranked candidates by (confidence tier, distance) only, which let
+محمد بن هاشم الخالدي (996 CE, medium confidence, but **347 years** from P25=649 — he actually
+belongs near P75, where he is only 151 years away) outrank النمر بن تولب العكلي (635 CE, low
+confidence, only **14 years** from P25) purely on confidence tier, producing a target-point-vs-
+nearest-poet mismatch (distance=347.00 printed for Q2's P25 slot on the first run — caught by
+inspection before unit checks or any draw was trusted). Fixed by adding a "must be closer to the
+P25 target than to the P75 target" filter before the confidence-tier ranking even runs — a
+candidate that actually belongs to the OTHER quartile can no longer leak into this one regardless
+of confidence. Declared, not silently patched (see `eras_quartile_examples.py`'s
+`pick_p25_candidates` docstring).
+
+**Final selection** (all distances in years, verse-weighted-quantile targets P25=649.0/P75=845.0):
+
+| Set | P25 slot | P75 slot |
+|---|---|---|
+| Q1 | جميل بن معمر (701 CE, medium conf., d=52.00, 20 candidate verses) | ديك الجن (849 CE, medium conf., d=4.00, 37 candidate verses) **[reused from H2]** |
+| Q2 | النمر بن تولب العكلي (635 CE, low conf. — declared fallback, d=14.00, 3 candidate verses) | ابن الرومي (896 CE, high conf., d=51.00, 35 candidate verses) **[reused from H2]** |
+
+**Declared deviation**: النمر بن تولب العكلي is "low" confidence, one tier below the
+high/medium standing eligibility rule every other eras set used — admitted here ONLY because
+the P25 slot's high/medium-confidence pool has exactly ONE never-used candidate (جميل بن معمر),
+and the task calls for 2 distinct P25 poets; the next-nearest low-confidence candidate was taken
+rather than silently reusing an H1/H2 or M1/M2/E1/E2 poet for the P25 slot (same "declare, don't
+silently patch" convention as `eras_examples.py`'s own rank-based band-fix deviation).
+**Declared reuse**: ديك الجن and ابن الرومي are H2's own two poets — **Q shares its P75-slot
+poets with H2**, so any Q-vs-H comparison in the analysis step is confounded by shared examples
+(flagged again in Step 3/4's report text, not just here).
+
+Drawn example verses (seed=42, one `random.seed()` call + sequential `random.sample(..., 1)`
+per poet in order Q1-P25, Q1-P75, Q2-P25, Q2-P75 — own RNG stream, separate from every other
+module's draw):
+- Q1 / جميل بن معمر: poem 18677 v15 — "في كُلِّ يَوْمٍ لقَلبي مِنْ تَذَكُّرِهمْ تَغْرِيبةٌ وَلِدَمْعي
+  مِنْهُمُ سَفَرُ" — span «وَلِدَمْعي مِنْهُمُ سَفَرُ», analysis: "الدمع يسافر من هنا نحوهم، أي يسقط
+  ويسافر بعيدًا عن القوم الحاليين في إثر القوم الماضين".
+- Q1 / ديك الجن: poem 25685 v11 — "تَجودُ بِهِ في النَّومِ غَيْرِ مُصَرَّدٍ وَيُحزِنُ أيْقاظًا
+  علَيْها عَطاؤُها" — span «عَطاؤُها», analysis: "العطاء استعارة للوصال (وربما للقبلة)، فهي أمور لا
+  تعطى على الحقيقة".
+- Q2 / النمر بن تولب العكلي: poem 23986 v21 — "أتَى حصنَهُ ما أتَى تُبَّعًا وأبرهَةَ المَلكُ
+  الأعظمَا" — span «أتَى حصنَهُ ما أتَى تُبَّعًا», analysis: "كأنّ المصير يأتي".
+- Q2 / ابن الرومي: poem 12331 v9 — "قد بدرتْ سَبة الخطيب فما لجلج في قيله ولا اكترثَا" — span
+  «قد بدرتْ سَبة الخطيب فما لجلج في قيله ولا اكترثَا», analysis (full, reproduced verbatim from
+  the corpus annotation): "هو أراد أن يتكلم، لكن سبّته [استه] سبقته وأعطته كلامًا. فجاء كلامه غير
+  ملجلج (غير متردد)، بل واضحًا، ولم يأبه بأحد من الحاضرين. قد يكون هنا تعريض بوهب، بأنّه عندما
+  يخطب هو يتردد ويكترث بمن حوله، لكنه استه اليوم أسعفته، فجاء كلامه واضحًا على غير عادة."
+
+`experiments/phase4_e1_v2/unit_checks_quartile.py`: (1) Z/A/B/C **and** M1/M2/E1/E2/H1/H2 prompt
+previews regenerate byte-identical (confirms this task perturbed nothing existing); (2) 0 overlap
+between the 4 Q1/Q2 example-source poems (18677, 25685, 23986, 12331) and eval_pool_25.json's 25;
+(3) exactly 2 distinct poets per set, 4 distinct overall, 0 M1/M2/E1/E2 poets reused, H1/H2 reuse
+exactly equal to the declared {ديك الجن, ابن الرومي} set; (4) every drawn verse independently
+reconfirmed (fresh `gt_v2.gt_spans_for_subtype` call) to carry a real استعارة فعل GT span; (5) Q1
+and Q2's rendered prompts share the byte-identical header + Example-1 scaffold as set A. All
+checks passed. Wrote `config/prompt_preview_{Q1,Q2}.txt`;
+Q1 = **604 tokens** (cl100k_base), Q2 = 671 tokens — Q1's full rendered prompt:
+
+> You are an Arabic rhetoric analysis engine. Follow instructions strictly.
+>
+> SUB-ELEMENT DEFINITION (REFERENCE): استعارة فعل — "اللفظ المُستعار هو فعل، أو له معنى الفعل
+> (مثل المصدر)، مُستخدم استعارةً لا حقيقة." Example 1 («هُم يتساقَونَ المنايا»، the standing
+> scaffold example, byte-identical to set A). Example 2 = the جميل بن معمر verse above. Example 3
+> = the ديك الجن verse above.
+
+(Full byte-exact text in `config/prompt_preview_Q1.txt`; Q2's analogous file swaps in النمر بن
+تولب العكلي / ابن الرومي.)
+
+**Step 1 (cost dry-run, no API calls).** `experiments/phase4_e1_v2/dryrun_quartile.py` — same
+method as `dryrun_eras.py` (reuses its `build_cell_input_tokens`/`price_block` unchanged), real
+tiktoken `cl100k_base` input-token counts for Q1/Q2's actual built prompts × eval_pool_25.json's
+real 327 verse-units, real average output-tokens/call per provider from the completed
+`run_manifest.json` (anthropic mean=193.6 n=5924, openai mean=96.6 n=5924, google mean=81.5
+n=5924 — pooled across every set now in the manifest, including M1..H2, confirming output length
+is still ~input-independent). **Planned run: 2 sets × 327 verse-units × 3 models × 1 run = 654
+calls. Total estimated cost: $5.9032** (worst-case and config.py Gemini pricing coincide here) —
+Q1 $2.8941, Q2 $3.0091.
+
+**STOPPING HERE per task instruction and CLAUDE.md rule 5** — no API call has been made.
+Presenting the cost breakdown and awaiting the user's explicit "go" + a hard
+`--max-additional-usd` cap before running `run_quartile.py --confirm` (Step 2). Committing and
+pushing everything so far now, per the task's explicit instruction.
