@@ -3150,3 +3150,64 @@ Q1 $2.8941, Q2 $3.0091.
 Presenting the cost breakdown and awaiting the user's explicit "go" + a hard
 `--max-additional-usd` cap before running `run_quartile.py --confirm` (Step 2). Committing and
 pushing everything so far now, per the task's explicit instruction.
+
+**User confirmed: go ahead, `--max-additional-usd 10`.**
+
+- **Step 2 (API calls).** First invocation of `run_quartile.py --confirm --max-additional-usd 10`
+  was launched backgrounded incorrectly (a shell-level `&` combined with the harness's own
+  background-process flag double-backgrounded it) and was killed after only 11/654 cells —
+  caught immediately by checking the manifest rather than trusting the "exited with code 0"
+  status, and re-launched correctly (no shell `&`, harness background flag only). The runner's
+  resumability skipped the 11 already-done cells automatically, no `--force` needed, no
+  double-spend. **Final verified coverage: 327/327 ok cells for every (set, provider) pair, 6/6
+  combinations, 0 errors.** Real cost for this task: manifest total spend went from $65.1449
+  (baseline, includes the earlier Phase 4 `anthropic_opus` task) to $70.8228 — **$5.6779 actual**,
+  under the $5.9032 pre-run estimate.
+- **Step 3 (scoring/analysis, no API calls).** `experiments/phase4_e1_v2/analyze_quartile.py`
+  (mirrors `analyze_eras.py`'s cache-based-scorer approach unchanged — `ensemble_v2.build_parsed_
+  cache`/`score_set_single_model`/`score_set_ensemble`, both already generic over `set_name`).
+  Computes, per model × criterion (verse PRIMARY, strict/token secondary): Q1/Q2 individual
+  TP/FP/FN/P/R/F1; POOLED Q=Q1+Q2; bootstrap 95% CIs (n=2000, seed=0) for Q1-vs-Q2, pooled-Q-vs-
+  pooled-M/E/H, pooled-Q-vs-Z, pooled-Q-vs-A/B/D2; 3-model ensemble for Q1/Q2.
+  **Verified served Gemini model_id directly from every manifest record** (all google-provider
+  rows across the ENTIRE manifest, M1..H2 and Q1/Q2 alike): every single one logs
+  `model_id="gemini-3.5-flash"` — **never `gemini-3.6-flash`**. This matters because
+  `analyze_eras.py`'s own `DISPLAY` dict labels google as `"Gemini (served: gemini-3.6-flash)"` —
+  that label is simply wrong (cosmetic/print-only, does not affect any stored score; left as-is
+  per this task's additive-only scope, flagged in both this log and `E1_V2_ERAS_FEWSHOT.md`).
+  **Caught and fixed the "Pooled Gemini" table bug the task asked to check**: §2's
+  "Pooled (M=M1+M2, E=E1+E2, H=H1+H2), verse-primary" table in `E1_V2_ERAS_FEWSHOT.md` had
+  Gemini's row showing **strict-criterion** numbers (82/218/276 → F1 0.249, etc.) mislabeled as
+  verse-primary — Claude's and GPT's pooled rows in that same table were already correct; only
+  Gemini's row was swapped. Confirmed directly against `analysis_report_eras.json` (never wrong
+  itself — this was purely a markdown transcription error) and corrected in place with a marked
+  note (real verse-primary pooled Gemini: M=126/174/128 F1=0.455, E=137/168/117 F1=0.490,
+  H=167/216/87 F1=0.524 — consistent with Gemini's own per-set verse F1 range 0.410-0.548 shown
+  directly above that table).
+
+  **Headline Q1/Q2 results (verse-primary)**:
+
+  | Model | Q1 F1 | Q2 F1 | Pooled Q F1 | (ref) M | (ref) E | (ref) H |
+  |---|---|---|---|---|---|---|
+  | Claude | 0.445 | 0.588 | 0.524 | 0.553 | 0.501 | 0.545 |
+  | GPT | 0.453 | 0.464 | 0.459 | 0.504 | 0.490 | 0.505 |
+  | Gemini | 0.450 | 0.495 | 0.473 | 0.455 | 0.490 | 0.524 |
+
+  Full per-model/per-criterion tables, every CI, and per-poem diff signs:
+  `results/phase4_e1_v2/analysis_report_quartile.json`.
+
+  **CI verdicts (verse-primary)**: Q1 vs Q2 is **not** significant for Claude/GPT/Gemini on
+  verse (Claude's within-pair gap IS significant on strict/token, see the full JSON — mirrors
+  the within-band noise pattern every prior M1-M2/E1-E2/H1-H2 check already found). Pooled Q vs
+  pooled M/E/H: **all ns** for Claude and Gemini on verse; for GPT, Q is **significantly worse**
+  than both M (−0.045 SIG) and H (−0.046 SIG) — the one model-specific signal in this design.
+  Pooled Q vs Z: **SIG positive for Claude and Gemini** (+0.066, +0.080), **SIG negative for GPT**
+  (−0.090) — the same per-model fewshot-helps/hurts split every other E1 v2 fewshot comparison in
+  this project has already shown. Pooled Q vs A/B/D2: mostly `ns`; GPT is the one model where Q
+  is significantly worse than every one of A/B/D2 on verse.
+  **Declared confound, stated again per the task's explicit instruction**: Q shares its P75-slot
+  poets (ديك الجن, ابن الرومي) with H2 — every Q-vs-H comparison above is confounded by this
+  shared-example overlap, not a clean independent-design comparison the way Q-vs-M/E/Z/A/B/D2 are.
+  3-model ensemble: Q1 ensemble F1=0.486 (best single openai 0.453, avg 0.449); Q2 ensemble
+  F1=0.557 (best single anthropic 0.588, avg 0.516) — same "lands near the best single, above the
+  average of the 3 singles" pattern as every other ensemble check in this project.

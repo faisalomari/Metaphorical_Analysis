@@ -148,9 +148,25 @@ tables below cover every model.)
 | GPT | M | 169 | 247 | 85 | 0.406 | 0.665 | 0.504 |
 | GPT | E | 150 | 208 | 104 | 0.419 | 0.591 | 0.490 |
 | GPT | H | 163 | 229 | 91 | 0.416 | 0.642 | 0.505 |
-| Gemini | M | 82 | 218 | 276 | 0.273 | 0.229 | 0.249 |
-| Gemini | E | 82 | 223 | 276 | 0.269 | 0.229 | 0.247 |
-| Gemini | H | 108 | 275 | 250 | 0.282 | 0.302 | 0.291 |
+| Gemini | M | 126 | 174 | 128 | 0.420 | 0.496 | 0.455 |
+| Gemini | E | 137 | 168 | 117 | 0.449 | 0.539 | 0.490 |
+| Gemini | H | 167 | 216 | 87 | 0.436 | 0.657 | 0.524 |
+
+**Correction, added 2026-10-25 (quartile-task Step 3 cross-check):** the Gemini row above was
+originally published with the **strict-criterion** pooled numbers (TP/FP/FN 82/218/276,
+82/223/276, 108/275/250, F1 0.249/0.247/0.291) mislabeled as verse-primary — caught by checking
+this table against `results/phase4_e1_v2/analysis_report_eras.json` directly, where the actual
+verse-primary pooled values are the ones now shown (126/174/128, 137/168/117, 167/216/87, F1
+0.455/0.490/0.524), consistent with Gemini's own per-set verse F1 range (0.410–0.548) directly
+above. Claude's and GPT's pooled rows were already correct (verified against the same JSON) —
+only Gemini's row had this mislabeling. The underlying `analysis_report_eras.json` itself was
+never wrong; this was a write-up/transcription error in this markdown file only. Separately
+verified from every `run_manifest.json` google-provider record (M1..H2 and the later Q1/Q2
+quartile sets alike): the model actually served throughout is **`gemini-3.5-flash`**, never
+`gemini-3.6-flash` — a label used in `analyze_eras.py`'s own `DISPLAY` dict (`"Gemini (served:
+gemini-3.6-flash)"`) that this cross-check also found to be incorrect; it is cosmetic
+(print-only, does not affect any stored score) and is left as-is per this task's "only ADD, do
+not edit existing files" scope, but is flagged here so a future reader does not repeat it.
 
 ---
 
