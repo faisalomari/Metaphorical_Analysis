@@ -3102,12 +3102,15 @@ poets with H2**, so any Q-vs-H comparison in the analysis step is confounded by 
 Drawn example verses (seed=42, one `random.seed()` call + sequential `random.sample(..., 1)`
 per poet in order Q1-P25, Q1-P75, Q2-P25, Q2-P75 — own RNG stream, separate from every other
 module's draw):
-- Q1 / جميل بن معمر: poem 18677 v15 — "في كُلِّ يَوْمٍ لقَلبي مِنْ تَذَكُّرِهمْ تَغْرِيبةٌ وَلِدَمْعي
-  مِنْهُمُ سَفَرُ" — span «وَلِدَمْعي مِنْهُمُ سَفَرُ», analysis: "الدمع يسافر من هنا نحوهم، أي يسقط
-  ويسافر بعيدًا عن القوم الحاليين في إثر القوم الماضين".
-- Q1 / ديك الجن: poem 25685 v11 — "تَجودُ بِهِ في النَّومِ غَيْرِ مُصَرَّدٍ وَيُحزِنُ أيْقاظًا
+- Q1 / جميل بن معمر: poem 25685 v11 — "تَجودُ بِهِ في النَّومِ غَيْرِ مُصَرَّدٍ وَيُحزِنُ أيْقاظًا
   علَيْها عَطاؤُها" — span «عَطاؤُها», analysis: "العطاء استعارة للوصال (وربما للقبلة)، فهي أمور لا
   تعطى على الحقيقة".
+- Q1 / ديك الجن: poem 18677 v15 — "في كُلِّ يَوْمٍ لقَلبي مِنْ تَذَكُّرِهمْ تَغْرِيبةٌ وَلِدَمْعي
+  مِنْهُمُ سَفَرُ" — span «وَلِدَمْعي مِنْهُمُ سَفَرُ», analysis: "الدمع يسافر من هنا نحوهم، أي يسقط
+  ويسافر بعيدًا عن القوم الحاليين في إثر القوم الماضين".
+  **(Correction, same session: an earlier draft of this log entry had Q1's two poems swapped
+  between these two poets — independently reconfirmed against `data/ali_poems/manifest.csv`
+  before fixing; the underlying code/data/HTML render were never wrong, only this write-up.)**
 - Q2 / النمر بن تولب العكلي: poem 23986 v21 — "أتَى حصنَهُ ما أتَى تُبَّعًا وأبرهَةَ المَلكُ
   الأعظمَا" — span «أتَى حصنَهُ ما أتَى تُبَّعًا», analysis: "كأنّ المصير يأتي".
 - Q2 / ابن الرومي: poem 12331 v9 — "قد بدرتْ سَبة الخطيب فما لجلج في قيله ولا اكترثَا" — span
@@ -3161,8 +3164,11 @@ pushing everything so far now, per the task's explicit instruction.
   resumability skipped the 11 already-done cells automatically, no `--force` needed, no
   double-spend. **Final verified coverage: 327/327 ok cells for every (set, provider) pair, 6/6
   combinations, 0 errors.** Real cost for this task: manifest total spend went from $65.1449
-  (baseline, includes the earlier Phase 4 `anthropic_opus` task) to $70.8228 — **$5.6779 actual**,
-  under the $5.9032 pre-run estimate.
+  (baseline, includes the earlier Phase 4 `anthropic_opus` task) to $70.8228. **Actual Q1/Q2
+  cost, computed directly as the sum of `call_cost()` over every Q1/Q2 manifest record (the
+  precise figure — the naive before/after delta understates it slightly because the 11 cells
+  from the first, double-backgrounded launch attempt were already folded into the "baseline"
+  snapshot taken after that attempt): $5.7209**, under the $5.9032 pre-run estimate.
 - **Step 3 (scoring/analysis, no API calls).** `experiments/phase4_e1_v2/analyze_quartile.py`
   (mirrors `analyze_eras.py`'s cache-based-scorer approach unchanged — `ensemble_v2.build_parsed_
   cache`/`score_set_single_model`/`score_set_ensemble`, both already generic over `set_name`).
@@ -3196,18 +3202,86 @@ pushing everything so far now, per the task's explicit instruction.
   Full per-model/per-criterion tables, every CI, and per-poem diff signs:
   `results/phase4_e1_v2/analysis_report_quartile.json`.
 
-  **CI verdicts (verse-primary)**: Q1 vs Q2 is **not** significant for Claude/GPT/Gemini on
-  verse (Claude's within-pair gap IS significant on strict/token, see the full JSON — mirrors
-  the within-band noise pattern every prior M1-M2/E1-E2/H1-H2 check already found). Pooled Q vs
-  pooled M/E/H: **all ns** for Claude and Gemini on verse; for GPT, Q is **significantly worse**
-  than both M (−0.045 SIG) and H (−0.046 SIG) — the one model-specific signal in this design.
-  Pooled Q vs Z: **SIG positive for Claude and Gemini** (+0.066, +0.080), **SIG negative for GPT**
-  (−0.090) — the same per-model fewshot-helps/hurts split every other E1 v2 fewshot comparison in
-  this project has already shown. Pooled Q vs A/B/D2: mostly `ns`; GPT is the one model where Q
-  is significantly worse than every one of A/B/D2 on verse.
+  **CI verdicts (verse-primary)**: Q1 vs Q2 is **SIG for Claude** (F1diff=-0.1425,
+  CI95=[-0.2178,-0.0659] — Q2/ابن الرومي clearly outscores Q1/ديك الجن for Claude specifically,
+  TP=92/FP=94/FN=35/F1=0.588 vs TP=57/FP=72/FN=70/F1=0.445), **ns for GPT and Gemini**
+  (mirrors the within-band noise pattern every prior M1-M2/E1-E2/H1-H2 check already found, just
+  concentrated in one model here instead of spread across all three). Pooled Q vs pooled M/E:
+  **ns for all 3 models**. Pooled Q vs pooled H: **ns for Claude**, **SIG negative for GPT**
+  (−0.0455) **and Gemini** (−0.0513) — recall this comparison is the one flagged as confounded
+  (Q shares its P75-slot poets with H2). Pooled Q vs Z: **SIG positive for Claude** (+0.1469)
+  **and Gemini** (+0.0797), **SIG negative for GPT** (−0.0895) — the same per-model
+  fewshot-helps/hurts split every other E1 v2 fewshot comparison in this project has already
+  shown. Pooled Q vs A/B/D2: GPT is **SIG negative against all three** (A −0.0817, B −0.0537,
+  D2 −0.0439); Claude is SIG negative against A (−0.0525) and D2 (−0.0443) but ns against B;
+  Gemini is SIG negative against A only (−0.0383), ns against B/D2.
   **Declared confound, stated again per the task's explicit instruction**: Q shares its P75-slot
   poets (ديك الجن, ابن الرومي) with H2 — every Q-vs-H comparison above is confounded by this
   shared-example overlap, not a clean independent-design comparison the way Q-vs-M/E/Z/A/B/D2 are.
   3-model ensemble: Q1 ensemble F1=0.486 (best single openai 0.453, avg 0.449); Q2 ensemble
   F1=0.557 (best single anthropic 0.588, avg 0.516) — same "lands near the best single, above the
   average of the 3 singles" pattern as every other ensemble check in this project.
+
+- **Step 4 (write-up + report, no API calls).** Added a new "§6 — Quartile few-shot experiment
+  (Q1/Q2)" section to `docs/phase4/E1_V2_ERAS_FEWSHOT.md` (target points + the >100y STOP,
+  selection/reuse/fallback with the declared P25-candidate-ranking bug fix, verse-primary
+  results, pooled-Q table, the full CI table, ensemble, the "Pooled Gemini" write-up-bug
+  correction, plain answer, caveats) and relabeled H1/H2 in §1.4's table as "(same-half variant,
+  not the requested design)" with an explanatory note, per the task's explicit instruction —
+  H1/H2's underlying data and every number built from them is untouched.
+  **Write-up bug caught and fixed while assembling this section**: an earlier draft of this log's
+  own "drawn example verses" list had Q1's two poems swapped between its two poets (جميل بن معمر
+  and ديك الجن) — caught by independently cross-checking `data/ali_poems/manifest.csv`'s
+  poem-to-poet mapping (poem 25685 → جميل بن معمر, poem 18677 → ديك الجن) before writing the doc
+  section, and before trusting the HTML render. The underlying code/data/manifest/HTML render
+  were **never** wrong (confirmed by re-running `eras_quartile_examples.build_quartile_sets()`
+  three times and diffing against the persisted `config/quartile_example_sets.json` — bit-
+  identical every time); only this log's manual transcription had the two poems swapped. Fixed
+  in both this log (above) and the new doc section.
+  **Cost figure corrected too**: the Step 2 entry's "$5.6779 actual" was a naive before/after-
+  manifest-total delta that (harmlessly but incorrectly) folded the 11 stray cells from the
+  first, double-backgrounded launch attempt into its "baseline" snapshot; the precise figure,
+  summed directly over every Q1/Q2 manifest record's own `call_cost()`, is **$5.7209** (still
+  under the $5.9032 estimate) — corrected in both this log and the new doc section.
+
+  `scripts/build_e1v2_report.py`: added a `quartile_exists`-guarded loading block (same
+  convention as `eras_exists`/`multipoet_exists`), `build_quartile_f1_table`/
+  `build_quartile_pooled_table`/`build_quartile_ci_table`/`build_quartile_ensemble_table`/
+  `build_quartile_example_card`/`build_quartile_prompt_block`/`build_quartile_section` (new panel
+  "m", metric toggle shared with the rest of the page via the existing page-global
+  `toggleCriterion`). No existing function, panel (a-l), or stored value was edited — confirmed
+  by the script's own post-write self-checks (every existing F1 value string still present,
+  5886/5886 completeness unchanged) and by visually rendering the new panel in the built-in
+  browser (mandatory per CLAUDE.md's RTL rule): Arabic poet names/verse text/analysis notes in
+  the new Q1/Q2 example cards render RTL correctly, the metric toggle correctly switches the new
+  F1/pooled/CI tables between verse/strict/token (spot-checked: Claude strict Q1=0.214 matches
+  `analysis_report_quartile.json` exactly), and SIG rows highlight correctly in the new CI table
+  (e.g. Claude Q1-Q2 -0.143 SIG, GPT Q-A -0.082 SIG, both confirmed against the JSON).
+- Verified additive-only: `eval_pool_25.json` has zero diff (byte-unchanged); `run_manifest.json`
+  diff confirmed to be the old 18,099 records unchanged as an exact prefix of the new 20,061 (no
+  existing record edited, 1,962 new ones appended); no Phase 1-4-frozen file, `phase3_subelements/`,
+  `pilot_3models/`, `phase5/6`, `CLAUDE.md`, or any H1/H2/M1/M2/E1/E2 result was touched anywhere
+  in this task.
+
+**Final summary (short, per task's requested closing format)**: target points — range axis
+P25=730.75/P75=1104.25 CE (rejected, P75's nearest poet was 108y away); **verse-weighted-quantile
+axis chosen, P25=649.0/P75=845.0 CE**. Poets chosen — Q1=(جميل بن معمر P25, ديك الجن P75 *reused
+from H2*), Q2=(النمر بن تولب العكلي P25 *declared low-confidence fallback*, ابن الرومي P75
+*reused from H2*) — only 2 poets in the whole 14-poet eligible pool were never used by any
+existing set. Cost: **$5.7209** (654 calls, under the $5.9032 estimate). Verse F1 (Pooled Q) next
+to M/E/H: Claude 0.524 (vs M 0.553/E 0.501/H 0.545), GPT 0.459 (vs M 0.504/E 0.490/H 0.505),
+Gemini 0.473 (vs M 0.455/E 0.490/H 0.524) — full table + vs Z/A/B/D2 in §6.3/§6.4. CI verdicts:
+Q1 vs Q2 SIG for Claude only (Q2's ابن الرومي example clearly outperforms Q1's ديك الجن example,
++0.14 F1); pooled Q vs M/E all `ns` for every model; pooled Q vs H SIG negative for GPT/Gemini
+but **confounded by shared P75-slot poets with H2**; pooled Q vs Z SIG positive for
+Claude/Gemini, SIG negative for GPT (the familiar per-model fewshot split); pooled Q vs A/B/D2
+mixed, GPT significantly worse than all three. **Plain answer: the literal quartile design
+performs about the same as every other example-selection strategy already tried (middle-band,
+extremes) for Claude and Gemini, and is a clear net negative for GPT relative to zero-shot and
+every 2-example baseline** — example-selection strategy along the death-year axis does not
+reliably move the needle beyond ordinary draw-to-draw noise, consistent with every other E1 v2
+fewshot-example-selection finding in this project. Two write-up bugs were caught and fixed
+during Step 3/4 (unrelated to Q1/Q2's own correctness): §2's "Pooled Gemini" verse-primary table
+had silently carried strict-criterion numbers, and this log's own first draft had Q1's two
+example poems swapped between poets — both confirmed against independent sources (the raw JSON
+report, the manifest poem-poet mapping) and corrected in place.

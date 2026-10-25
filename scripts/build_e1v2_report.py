@@ -319,6 +319,25 @@ if eras_exists:
     eras_manifest_records = [r for r in manifest if r["set_name"] in ERAS_SET_NAMES]
     eras_per_poet_by_id = {p["poet_id"]: p for p in eras_axis["per_poet"]}
 
+# Quartile few-shot sets Q1/Q2 (added 2026-10-25, docs/phase4/E1_V2_ERAS_FEWSHOT.md §6) -- the
+# literally-requested "one example near P25, one near P75" design, on top of the eras sets above
+# (H1/H2 are a DIFFERENT, earlier-requested "same-half" variant -- relabeled as such in the doc).
+# Same eval_pool_25.json pool, same guard convention as eras_exists above.
+QUARTILE_SET_NAMES = ["Q1", "Q2"]
+ANALYSIS_QUARTILE_PATH = RESULTS_DIR / "analysis_report_quartile.json"
+QUARTILE_EXAMPLE_SETS_PATH = E1V2_DIR / "config" / "quartile_example_sets.json"
+QUARTILE_TARGETS_PATH = E1V2_DIR / "config" / "quartile_targets.json"
+quartile_exists = ANALYSIS_QUARTILE_PATH.exists()
+if quartile_exists:
+    analysis_quartile = json.loads(ANALYSIS_QUARTILE_PATH.read_text(encoding="utf-8"))
+    quartile_example_sets = json.loads(QUARTILE_EXAMPLE_SETS_PATH.read_text(encoding="utf-8"))["sets"]
+    quartile_targets = json.loads(QUARTILE_TARGETS_PATH.read_text(encoding="utf-8"))
+    quartile_prompt_previews = {
+        s: (E1V2_DIR / "config" / f"prompt_preview_{s}.txt").read_text(encoding="utf-8")
+        for s in QUARTILE_SET_NAMES
+    }
+    quartile_manifest_records = [r for r in manifest if r["set_name"] in QUARTILE_SET_NAMES]
+
 # `analysis`: per_set lookups use analysis_d (it has all 6 sets, Z/A/B/C recomputed the same
 # way as analysis_zabc -- checked in verify_f1_matches_json below). `analysis`'s
 # pairwise_bootstrap_ci is the UNION of analysis_zabc's 6 ZABC pairs and analysis_d's 9
@@ -431,6 +450,9 @@ if multipoet_exists:
 if eras_exists:
     eras_spend = sum(call_cost(r["provider"], r.get("usage"))
                       for r in eras_manifest_records if r.get("error") is None)
+if quartile_exists:
+    quartile_spend = sum(call_cost(r["provider"], r.get("usage"))
+                          for r in quartile_manifest_records if r.get("error") is None)
 total_calls_ok = sum(calls_ok.values())
 total_calls_err = sum(calls_err.values())
 pool_verses = pool["pool_verses"]
@@ -1206,6 +1228,176 @@ after a mid-run Anthropic credit-balance resume).</p>
 """
 
 
+def build_quartile_prompt_block(set_name: str) -> str:
+    text = quartile_prompt_previews[set_name]
+    uid = f"prompt-{set_name}"
+    direction = "rtl" if is_majority_arabic(text) else "ltr"
+    return (
+        f'<div class="prompt-block">'
+        f'<div class="prompt-head"><span class="set-chip">{set_name}</span>'
+        f'<button class="copy-btn" data-copy-target="{uid}" type="button">Copy</button></div>'
+        f'<pre id="{uid}" dir="{direction}" class="bidi prompt-pre">{esc(text)}</pre>'
+        f"</div>"
+    )
+
+
+def build_quartile_f1_table(criterion: str) -> str:
+    cols = QUARTILE_SET_NAMES + ["Pooled Q"]
+    vals = []
+    for p in MODEL_KEYS:
+        for s in QUARTILE_SET_NAMES:
+            vals.append(analysis_quartile["models"][p][criterion]["per_set"][s]["overall"]["f1"])
+        vals.append(analysis_quartile["models"][p][criterion]["pooled_q"]["overall"]["f1"])
+    vmin, vmax = min(vals), max(vals)
+    rows = []
+    for p in MODEL_KEYS:
+        row_vals = {s: analysis_quartile["models"][p][criterion]["per_set"][s]["overall"]["f1"]
+                    for s in QUARTILE_SET_NAMES}
+        row_vals["Pooled Q"] = analysis_quartile["models"][p][criterion]["pooled_q"]["overall"]["f1"]
+        cells = []
+        for s in cols:
+            v = row_vals[s]
+            t = f1_color(v, vmin, vmax)
+            pooled_cls = " best" if s == "Pooled Q" else ""
+            cells.append(f'<td class="f1cell{pooled_cls}" style="--t:{t}"><span>{v:.3f}</span></td>')
+        rows.append(f"<tr><th>{esc(MODEL_SHORT[p])}</th>{''.join(cells)}</tr>")
+    header = "".join(f"<th>{s}</th>" for s in cols)
+    return (f'<table class="f1table" data-criterion="{criterion}">'
+            f"<thead><tr><th>Model</th>{header}</tr></thead><tbody>{''.join(rows)}</tbody></table>")
+
+
+def build_quartile_pooled_table(criterion: str) -> str:
+    rows = []
+    for p in MODEL_KEYS:
+        c = analysis_quartile["models"][p][criterion]["pooled_q"]["overall"]
+        rows.append(f"<tr><td>{esc(MODEL_SHORT[p])}</td><td>Pooled Q (Q1+Q2)</td><td>{c['tp']}</td>"
+                    f"<td>{c['fp']}</td><td>{c['fn']}</td><td>{c['precision']:.3f}</td>"
+                    f"<td>{c['recall']:.3f}</td><td>{c['f1']:.3f}</td></tr>")
+        for g in ("M", "E", "H"):
+            c = analysis_quartile["models"][p][criterion]["pooled_existing"][g]["overall"]
+            label = f"(reference) pooled {g}" + (" -- confounded, shares poets with H2" if g == "H" else "")
+            rows.append(f"<tr class='pooled-row'><td>{esc(MODEL_SHORT[p])}</td><td>{label}</td><td>{c['tp']}</td>"
+                        f"<td>{c['fp']}</td><td>{c['fn']}</td><td>{c['precision']:.3f}</td>"
+                        f"<td>{c['recall']:.3f}</td><td>{c['f1']:.3f}</td></tr>")
+    return ('<table class="detail-table" data-criterion="' + criterion + '"><thead><tr><th>Model</th><th>Group</th>'
+           "<th>TP</th><th>FP</th><th>FN</th><th>P</th><th>R</th><th>F1</th></tr></thead>"
+           f"<tbody>{''.join(rows)}</tbody></table>")
+
+
+def build_quartile_ci_table(criterion: str) -> str:
+    pairs = (["Q1-Q2"] + [f"Q-{g}" for g in ("M", "E", "H")] + [f"Q-{b}" for b in ("Z", "A", "B", "D2")])
+    rows = []
+    for p in MODEL_KEYS:
+        for pair in pairs:
+            ci = analysis_quartile["models"][p][criterion]["pairwise_bootstrap_ci"][pair]
+            d = analysis_quartile["models"][p][criterion]["per_poem_diff_signs"][pair]
+            sig = not (ci["ci_95"][0] <= 0 <= ci["ci_95"][1])
+            cls = " sig" if sig else ""
+            confound_note = " <em>(confounded&mdash;shares poets w/ H2)</em>" if pair == "Q-H" else ""
+            rows.append(f'<tr><td>{esc(MODEL_SHORT[p])}</td><td>{pair}{confound_note}</td>'
+                       f'<td class="cicell{cls}">{ci["point"]:+.3f} [{ci["ci_95"][0]:+.3f},'
+                       f'{ci["ci_95"][1]:+.3f}]{" <b>SIG</b>" if sig else " ns"}</td>'
+                       f'<td>{d["a_greater"]}/{d["b_greater"]}/{d["tied"]}</td></tr>')
+    return ('<table class="detail-table" data-criterion="' + criterion + '"><thead><tr><th>Model</th>'
+           "<th>Pair (F1_i&minus;F1_j)</th><th>Bootstrap 95% CI</th>"
+           "<th>per-poem signs (i&gt;j/j&gt;i/tied)</th></tr></thead>"
+           f"<tbody>{''.join(rows)}</tbody></table>")
+
+
+def build_quartile_ensemble_table() -> str:
+    rows = []
+    for s in QUARTILE_SET_NAMES:
+        e = analysis_quartile["ensemble"]["verse"][s]
+        rows.append(f"<tr><td>{s}</td><td>{e['ensemble']['overall']['f1']:.3f}</td>"
+                    f"<td>{esc(MODEL_SHORT.get(e['best_single']['model'], e['best_single']['model']))} "
+                    f"{e['best_single']['f1']:.3f}</td><td>{e['avg_single_f1']:.3f}</td></tr>")
+    return ('<table class="detail-table"><thead><tr><th>Set</th><th>Ensemble F1 (verse)</th>'
+           "<th>Best single</th><th>Avg of 3 singles</th></tr></thead>"
+           f"<tbody>{''.join(rows)}</tbody></table>")
+
+
+def build_quartile_example_card(set_name: str) -> str:
+    examples = quartile_example_sets[set_name]
+    verses = []
+    for e in examples:
+        ann_items = "".join(
+            f'<li>{rtl_wrap(a.get("span") or "(no span)")} '
+            f'— {rtl_wrap(a.get("analysis") or "(no analysis note)")}</li>'
+            for a in e["annotations"]
+        )
+        p = eras_per_poet_by_id.get(e["poet_id"], {})
+        death_year = p.get("death_year_ce")
+        period_label = e["period"] or "period unknown"
+        verses.append(
+            f'<div class="example-verse">'
+            f'<div class="verse-text">{rtl_wrap(e["text"])}</div>'
+            f'<div class="poet-meta">{rtl_wrap(e["poet_name"])} '
+            f'<code>{esc(period_label)}</code> &middot; death {death_year if death_year is not None else "?"} CE '
+            f'&middot; poem <code>{esc(e["poem_id"])}</code> v{e["verse_no"]}</div>'
+            f'<ul class="ann-list">{ann_items}</ul>'
+            f"</div>"
+        )
+    return (
+        f'<div class="example-card">'
+        f'<div class="example-head"><span class="set-chip">{set_name}</span> '
+        f'{len(examples)} examples, {len(set(e["poet_name"] for e in examples))} distinct poets</div>'
+        f"{''.join(verses)}"
+        f"</div>"
+    )
+
+
+def build_quartile_section() -> str:
+    if not quartile_exists:
+        return ""
+    toggle_row = (
+        '<div class="crit-toggle">'
+        '<button class="crit-btn" data-target="verse" onclick="toggleCriterion(\'verse\')">Verse (primary)</button>'
+        '<button class="crit-btn" data-target="strict" onclick="toggleCriterion(\'strict\')">Strict (secondary)</button>'
+        '<button class="crit-btn" data-target="token" onclick="toggleCriterion(\'token\')">Token-overlap (secondary)</button>'
+        "</div>"
+    )
+    f1_tables = "".join(f'<div data-criterion="{c}">{build_quartile_f1_table(c)}</div>' for c in CRITERIA)
+    pooled_tables = "".join(f'<div data-criterion="{c}">{build_quartile_pooled_table(c)}</div>' for c in CRITERIA)
+    ci_tables = "".join(f'<div data-criterion="{c}">{build_quartile_ci_table(c)}</div>' for c in CRITERIA)
+    example_cards = "".join(build_quartile_example_card(s) for s in QUARTILE_SET_NAMES)
+    prompt_blocks = "".join(build_quartile_prompt_block(s) for s in QUARTILE_SET_NAMES)
+    t = quartile_targets
+    return f"""
+<details>
+<summary>m. Quartile few-shot: Q1/Q2 (the literal P25/P75 design, same eval_pool_25 pool, added 2026-10-25)</summary>
+<p>The literally-requested design: one example near the death-year axis's 25th percentile (P25),
+one near its 75th (P75). <strong>H1/H2 in panel (l) above are a DIFFERENT, earlier-requested
+"same-half" variant, not this design</strong> -- relabeled as such in
+<code>docs/phase4/E1_V2_ERAS_FEWSHOT.md</code>'s own table. Range axis P25/P75 =
+{t['range_axis']['p25']:.2f}/{t['range_axis']['p75']:.2f} CE was rejected (nearest eligible poet
+to P75 was 108.25 years away, over the task's 100-year guard); the user chose the
+<strong>verse-weighted-quantile axis</strong>, P25/P75 = {t['verse_weighted_quantile_axis']['p25']:.2f}/
+{t['verse_weighted_quantile_axis']['p75']:.2f} CE. P75 slot reuses H2's own two poets (ديك الجن,
+ابن الرومي), split one per Q-set and declared explicitly -- <strong>any Q-vs-H comparison below
+is confounded by this shared-example overlap</strong>, unlike Q-vs-M/E/Z/A/B/D2, which share no
+example poets with Q. Real cost: <strong>${quartile_spend:.4f}</strong> (2 sets &times; 3 models
+&times; 327 verse-units = 654 calls, 0 errors).</p>
+<h4>Example sets (poet + death year + slot per example)</h4>
+{example_cards}
+<h4>F1 by set and model</h4>
+{toggle_row}
+{f1_tables}
+<h4>Pooled Q (Q1+Q2), with pooled M/E/H shown for reference</h4>
+{pooled_tables}
+<h4>Bootstrap 95% CIs (Q1 vs Q2, pooled Q vs M/E/H, vs Z, vs A/B/D2)</h4>
+{ci_tables}
+<h4>Ensemble (2-of-3 majority vote, verse-primary)</h4>
+{build_quartile_ensemble_table()}
+<h4>Prompts</h4>
+{prompt_blocks}
+<p>Full write-up (target-point computation, the >100y STOP, the P25-slot confidence-fallback
+deviation, the "Pooled Gemini" write-up-bug correction, every table, plain answer, caveats) is
+embedded in panel (l) above via the same <code>docs/phase4/E1_V2_ERAS_FEWSHOT.md</code>
+(this document's own &sect;6).</p>
+</details>
+"""
+
+
 def build_pool_table() -> str:
     rows = []
     for poem in pool["poems"]:
@@ -1802,6 +1994,7 @@ calls in any step — all read already-collected data.</li>
 </details>
 {build_multipoet_section()}
 {build_eras_section()}
+{build_quartile_section()}
 </section>
 """)
 
