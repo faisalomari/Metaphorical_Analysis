@@ -3285,3 +3285,101 @@ during Step 3/4 (unrelated to Q1/Q2's own correctness): §2's "Pooled Gemini" ve
 had silently carried strict-criterion numbers, and this log's own first draft had Q1's two
 example poems swapped between poets — both confirmed against independent sources (the raw JSON
 report, the manifest poem-poet mapping) and corrected in place.
+
+---
+
+## 2026-10-29 — Design-choice task: "GPT-Z + Claude-FS, without Gemini" vs. keeping Gemini
+
+**Task**: answer whether the planned production design (GPT-5.4-mini zero-shot + Claude Sonnet
+4.6 few-shot, no Gemini) is justified, vs. keeping Gemini in the existing 3-model 2-of-3-majority
+design. **NO API calls** — read-only analysis over `run_manifest.json` (20,061 records, 0 errors)
+and the existing docs/results; new code only, no existing file/result/report edited. Four parts
+as specified: (1) cross-phase consistency Phase 1 vs E1 v2, (2) design comparison on the 25-poem
+pool, (3) cost, (4) verdict.
+
+**Step 0 — reading**: `CLAUDE.md`, `PROJECT_STATE.md` §1-§7 (Phase 1 frozen numbers, esp. §3a
+Trope TEST table), `E1_V2_RESULTS.md`, `E1_V2_ENSEMBLE.md`, `E1_V2_ERAS_FEWSHOT.md` (incl. its
+§6 quartile addendum), `E1_V2_MULTIPOET.md`, `FULL_COST_MODEL_V2.md`, and the relevant
+`experiments/phase4_e1_v2/*.py` modules (`e1v2_config.py`, `ensemble_v2.py` — the existing
+cache-based scorer, reused unchanged — `gt_v2.py`, `verse_analysis.py`, `runner.py`). Confirmed
+directly from `run_manifest.json`: 20,061 records total, sets Z/A/B/C/D/D2/E1/E2/H1/H2/M1/M2/Q1/Q2
+each have exactly 981 records (327 verse-units × 3 models × 1 run) on the shared 25-poem
+`eval_pool_25.json`; F5/F10 have 3,000 each on a *different* 50-poem pool (confirmed only 9/25
+overlap with eval_pool_25, per `E1_V2_MULTIPOET.md` §1.4) and were excluded from every combination
+in this task for that reason; `anthropic_opus` has 327 (set A only). 0 errors anywhere. Also
+confirmed directly (not assumed): every `google`-provider record's `model_id` field reads
+`"gemini-3.5-flash"` across all 6,578 such records, in every set including M1..Q2 — consistent
+with `E1_V2_ERAS_FEWSHOT.md` §6.6's later correction, not with `E1_V2_RESULTS.md`'s original
+`gemini-3.6-flash`-actually-served claim (flagged in the new doc's §3.3, not resolved here since
+no live API check was authorized).
+
+**Step 1 — new code** (`experiments/phase4_e1_v2/design_choice/`, additive only):
+- `combine.py`: 2-voter OR/AND combination (`score_poem_two_voter`) and a generalized 3-voter
+  2-of-3-majority (`score_poem_three_voter_majority`) that, unlike `ensemble_v2.score_poem_ensemble`
+  (which hardcodes all 3 voters on one shared `set_name`), accepts independent `(set_name,
+  provider)` pairs per voter — needed to express "GPT on Z, Claude on set B, Gemini on set B/Z."
+  Declared span-matching rule for the 2-voter case (stated in the module docstring, same discipline
+  as `ensemble_v2.py`'s own declared limitation): OR takes the union of either voter's correct
+  span match; AND requires both voters' match indices to agree on the same GT span. Also
+  `agreement_matrix()` (both/a_only/b_only/none buckets + accuracy vs. GT, generalizing
+  `ensemble_v2.agreement_for_set`'s 3-vote-bucket idea to 2 voters).
+- `analyze_design_choice.py`: builds the parsed cache via `ensemble_v2.build_parsed_cache`
+  (unchanged) over the FULL manifest, then scores **D_A** (GPT-Z alone), **D_B** (Claude-FS alone,
+  every one of 10 sets: A/B/D/D2/M1/M2/H1/H2/Q1/Q2 — C excluded, it's the already-identified
+  homogeneous-root outlier, not a production candidate), **D_C** (GPT-Z + Claude-FS OR/AND, every
+  set), **D_D** (3-model 2-of-3 majority, Gemini-FS and Gemini-Z variants, every set), **D_E**
+  (the other two pairs: GPT-Z+Gemini-FS, Claude-FS+Gemini-FS, every set), and leave-one-out
+  marginal contributions (ensemble F1 − best 2-model-without-X F1, bootstrap 95% CI via
+  `verse_analysis.bootstrap_pair` unchanged) for all three models, across verse/strict/token, all
+  10 Claude-FS sets — plus the GPT-Z vs Claude-FS[B] agreement matrix. Verified by running: output
+  matched hand-sanity-checks against the already-published D_B numbers in `E1_V2_RESULTS.md`
+  (Claude A=0.576/B=0.547, GPT Z=0.549) and `E1_V2_ERAS_FEWSHOT.md`/`E1_V2_MULTIPOET.md`
+  (M1=0.515/M2=0.584/H1=0.553/H2=0.536/Q1=0.445/Q2=0.588/D=0.562/D2=0.568) exactly, since these
+  are literally `score_set_single_model` calls already proven correct by `ensemble_v2.py`'s own
+  `verify_single_model_cache_scorer`. Output: `results/phase4_e1_v2/design_choice/
+  analysis_report_design_choice.json`.
+
+**Step 2 — key findings** (full detail in the new doc):
+- **Part 1**: Phase 1's Trope ranking (Gemini > GPT > Claude) does not survive into E1 v2's
+  استعارة فعل subtype. Zero-shot: GPT is best on all 3 criteria (verse/strict/token) — close to
+  inverted from Phase 1. Few-shot: ranking is metric-dependent (Claude leads verse, Gemini leads
+  strict/token, GPT drops to last on strict/token).
+- **Part 2**: on verse (primary), Gemini's leave-one-out marginal contribution to the 3-model
+  majority ensemble is **not significant in any of the 10 Claude-FS sets** (mean ≈ −0.005); the
+  simple 2-model GPT-Z+Claude-FS OR combination (0.560 on set B) is numerically *at or above* the
+  3-model ensemble (0.556). But on strict/token, **Claude+Gemini is the best 2-model pair in 8-9
+  of 10 sets, and GPT+Claude (the production pair) is never the best pair on either span-level
+  metric** — flagged as the clearest concrete argument *for* keeping Gemini, specifically as
+  Claude's partner, even though it doesn't move the primary metric. The strict/token
+  leave-one-out numbers (SIG negative for every model in every set) were explicitly diagnosed as
+  a combination-rule artifact (3-way span-identity-majority vs. 2-way OR), not literal evidence of
+  harm, consistent with `E1_V2_ENSEMBLE.md`'s own already-documented limitation of the same rule.
+- **Part 3**: real cost already spent on this pool: no-Gemini design $2.17, +Gemini-FS $2.77.
+  Full-corpus projection from `FULL_COST_MODEL_V2.md`'s existing S1/S2 figures (no new estimate):
+  no-Gemini $545.13, +Gemini-FS $697.56 — a $152.43 (22%) saving from dropping Gemini. Gemini
+  model-identity/pricing ambiguity flagged per the manifest check above.
+- **Part 4**: dropping Gemini is a defensible but not risk-free cut — no significant loss on the
+  primary metric, real cost saving, but it gives up the strongest-pairing partner for Claude on
+  span-level correctness, rests on 1 run with no noise baseline, and has been tested on exactly
+  one of 25 subtypes (the one subtype where Phase 1 found Gemini winning most clearly on the full
+  Trope category). Recommended a cheap (~$2.37/1 run, ~$4.73/2 runs) zero-shot-only 3-model check
+  on one additional, structurally different subtype (e.g. a كناية/طباق subtype) before committing
+  to the full run — **not run**, per the task's no-API-calls scope.
+
+**Step 3 — write-up**: `docs/phase4/DESIGN_CHOICE_GPTZ_CLAUDEFS.md` (full English report, all 4
+parts) and `docs/phase4/DESIGN_CHOICE_SUMMARY_AR.md` (short Arabic summary). No existing
+Phase 1-4-frozen file, `phase3_subelements/`, `pilot_3models/`, `CLAUDE.md`, or any existing
+E1 v2 result/doc was touched — confirmed additive-only (new files in `experiments/phase4_e1_v2/
+design_choice/`, `results/phase4_e1_v2/design_choice/`, `docs/phase4/` only).
+
+**Final summary (short)**: ranking Phase 1 (Gemini>GPT>Claude on Trope) vs E1 v2 (GPT best
+zero-shot; Claude/Gemini split by metric on few-shot, GPT weakest on strict/token) — does not
+replicate. F1 per design (set B, verse): GPT-Z 0.549, Claude-FS 0.547, GPT+Claude OR 0.560,
+3-model majority 0.556. Gemini's marginal contribution: ≈0 and never significant on verse across
+10 sets; significantly negative on strict/token in every set, but diagnosed as a combination-rule
+artifact. Cost saving from dropping Gemini: $152.43 (22%) projected full-run. **Verdict: dropping
+Gemini is justified on the primary metric and on cost, but not risk-free** — Claude+Gemini is the
+best-performing pair on span-level (strict/token) metrics in most sets, the finding rests on one
+run with no replication, and only 1 of 25 subtypes was tested (the one where Phase 1 found Gemini
+strongest on the full Trope category). Recommended, not run: a ~$2.37-4.73 cheap zero-shot check
+on one additional, non-استعارة subtype with all 3 models before the full commitment.
