@@ -3507,3 +3507,138 @@ matches `summary.md`, the 8 full-cost-model figures match `FULL_COST_MODEL_V2.md
 post-write re-read assertions confirming every one of those numbers actually landed in the
 written HTML file. No mismatches were found or needed fixing beyond the one import-path bug
 (caught and fixed before any numbers were ever wrong, not a silent data error).
+
+---
+
+## 2026-10-29 — Phase 7 subtype task (3 models x {zero,few-shot} x 3 subtypes): Step 0 census, STOPPED
+
+**Task**: a new, separate cycle (GPT-5.4-mini, Gemini via `providers_fixed`, Claude Sonnet 4.6) x
+{zero-shot, few-shot} x 3 subtypes (تشبيه بليغ, استعارة قديمة, كناية عن صفة), reusing Phase 3's
+subtype prompt/schema, one call per verse-unit, 1 run/cell, verse-level F1 primary. **NO API calls
+made this task** — Step 0 is data census only, and the task's own gate requires a STOP before any
+further step. Backed up `docs/phase4/E1_V2_REPORT.html` to
+`docs/phase4/E1_V2_REPORT_before_phase7.html` first, per the task's instruction. New code only in
+`experiments/phase7_subtypes/` (`phase7_config.py`, `census.py`, `tashbih_candidates.py`); outputs
+only in `results/phase7_subtypes/census.json`. No existing code, result, or manifest record edited.
+
+**Step 1 — reading**: `CLAUDE.md`, `docs/phase4/DESIGN_CHOICE_GPTZ_CLAUDEFS.md`,
+`docs/phase4/E1_V2_ERAS_FEWSHOT.md` (note-quality filter, §1.2), this log's tail,
+`experiments/phase3_subelements/{subtype_defs,subtype_prompts,fewshot_prompts,providers_fixed}.py`,
+`experiments/phase4_e1_v2/{e1v2_config,eras_config,gt_v2,prompt_builder,multipoet_prompt_builder}.py`,
+`data/ali_poems/poems/*.json` (schema: `poem_json["annotations"][i]` = `{span_text, verse_index,
+element, subtype, theme, analysis, raw_key}`), `data/ali_poems/manifest.csv` (167 poems),
+`experiments/phase4_e1_v2/config/eval_pool_25.json` (25 poems, 327 verse-units, seed=43),
+`experiments/phase4_e1/ali_poems_io.py`, `results/phase3_crossmodel/summary.md` (per-subtype
+Gemini/GPT strict+token recall reference), `experiments/phase3_subelements/build_subtype_files.py`
+(found: `data/ground_truth/by_subtype/*.xlsx` is Phase-1-only, 5 poems — NOT the right source for
+a full-corpus census; built a fresh census directly from `data/ali_poems/poems/*.json`'s 167 poems
+instead).
+
+**Step 2 — census script** (`census.py`, no API calls): loaded all 167 corpus poems (3,470 verses
+total), counted every distinct `subtype` string across all annotations (134 distinct strings seen),
+and built the task's requested per-subtype table (positive verses, poems, poets, rate/verse,
+eligible example verses [non-empty note passing `eras_config.note_quality()`, exact subtype,
+excluding the 5 `ALREADY_USED_POEM_IDS` + poem `28601`], distinct poets with eligible examples,
+positives inside `eval_pool_25.json`).
+
+**Step 3 — STOP finding (task's own gate, §0a/§0c)**: **`تشبيه بليغ` has ZERO occurrences
+anywhere in the corpus's 134 distinct subtype strings, and is not in `subtype_defs.py`.**
+Separately checked `تشبيه مؤكد` (the task's §0c comparison partner) — **also ZERO occurrences,
+also not in `subtype_defs.py`.** This is not a thin-sample issue — neither string exists at all in
+this annotator's scheme. The ground truth's own تشبيه taxonomy classifies by length/completeness
+(`تشبيه مطول`/`قصير`/`تمثيلي`/`مركب`/`الشيء بنفسه`/`ضمني`/`غريب`, 20 distinct تشبيه-family strings
+total, 124-227 annotations each for the 2 largest), not by the traditional eloquent/confirmed
+(حذف الأداة ووجه الشبه) distinction `بليغ`/`مؤكد` names — so there is no silent close match to
+substitute; this needs the user's explicit choice, per the task's own "do not substitute silently"
+instruction. `استعارة قديمة` (171 annotations) and `كناية عن صفة` (784 annotations) both exist
+exactly and both have definitions in `subtype_defs.py` — no issue for those two.
+
+Built a second table (`tashbih_candidates.py`) of the 5 تشبيه-family subtypes that already have a
+definition+example in `subtype_defs.py` and >=10 annotations, with Phase 3 crossmodel strict/token
+recall reference (`results/phase3_crossmodel/summary.md`, read not re-run) as candidate
+substitutes, in case the user wants to proceed with a real تشبيه pair instead.
+
+**Not yet done** (blocked on this STOP): Step 0b's full positives-per-subtype table was completed
+for `استعارة قديمة`/`كناية عن صفة`; Step 0c's full comparison table could not be completed for
+`تشبيه بليغ`/`تشبيه مؤكد` specifically since both are empty — presented the تشبيه-family
+alternative table instead and awaiting the user's choice before Step 1 (few-shot set construction)
+or any further step.
+
+**User decision (2026-10-29)**: do NOT substitute a تشبيه subtype now. Run Phase 7 with only the
+2 subtypes that exist exactly and already have data (`استعارة قديمة`, `كناية عن صفة`); leave the
+3rd slot open until Dr. Ali Hussein responds on what بليغ/مؤكد should actually map to in this
+annotator's scheme (`تشبيه مطول`? `تشبيه قصير`? something not yet annotated at all?) — explicitly
+logging, per the user's instruction, the finding that drove this: **this corpus's تشبيه taxonomy
+has zero بليغ/مؤكد occurrences and classifies by length instead** (`تشبيه مطول`/`قصير`/`تمثيلي`/
+`مركب`/`الشيء بنفسه`, §0a/§0c above). Code is being written so a 3rd subtype can be added later as
+an **additive** run (its own set name/config entry in `experiments/phase7_subtypes/config/`) without
+touching either of these two subtypes' already-drawn examples or results — same convention Set
+D/D2 and the eras/quartile sets already used on top of Z/A/B/C in `phase4_e1_v2`.
+
+**Step 1 (no API) — few-shot sets + eval pool, 2 approved subtypes only**: `phase7_examples.py`
+built an eligible-example candidate pool per subtype (exact subtype match, non-empty span, note
+passing `eras_config.note_quality()`, poem not in the 5 Phase-1 poems / `NO_TEXT_POEM_ID` /
+`eval_pool_25.json`, poet not `القرآن الكريم`) — 39 candidates/15 poets for `استعارة قديمة`, 378
+candidates/40 poets for `كناية عن صفة`. Anti-"set C" guard (declared, reused unchanged from this
+project's own `span_matching.token_overlap_ratio`/`TOKEN_THRESHOLD`=0.5): reject a 2-example draw
+if same poem/poet, missing note, or token-overlap ratio >=0.5 on the spans, the full verses, OR the
+analysis notes (near-duplicate-pattern check) — re-draw with seed+1 on reject, every attempt
+logged. **Both subtypes passed on the first attempt (seed=42, 0 rejects)** — drawn pairs: `استعارة
+قديمة` = بشار بن برد (poem 27110 v19, span «المِتَانِ») + أبو فراس الحمداني (poem 6174 v5, span
+«وآلْمَوتُ دونَهُ»); `كناية عن صفة` = ابن قيس الرُّقيّات (poem 8470 v2, span «يَطُفْنَ بِيَهْ») +
+أبو تمّام (poem 4480 v40, span «جَحْفَلٍ لَجِبِ»). Full rendered prompts + `cl100k_base` token
+counts: `استعارة قديمة` zero-shot 339 tok / few-shot 628 tok; `كناية عن صفة` zero-shot 295 tok /
+few-shot 561 tok. Written to `experiments/phase7_subtypes/config/phase7_example_sets.json`.
+
+**Eval pool**: `eval_pool_25.json` (25 poems, 327 verse-units) minus the 4 example-source poems
+(27110, 6174, 8470, 4480) — **0 actually removed** (none of the 4 were in the pool to begin with,
+confirmed programmatically, not assumed), so the pool stays 25 poems/327 verse-units unchanged.
+Positives in that pool: `كناية عن صفة` 49 (>=30, fine), **`استعارة قديمة` 15 — BELOW the task's
+30-positive floor.**
+
+**<30-positives STOP (task's own gate, not resolved silently)**: computed Option (b)'s concrete
+cost via `extend_pool_option.py` (declared seed=100, a separate stream from the example-draw
+42-series, shuffles the 132-poem extension-candidate pool once and adds poems in that fixed order
+until `استعارة قديمة` reaches 30) so Option (a) and (b) can be compared on real numbers, not
+estimated — **16 poems / +312 verse-units needed** (25 poems/327 verses &rarr; 41 poems/639
+verses) to take `استعارة قديمة` from 15 to exactly 30 (and `كناية عن صفة` from 49 to 87 for free,
+since the same added verses get scored for both subtypes). Extra calls at that size: 312 verses x
+2 conditions x 3 models x 2 subtypes = **3,744 calls**, extra cost estimate **~$10.12** (per-call
+means from `FULL_COST_MODEL_V2.md` Sec 2, read not re-estimated — Step 2's own dry-run will
+compute Phase-7-specific real token counts if Option (b) is chosen). **Awaiting the user's choice
+between (a) keep 25 poems, mark `استعارة قديمة` indicative-only, or (b) extend to 41 poems (+$10.12
+est.) before Step 2's cost dry-run can run** (Step 2 needs to know the final pool size first).
+
+**User decision (2026-10-29): Option (a)** — keep the 25-poem/327-verse pool unchanged;
+`استعارة قديمة`'s result is indicative-only (n=15 GT-positive verses in-pool, below the 30 floor).
+No pool extension, no extra poems added, `extend_pool_option.json` kept as a record of the
+option not taken.
+
+**Step 2 (no API) — cost dry-run**: `dryrun_phase7.py`. Calls = 327 verse-units x 2 conditions x
+3 models x 2 subtypes = **3,924 calls**. Input tokens are REAL (measured via `tiktoken
+cl100k_base` on the actual rendered system+user messages this run would send, not guessed):
+user-message tokens avg 306.0/verse (min 276, max 327) over the unchanged 327-verse pool; system
+tokens per (subtype, condition) from `phase7_example_sets.json` (`استعارة قديمة` zero 339/few 628;
+`كناية عن صفة` zero 295/few 561). Output tokens: 120/call, Phase 3 cross-model's own measured
+average for this identical exists/appearance/reasoning schema (`results/phase3_crossmodel/
+cost_estimate.md`), reused not re-measured. Served model IDs (`pilot_3models/config.py`,
+unchanged): `claude-sonnet-4-6` ($3/$15 per MTok), `gpt-5.4-mini` ($0.75/$4.50), `gemini-3.5-flash`
+($1.50/$9.00). **Gemini flags, both carried forward from `DESIGN_CHOICE_GPTZ_CLAUDEFS.md` Sec
+3.3, unresolved**: (1) served-model identity ambiguity (every manifest logs `gemini-3.5-flash`
+requested+served; one never-corroborated claim of `gemini-3.6-flash` was walked back elsewhere);
+(2) Gemini bills hidden thinking tokens (`providers_fixed.call_google_fixed`,
+`thinking_level='minimal'`) not separately estimated here (no real Phase-7 output exists yet to
+measure them from) — a one-sided underestimate risk for Gemini's column only.
+
+**Cost**: primary (token-based) **$9.70** total (Claude $5.34, GPT $1.45, Gemini $2.91; استعارة
+قديمة $4.95 / كناية عن صفة $4.76). Cross-check against `FULL_COST_MODEL_V2.md`'s per-call means
+(different, longer استعارة فعل prompts, directional only): **$10.60** — the two estimates agree
+within ~9%, giving some confidence the primary figure isn't badly off. Full table:
+`results/phase7_subtypes/dryrun_cost.json`.
+
+**API readiness**: `OPENAI_API_KEY`/`ANTHROPIC_API_KEY`/`GEMINI_API_KEY` all present in `.env`
+(presence-only check, zero API calls made — no balance/quota call attempted per the task's own
+"do not call providers" instruction).
+
+**STOP (CLAUDE.md rule 5)**: awaiting the user's explicit "go" and a hard cap
+(`--max-additional-usd`) before Step 3 (the real run) — not yet given as of this entry.
