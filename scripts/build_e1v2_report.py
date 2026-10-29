@@ -107,6 +107,12 @@ SOURCE_FILES_USED = [
     "data/ali_poems/poet_dates.csv",
     "docs/phase4/ERAS_ANALYTICS.md",
     "docs/phase4/E1_V2_ERAS_FEWSHOT.md",
+    "results/phase4_e1_v2/design_choice/analysis_report_design_choice.json",
+    "docs/phase4/DESIGN_CHOICE_GPTZ_CLAUDEFS.md",
+    "docs/phase4/FULL_COST_MODEL_V2.md",
+    "PROJECT_STATE.md",
+    "results/phase3_crossmodel/raw/crossmodel_scoring_snapshot.json",
+    "results/phase3_crossmodel/summary.md",
 ]
 
 
@@ -337,6 +343,74 @@ if quartile_exists:
         for s in QUARTILE_SET_NAMES
     }
     quartile_manifest_records = [r for r in manifest if r["set_name"] in QUARTILE_SET_NAMES]
+
+# Design-choice analysis (added 2026-10-29, docs/phase4/DESIGN_CHOICE_GPTZ_CLAUDEFS.md) --
+# whether "GPT-Z + Claude-FS, no Gemini" is justified vs. the 3-model 2-of-3-majority design.
+# Reads the JSON that experiments/phase4_e1_v2/design_choice/analyze_design_choice.py already
+# produced (NOT recomputed here) -- same existence-guard convention as quartile_exists above.
+DESIGN_CHOICE_DIR = RESULTS_DIR / "design_choice"
+ANALYSIS_DESIGN_CHOICE_PATH = DESIGN_CHOICE_DIR / "analysis_report_design_choice.json"
+DESIGN_CHOICE_DOC_PATH = DOCS_DIR / "DESIGN_CHOICE_GPTZ_CLAUDEFS.md"
+FULL_COST_MODEL_V2_PATH = DOCS_DIR / "FULL_COST_MODEL_V2.md"
+design_choice_exists = ANALYSIS_DESIGN_CHOICE_PATH.exists()
+if design_choice_exists:
+    analysis_design_choice = json.loads(ANALYSIS_DESIGN_CHOICE_PATH.read_text(encoding="utf-8"))
+    design_choice_doc_text = DESIGN_CHOICE_DOC_PATH.read_text(encoding="utf-8")
+    full_cost_model_v2_text = FULL_COST_MODEL_V2_PATH.read_text(encoding="utf-8")
+    DC_FS_SETS = analysis_design_choice["fs_sets"]
+    DC_HEADLINE_SET = "B"  # FULL_COST_MODEL_V2.md's own S2 designation; every matrix table
+    # below still shows every one of DC_FS_SETS, per the task's "do not pick the best set" rule.
+
+# Phase 1 (frozen TEST, PROJECT_STATE.md section 3a) and Phase 3 (results/phase3_crossmodel/)
+# cross-phase comparison sources (added 2026-10-29, panel (o) below). Phase 1's TP/FP/FN are the
+# only hand-typed numbers in this script that are themselves historical/frozen data rather than
+# something re-derivable from a JSON file -- P/R/F1 are DERIVED from them via the project's own
+# prf1() (never hand-typed), and verify_phase1_numbers_in_project_state() below asserts every one
+# of these TP/FP/FN/F1 strings is actually present in PROJECT_STATE.md before anything is built.
+PROJECT_STATE_PATH = ROOT / "PROJECT_STATE.md"
+project_state_md = PROJECT_STATE_PATH.read_text(encoding="utf-8")
+CROSSMODEL_SNAPSHOT_PATH = ROOT / "results" / "phase3_crossmodel" / "raw" / "crossmodel_scoring_snapshot.json"
+CROSSMODEL_SUMMARY_PATH = ROOT / "results" / "phase3_crossmodel" / "summary.md"
+crossmodel_snapshot = json.loads(CROSSMODEL_SNAPSHOT_PATH.read_text(encoding="utf-8"))
+crossmodel_summary_md = CROSSMODEL_SUMMARY_PATH.read_text(encoding="utf-8")
+phase3_row = next(r for r in crossmodel_snapshot if r["subtype"] == e1v2_config.SUBTYPE_FOCUS)
+
+def _prf1(tp: int, fp: int, fn: int) -> dict:
+    """Same precision/recall/F1 formula as experiments/pilot_3models/analyze.py's prf1() --
+    reimplemented locally (not imported) because that module does a bare `from config import
+    ...` that only resolves when experiments/pilot_3models itself is on sys.path, which this
+    script does not do (it imports pilot_3models.config as a package instead, see top of file).
+    4 lines, trivially checked against analyze.prf1's own docstring formula."""
+    precision = tp / (tp + fp) if (tp + fp) else 0.0
+    recall = tp / (tp + fn) if (tp + fn) else 0.0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
+    return {"precision": precision, "recall": recall, "f1": f1}
+
+
+PHASE1_TROPE_TEST = {
+    "baseline": {
+        "anthropic": {"tp": 17, "fp": 3, "fn": 162},
+        "openai": {"tp": 6, "fp": 1, "fn": 173},
+        "google": {"tp": 34, "fp": 4, "fn": 145},
+    },
+    "v4_combined": {
+        "anthropic": {"tp": 25, "fp": 3, "fn": 154},
+        "openai": {"tp": 28, "fp": 16, "fn": 151},
+        "google": {"tp": 45, "fp": 9, "fn": 134},
+    },
+}
+for _prompt_key, _rows in PHASE1_TROPE_TEST.items():
+    for _p, _c in _rows.items():
+        _c.update(_prf1(_c["tp"], _c["fp"], _c["fn"]))
+
+# Full-corpus cost projection (added 2026-10-29) -- these 8 figures are FULL_COST_MODEL_V2.md's
+# own §3 S1/S2 per-model totals, carried forward (not re-estimated); verify_full_cost_model_v2()
+# below asserts every one is actually present in that document's text as a safeguard against a
+# transcription slip, same discipline as PHASE1_TROPE_TEST above.
+FULL_COST_MODEL_V2_S1_S2 = {
+    "S1": {"anthropic": 402.25, "openai": 68.67, "google": 130.09, "total": 601.00},
+    "S2": {"anthropic": 476.46, "openai": 81.87, "google": 152.43, "total": 710.76},
+}
 
 # `analysis`: per_set lookups use analysis_d (it has all 6 sets, Z/A/B/C recomputed the same
 # way as analysis_zabc -- checked in verify_f1_matches_json below). `analysis`'s
@@ -582,6 +656,88 @@ def verify_rtl_sample():
           "and a sample English sentence (LTR).")
 
 
+def verify_design_choice_matches_doc():
+    """Cross-checks a representative sample of design-choice F1 values (D_A/D_B/D_C/D_D on the
+    headline set B, verse criterion) against DESIGN_CHOICE_GPTZ_CLAUDEFS.md's own printed
+    numbers -- the JSON and the markdown were produced independently (the markdown was written
+    by hand reading the JSON's console output), so they must agree."""
+    if not design_choice_exists:
+        print("SKIP: analysis_report_design_choice.json not found -- panel (n) will render as pending.")
+        return
+    c = analysis_design_choice["criteria"]["verse"]
+    checks = {
+        "D_A (GPT-Z)": c["D_A_gpt_z"]["overall"]["f1"],
+        "D_B Claude-FS[B]": c["D_B_claude_fs"]["B"]["overall"]["f1"],
+        "D_C OR[B]": c["D_C_gptz_claudefs"]["B"]["or"]["overall"]["f1"],
+        "D_C AND[B]": c["D_C_gptz_claudefs"]["B"]["and"]["overall"]["f1"],
+        "D_D Gemini-FS[B]": c["D_D_3model_majority"]["B"]["gemini_fs"]["overall"]["f1"],
+        "D_D Gemini-Z[B]": c["D_D_3model_majority"]["B"]["gemini_z"]["overall"]["f1"],
+    }
+    missing = []
+    for label, v in checks.items():
+        s = f"{v:.3f}"
+        if s not in design_choice_doc_text:
+            missing.append((label, s))
+    assert not missing, f"design-choice F1 values missing from DESIGN_CHOICE_GPTZ_CLAUDEFS.md: {missing}"
+    for fs in DC_FS_SETS:
+        assert fs in design_choice_doc_text, f"FS set {fs} not mentioned in DESIGN_CHOICE_GPTZ_CLAUDEFS.md"
+    print(f"PASS: {len(checks)} design-choice F1 values (D_A/D_B/D_C/D_D on set B, verse) match "
+          "DESIGN_CHOICE_GPTZ_CLAUDEFS.md's own printed numbers; all "
+          f"{len(DC_FS_SETS)} FS sets are mentioned there.")
+
+
+def verify_phase1_numbers_in_project_state():
+    """Phase 1's Trope TEST TP/FP/FN are the one set of hand-typed historical numbers in this
+    script (PROJECT_STATE.md section 3a is prose, not JSON) -- assert every TP/FP/FN triple and
+    every derived F1 (via the project's own prf1(), never hand-typed) actually appears verbatim
+    in PROJECT_STATE.md, so a transcription slip here cannot silently diverge from the frozen
+    thesis numbers."""
+    tpfpfn_strings = {
+        "baseline": {"anthropic": "17/3/162", "openai": "6/1/173", "google": "34/4/145"},
+        "v4_combined": {"anthropic": "25/3/154", "openai": "28/16/151", "google": "45/9/134"},
+    }
+    f1_strings = {
+        "baseline": {"anthropic": "0.171", "openai": "0.065", "google": "0.313"},
+        "v4_combined": {"anthropic": "0.242", "openai": "0.251", "google": "0.386"},
+    }
+    for prompt_key, rows in tpfpfn_strings.items():
+        for p, s in rows.items():
+            assert s in project_state_md, f"Phase 1 TP/FP/FN {s} ({prompt_key}/{p}) not in PROJECT_STATE.md"
+    for prompt_key, rows in f1_strings.items():
+        for p, s in rows.items():
+            assert s in project_state_md, f"Phase 1 F1 {s} ({prompt_key}/{p}) not in PROJECT_STATE.md"
+            got = PHASE1_TROPE_TEST[prompt_key][p]["f1"]
+            assert abs(got - float(s)) < 0.0005, (prompt_key, p, got, s)
+    print("PASS: all 6 Phase 1 Trope TEST TP/FP/FN strings and all 6 F1 strings found verbatim in "
+          "PROJECT_STATE.md, and every derived (prf1-computed) F1 matches the frozen doc's own "
+          "printed F1 to 3 decimal places.")
+
+
+def verify_phase3_recall():
+    """Phase 3's recall numbers are loaded from crossmodel_scoring_snapshot.json, not hand-typed
+    -- this only checks internal self-consistency (TP/(TP+FN) must equal the snapshot's own
+    stored recall) as a guard against a stale/edited snapshot field."""
+    r = phase3_row
+    assert r["n"] == 110, f"expected n=110 for {e1v2_config.SUBTYPE_FOCUS} in Phase 3, got {r['n']}"
+    gem_r = r["gemini_tp_strict"] / (r["gemini_tp_strict"] + r["gemini_fn_strict"])
+    gpt_r = r["gpt_tp_strict"] / (r["gpt_tp_strict"] + r["gpt_fn_strict"])
+    assert abs(gem_r - r["gemini_strict"]) < 0.0005, (gem_r, r["gemini_strict"])
+    assert abs(gpt_r - r["gpt_strict"]) < 0.0005, (gpt_r, r["gpt_strict"])
+    assert f"{r['gemini_strict']:.3f}" in crossmodel_summary_md
+    assert f"{r['gpt_strict']:.3f}" in crossmodel_summary_md
+    print(f"PASS: Phase 3 {e1v2_config.SUBTYPE_FOCUS} strict recall (n=110) is self-consistent "
+          f"(Gemini TP/[TP+FN]={gem_r:.3f}, GPT={gpt_r:.3f}) and matches results/phase3_crossmodel/"
+          "summary.md's own printed recall.")
+
+
+def verify_full_cost_model_v2():
+    for design, rows in FULL_COST_MODEL_V2_S1_S2.items():
+        for key, v in rows.items():
+            s = f"${v:,.2f}" if key == "total" else f"${v:.2f}"
+            assert s in full_cost_model_v2_text, f"{design}/{key} = {s} not found in FULL_COST_MODEL_V2.md"
+    print("PASS: all 8 S1/S2 full-corpus cost figures found verbatim in FULL_COST_MODEL_V2.md.")
+
+
 verify_f1_matches_json()
 verify_ensemble_matches_json()
 verify_opus_a_matches_json()
@@ -589,6 +745,10 @@ built_prompts = verify_prompts_match_previews()
 verify_abc_differ_only_in_examples(built_prompts)
 verify_d_differs_only_in_examples(built_prompts)
 verify_rtl_sample()
+verify_design_choice_matches_doc()
+verify_phase1_numbers_in_project_state()
+verify_phase3_recall()
+verify_full_cost_model_v2()
 print(f"Completeness: {total_calls_ok}/{len(SET_NAMES_FULL) * len(MODEL_KEYS) * expected_per_cell} cells ok, "
       f"{total_calls_err} errors, ALL_COMPLETE={all_complete}")
 print(f"Total spend from manifest: ${total_spend:.4f} "
@@ -1398,6 +1558,438 @@ embedded in panel (l) above via the same <code>docs/phase4/E1_V2_ERAS_FEWSHOT.md
 """
 
 
+# ---------------------------------------------------------------------------
+# Panel (n): design-choice (GPT-Z + Claude-FS, with/without Gemini)
+# ---------------------------------------------------------------------------
+
+DC_DESIGN_LABELS = {
+    "D_B": "D_B Claude-FS alone",
+    "D_C_or": "D_C GPT+Claude (OR)",
+    "D_C_and": "D_C GPT+Claude (AND)",
+    "D_D_gfs": "D_D 3-model majority (Gemini-FS)",
+    "D_D_gz": "D_D 3-model majority (Gemini-Z)",
+    "D_E_gg_or": "D_E GPT+Gemini (OR)",
+    "D_E_cg_or": "D_E Claude+Gemini (OR)",
+}
+DC_DESIGN_ORDER = ["D_B", "D_C_or", "D_C_and", "D_D_gfs", "D_D_gz", "D_E_gg_or", "D_E_cg_or"]
+
+
+def _dc_cell(fs: str, criterion: str) -> dict:
+    c = analysis_design_choice["criteria"][criterion]
+    return {
+        "D_B": c["D_B_claude_fs"][fs]["overall"],
+        "D_C_or": c["D_C_gptz_claudefs"][fs]["or"]["overall"],
+        "D_C_and": c["D_C_gptz_claudefs"][fs]["and"]["overall"],
+        "D_D_gfs": c["D_D_3model_majority"][fs]["gemini_fs"]["overall"],
+        "D_D_gz": c["D_D_3model_majority"][fs]["gemini_z"]["overall"],
+        "D_E_gg_or": c["D_E_pairs"][fs]["gptz_geminifs"]["or"]["overall"],
+        "D_E_cg_or": c["D_E_pairs"][fs]["claudefs_geminifs"]["or"]["overall"],
+    }
+
+
+def build_design_choice_matrix(criterion: str) -> str:
+    vals = [_dc_cell(fs, criterion)[d]["f1"] for fs in DC_FS_SETS for d in DC_DESIGN_ORDER]
+    vmin, vmax = min(vals), max(vals)
+    rows = []
+    for fs in DC_FS_SETS:
+        cell = _dc_cell(fs, criterion)
+        cells = []
+        for d in DC_DESIGN_ORDER:
+            v = cell[d]["f1"]
+            t = f1_color(v, vmin, vmax)
+            cells.append(f'<td class="f1cell" style="--t:{t}"><span>{v:.3f}</span></td>')
+        rows.append(f'<tr><th><span class="set-chip">{esc(fs)}</span></th>{"".join(cells)}</tr>')
+    header = "".join(f"<th>{esc(DC_DESIGN_LABELS[d])}</th>" for d in DC_DESIGN_ORDER)
+    a_f1 = analysis_design_choice["criteria"][criterion]["D_A_gpt_z"]["overall"]["f1"]
+    return (
+        f"<p>D_A (GPT-Z alone, independent of the Claude-FS set): F1={a_f1:.3f}.</p>"
+        f'<table class="f1table detail-table" data-criterion="{criterion}">'
+        f"<thead><tr><th>Claude-FS set</th>{header}</tr></thead><tbody>{''.join(rows)}</tbody></table>"
+    )
+
+
+def build_design_choice_detail_table(criterion: str, fs: str = DC_HEADLINE_SET) -> str:
+    c = analysis_design_choice["criteria"][criterion]
+    a = c["D_A_gpt_z"]["overall"]
+    cell = _dc_cell(fs, criterion)
+    order = [("D_A GPT-Z alone", a)] + [(DC_DESIGN_LABELS[d], cell[d]) for d in DC_DESIGN_ORDER]
+    rows = []
+    for label, r in order:
+        rows.append(f"<tr><td>{esc(label)}</td><td>{r['tp']}</td><td>{r['fp']}</td><td>{r['fn']}</td>"
+                    f"<td>{r['precision']:.3f}</td><td>{r['recall']:.3f}</td><td>{r['f1']:.3f}</td></tr>")
+    return (f'<table class="detail-table" data-criterion="{criterion}"><caption style="text-align:left;'
+           f'color:var(--muted);font-size:.8rem">Claude-FS set = {esc(fs)}</caption>'
+           "<thead><tr><th>Design</th><th>TP</th><th>FP</th><th>FN</th>"
+           "<th>P</th><th>R</th><th>F1</th></tr></thead>"
+           f"<tbody>{''.join(rows)}</tbody></table>")
+
+
+def build_design_choice_loo_table(criterion: str) -> str:
+    c = analysis_design_choice["criteria"][criterion]["leave_one_out"]
+    rows = []
+    for fs in DC_FS_SETS:
+        loo = c[fs]
+        cells = []
+        for key in ("marginal_gemini_f1", "marginal_claude_f1", "marginal_gpt_f1"):
+            d = loo[key]["f1"]
+            cls = " sig" if d["sig"] else ""
+            cells.append(f'<td class="cicell{cls}">{d["point"]:+.4f} '
+                        f'[{d["ci_95"][0]:+.4f},{d["ci_95"][1]:+.4f}]'
+                        f'{" <b>SIG</b>" if d["sig"] else " ns"}</td>')
+        rows.append(f'<tr><th><span class="set-chip">{esc(fs)}</span></th><td>{loo["ensemble_f1"]:.3f}</td>'
+                    f'{"".join(cells)}</tr>')
+    return (f'<table class="detail-table" data-criterion="{criterion}"><thead><tr><th>Claude-FS set</th>'
+           "<th>3-model ensemble F1</th><th>&Delta; marginal Gemini</th>"
+           "<th>&Delta; marginal Claude</th><th>&Delta; marginal GPT</th></tr></thead>"
+           f"<tbody>{''.join(rows)}</tbody></table>")
+
+
+def build_design_choice_agreement_table(fs: str = DC_HEADLINE_SET) -> str:
+    agr = analysis_design_choice["agreement_gptz_vs_claudefs"][fs]
+    labels = {"both": "Both say yes", "a_only": "GPT only", "b_only": "Claude only", "none": "Neither"}
+    rows = []
+    for k in ("both", "a_only", "b_only", "none"):
+        b = agr[k]
+        rows.append(f"<tr><td>{labels[k]}</td><td>{b['n']}</td><td>{b['gt_positive_rate']:.3f}</td>"
+                    f"<td>{b['accuracy']:.3f}</td></tr>")
+    return (f'<table class="detail-table"><caption style="text-align:left;color:var(--muted);'
+           f'font-size:.8rem">Claude-FS set = {esc(fs)}</caption><thead><tr><th>Bucket</th><th>n</th>'
+           "<th>GT-positive rate</th><th>Accuracy (as predicted)</th></tr></thead>"
+           f"<tbody>{''.join(rows)}</tbody></table>")
+
+
+def build_design_choice_cost_table() -> str:
+    cost = analysis_design_choice["real_cost_by_set_provider_usd"]
+    gpt_z = cost.get("Z|openai", 0.0)
+    claude_b = cost.get(f"{DC_HEADLINE_SET}|anthropic", 0.0)
+    gemini_b = cost.get(f"{DC_HEADLINE_SET}|google", 0.0)
+    gemini_z = cost.get("Z|google", 0.0)
+    no_gem = gpt_z + claude_b
+    with_gem_fs = no_gem + gemini_b
+    with_gem_z = no_gem + gemini_z
+    s1, s2 = FULL_COST_MODEL_V2_S1_S2["S1"], FULL_COST_MODEL_V2_S1_S2["S2"]
+    no_gem_full = s1["openai"] + s2["anthropic"]
+    with_gem_fs_full = no_gem_full + s2["google"]
+    with_gem_z_full = no_gem_full + s1["google"]
+    return f"""
+<h4>Real cost already spent (25-poem pool, Claude-FS set {esc(DC_HEADLINE_SET)})</h4>
+<table class="detail-table"><thead><tr><th>Design</th><th>Real cost</th></tr></thead><tbody>
+<tr><td>No Gemini (GPT-Z + Claude-FS[{esc(DC_HEADLINE_SET)}])</td><td>${no_gem:.4f}</td></tr>
+<tr><td>+ Gemini-FS[{esc(DC_HEADLINE_SET)}]</td><td>${with_gem_fs:.4f}</td></tr>
+<tr><td>+ Gemini-Z</td><td>${with_gem_z:.4f}</td></tr>
+</tbody></table>
+<h4>Projected full-corpus cost (25 subtypes, from <code>FULL_COST_MODEL_V2.md</code> &sect;3 &mdash; not re-estimated)</h4>
+<table class="detail-table"><thead><tr><th>Design</th><th>Projected total</th><th>Saving from dropping Gemini</th></tr></thead><tbody>
+<tr><td>No Gemini (GPT S1 + Claude S2)</td><td>${no_gem_full:,.2f}</td><td>&ndash;</td></tr>
+<tr><td>+ Gemini-FS (S2)</td><td>${with_gem_fs_full:,.2f}</td>
+    <td>saves ${s2['google']:.2f} ({s2['google']/with_gem_fs_full*100:.0f}% of that total)</td></tr>
+<tr><td>+ Gemini-Z (S1)</td><td>${with_gem_z_full:,.2f}</td>
+    <td>saves ${s1['google']:.2f} ({s1['google']/with_gem_z_full*100:.0f}% of that total)</td></tr>
+</tbody></table>
+"""
+
+
+def build_design_choice_section() -> str:
+    if not design_choice_exists:
+        return ""
+    toggle_row = (
+        '<div class="crit-toggle">'
+        '<button class="crit-btn" data-target="verse" onclick="toggleCriterion(\'verse\')">Verse (primary)</button>'
+        '<button class="crit-btn" data-target="strict" onclick="toggleCriterion(\'strict\')">Strict (secondary)</button>'
+        '<button class="crit-btn" data-target="token" onclick="toggleCriterion(\'token\')">Token-overlap (secondary)</button>'
+        "</div>"
+    )
+    matrix_tables = "".join(f'<div data-criterion="{c}">{build_design_choice_matrix(c)}</div>' for c in CRITERIA)
+    detail_tables = "".join(
+        f'<div data-criterion="{c}">{build_design_choice_detail_table(c)}</div>' for c in CRITERIA)
+    loo_tables = "".join(f'<div data-criterion="{c}">{build_design_choice_loo_table(c)}</div>' for c in CRITERIA)
+    verdict_body = extract_section(design_choice_doc_text, "Part 4 — Verdict", ["Sources"])
+    subtype = rtl_wrap(e1v2_config.SUBTYPE_FOCUS)
+    return f"""
+<details>
+<summary>n. Design choice: GPT zero-shot + Claude few-shot, without Gemini (added 2026-10-29)</summary>
+<p>Does the planned production design &mdash; <strong>GPT-5.4-mini zero-shot (Z) + Claude Sonnet
+4.6 few-shot, WITHOUT Gemini</strong> &mdash; hold up against keeping Gemini in the existing
+3-model 2-of-3-majority design (panel (h))? <strong>NO new API calls</strong>; everything below is
+computed from the same <code>run_manifest.json</code> this whole report already reads, via
+<code>experiments/phase4_e1_v2/design_choice/{{combine,analyze_design_choice}}.py</code> (new
+code, reusing <code>ensemble_v2.py</code>'s cache-based scorer unchanged). Full write-up:
+<code>docs/phase4/DESIGN_CHOICE_GPTZ_CLAUDEFS.md</code>. Ten Claude-few-shot sets are compared
+below &mdash; A/B/D/D2/M1/M2/H1/H2/Q1/Q2 (C excluded: the already-identified homogeneous-root
+outlier, not a production candidate) &mdash; every table shows every one of them, not just the
+best.</p>
+<h4>F1 by design and Claude-FS set</h4>
+{toggle_row}
+{matrix_tables}
+<h4>Precision / recall / F1 detail, headline set {esc(DC_HEADLINE_SET)}</h4>
+{detail_tables}
+<h4>Leave-one-out: marginal F1 contribution of each model (bootstrap 95% CI over poems)</h4>
+<p>Marginal(model) = F1(3-model 2-of-3 majority, Gemini-FS variant) &minus; F1(best 2-model combo
+without that model, OR or AND, whichever is higher). On strict/token this mostly reflects a
+combination-rule artifact (3-way span-identity-majority is a strictly harder bar than a 2-way OR)
+rather than literal harm &mdash; see the full write-up's &sect;2.6.</p>
+{loo_tables}
+<h4>Agreement: GPT-Z vs. Claude-FS[{esc(DC_HEADLINE_SET)}] ({pool['pool_verses']} verse-units)</h4>
+{build_design_choice_agreement_table()}
+<h4>Cost and saving, with and without Gemini</h4>
+{build_design_choice_cost_table()}
+<h4>Verdict</h4>
+<div class="exec-summary">{md_block(verdict_body)}</div>
+<div class="warning-banner">&#9888; Risks: one run per cell, no run-noise baseline anywhere in this
+analysis (CLAUDE.md rule 2); tested on exactly 1 of 25 subtypes ({subtype}) &mdash; the one subtype
+where Phase 1 found Gemini winning most clearly on the full Trope category (panel (o) below);
+Gemini's exact served model id / pricing is not fully resolved from available records (full
+write-up &sect;3.3).</div>
+</details>
+"""
+
+
+# ---------------------------------------------------------------------------
+# Panel (o): cross-phase model comparison (Phase 1 -> Phase 3 -> E1 v2)
+# ---------------------------------------------------------------------------
+
+E1V2_FEWSHOT_SETS = ["A", "B", "D", "D2", "M1", "M2", "E1", "E2", "H1", "H2", "Q1", "Q2"]
+CROSSPHASE_LABELS = ["Phase 1 (Trope, v4, strict)", "Phase 3 (recall only, strict)",
+                     "E1v2 Z (zero-shot, verse)", "E1v2 few-shot mean (verse)"]
+
+
+def _e1v2_overall(p: str, criterion: str, s: str) -> dict:
+    if s in SET_NAMES_FULL:
+        return analysis[p][criterion]["per_set"][s]["overall"]
+    if eras_exists and s in ERAS_SET_NAMES:
+        return analysis_eras["models"][p][criterion]["per_set"][s]["overall"]
+    if quartile_exists and s in QUARTILE_SET_NAMES:
+        return analysis_quartile["models"][p][criterion]["per_set"][s]["overall"]
+    raise KeyError(s)
+
+
+def _crossphase_value(metric: str, phase_idx: int, p: str):
+    """metric: 'recall' or 'f1'. Returns None where the number doesn't exist (Claude was never
+    run in Phase 3) or isn't defined (Phase 3's F1 is mathematically undefined by design)."""
+    if phase_idx == 0:
+        return PHASE1_TROPE_TEST["v4_combined"][p][metric]
+    if phase_idx == 1:
+        if p == "anthropic":
+            return None  # Claude not run in Phase 3 (crossmodel Option A scope: GPT only)
+        if metric == "f1":
+            return None  # mathematically undefined for Phase 3 (no negative samples)
+        key = "gemini_strict" if p == "google" else "gpt_strict"
+        return phase3_row[key]
+    if phase_idx == 2:
+        return _e1v2_overall(p, "verse", "Z")[metric]
+    if phase_idx == 3:
+        vals = [_e1v2_overall(p, "verse", s)[metric] for s in E1V2_FEWSHOT_SETS]
+        return sum(vals) / len(vals)
+    raise ValueError(phase_idx)
+
+
+def build_phase1_table() -> str:
+    rows = []
+    for prompt_key, label in [("baseline", "Baseline prompt"),
+                               ("v4_combined", "v4_combined (frozen thesis prompt)")]:
+        for p in MODEL_KEYS:
+            c = PHASE1_TROPE_TEST[prompt_key][p]
+            rows.append(f"<tr><td>{esc(label)}</td><td>{esc(MODEL_SHORT[p])}</td><td>{c['tp']}</td>"
+                        f"<td>{c['fp']}</td><td>{c['fn']}</td><td>{c['precision']:.3f}</td>"
+                        f"<td>{c['recall']:.3f}</td><td>{c['f1']:.3f}</td></tr>")
+    return ('<table class="detail-table"><thead><tr><th>Prompt</th><th>Model</th><th>TP</th><th>FP</th>'
+           "<th>FN</th><th>P</th><th>R</th><th>F1</th></tr></thead>"
+           f"<tbody>{''.join(rows)}</tbody></table>"
+           f'<p style="font-size:.85rem;color:var(--muted)">{rtl_wrap("مجاز")} (Trope, old terminology'
+           ' label kept as the frozen historical record per <code>CLAUDE.md</code>/<code>GLOSSARY.md</code>'
+           '), TEST split (3 of the 5 Phase 1 poems actually scored: Imru1/Jarir/Abu_Tammam), span-level'
+           ' strict criterion, 2-run majority. Source: <code>PROJECT_STATE.md</code> &sect;3a.</p>')
+
+
+def build_phase3_table() -> str:
+    r = phase3_row
+    rows = [
+        f"<tr><td>{esc(MODEL_SHORT['google'])}</td><td>{r['gemini_tp_strict']}</td>"
+        f"<td>{r['gemini_fn_strict']}</td><td>{r['gemini_strict']:.3f}</td><td>{r['gemini_token']:.3f}</td></tr>",
+        f"<tr><td>{esc(MODEL_SHORT['openai'])}</td><td>{r['gpt_tp_strict']}</td>"
+        f"<td>{r['gpt_fn_strict']}</td><td>{r['gpt_strict']:.3f}</td><td>{r['gpt_token']:.3f}</td></tr>",
+        '<tr><td>Claude Sonnet 4.6</td><td colspan="4">not run in Phase 3 (Option A scope: '
+        'GPT-5.4-mini only; Gemini re-scored from existing data, 0 new Gemini calls)</td></tr>',
+    ]
+    return ('<table class="detail-table"><thead><tr><th>Model</th><th>TP (strict)</th>'
+           "<th>FN (strict)</th><th>Recall (strict)</th><th>Recall (token)</th></tr></thead>"
+           f"<tbody>{''.join(rows)}</tbody></table>"
+           f'<p style="font-size:.85rem;color:var(--muted)">{rtl_wrap(e1v2_config.SUBTYPE_FOCUS)}, '
+           f'n={r["n"]} gold instances. Precision and F1 are <strong>mathematically undefined</strong> '
+           "for this data (every row is a line already tagged positive for its own subtype by design "
+           "&mdash; there are no negative samples to compute a false positive from), not just "
+           'unmeasured. Source: <code>results/phase3_crossmodel/summary.md</code> + '
+           '<code>raw/crossmodel_scoring_snapshot.json</code>.</p>')
+
+
+def build_e1v2_crossphase_table(criterion: str) -> str:
+    rows = []
+    for p in MODEL_KEYS:
+        z = _e1v2_overall(p, criterion, "Z")
+        rows.append(f'<tr><td>{esc(MODEL_SHORT[p])}</td><td><span class="set-chip">Z</span></td>'
+                    f"<td>{z['tp']}</td><td>{z['fp']}</td><td>{z['fn']}</td><td>{z['precision']:.3f}</td>"
+                    f"<td>{z['recall']:.3f}</td><td>{z['f1']:.3f}</td></tr>")
+        for s in E1V2_FEWSHOT_SETS:
+            c = _e1v2_overall(p, criterion, s)
+            rows.append(f'<tr><td></td><td><span class="set-chip">{s}</span></td>'
+                        f"<td>{c['tp']}</td><td>{c['fp']}</td><td>{c['fn']}</td><td>{c['precision']:.3f}</td>"
+                        f"<td>{c['recall']:.3f}</td><td>{c['f1']:.3f}</td></tr>")
+        f1s = [_e1v2_overall(p, criterion, s)["f1"] for s in E1V2_FEWSHOT_SETS]
+        ps = [_e1v2_overall(p, criterion, s)["precision"] for s in E1V2_FEWSHOT_SETS]
+        rs = [_e1v2_overall(p, criterion, s)["recall"] for s in E1V2_FEWSHOT_SETS]
+        rows.append(f'<tr class="diff-row"><td></td><td>mean over {len(E1V2_FEWSHOT_SETS)} '
+                    f'few-shot sets</td><td colspan="3"></td><td>{sum(ps)/len(ps):.3f}</td>'
+                    f'<td>{sum(rs)/len(rs):.3f}</td><td><strong>{sum(f1s)/len(f1s):.3f}</strong></td></tr>')
+        rows.append(f'<tr class="diff-row"><td></td><td>range (F1)</td><td colspan="5"></td>'
+                    f'<td>[{min(f1s):.3f}, {max(f1s):.3f}]</td></tr>')
+        if multipoet_exists:
+            for s in ("F5", "F10"):
+                c = analysis_multipoet["primary_pool"][p][criterion]["per_set"][s]["overall"]
+                rows.append(f'<tr><td></td><td><span class="set-chip">{s}</span> '
+                            f'<em>(own 50-poem pool)</em></td>'
+                            f"<td>{c['tp']}</td><td>{c['fp']}</td><td>{c['fn']}</td>"
+                            f"<td>{c['precision']:.3f}</td><td>{c['recall']:.3f}</td><td>{c['f1']:.3f}</td></tr>")
+    return (f'<table class="detail-table" data-criterion="{criterion}"><thead><tr><th>Model</th><th>Set</th>'
+           "<th>TP</th><th>FP</th><th>FN</th><th>P</th><th>R</th><th>F1</th></tr></thead>"
+           f"<tbody>{''.join(rows)}</tbody></table>")
+
+
+def build_crossphase_summary_table() -> str:
+    metric_for_phase = ["f1", "recall", "f1", "f1"]
+    ranks = []
+    for ph in range(4):
+        m = metric_for_phase[ph]
+        vals = [(p, _crossphase_value(m, ph, p)) for p in MODEL_KEYS]
+        vals_sorted = sorted((v for v in vals if v[1] is not None), key=lambda x: -x[1])
+        ranks.append({p: i + 1 for i, (p, _) in enumerate(vals_sorted)})
+    body = []
+    for p in MODEL_KEYS:
+        tds = []
+        for ph in range(4):
+            v = _crossphase_value(metric_for_phase[ph], ph, p)
+            if v is None:
+                tds.append("<td>not run</td>")
+            else:
+                r = ranks[ph].get(p)
+                tds.append(f'<td>{v:.3f} <span style="color:var(--muted)">(#{r})</span></td>')
+        body.append(f"<tr><th>{esc(MODEL_SHORT[p])}</th>{''.join(tds)}</tr>")
+    header = "".join(f"<th>{esc(l)}</th>" for l in CROSSPHASE_LABELS)
+    return (f"<table class=\"detail-table\"><thead><tr><th>Model</th>{header}</tr></thead>"
+           f"<tbody>{''.join(body)}</tbody></table>"
+           '<p style="font-size:.8rem;color:var(--muted)">Phase 1 and the two E1v2 columns show F1 '
+           '(Phase 1: span-level strict; E1v2: verse-primary); the Phase 3 column shows recall only '
+           '(Precision/F1 are mathematically undefined there by design). Rank #1 = best within that '
+           "phase's column, among models actually run there.</p>")
+
+
+def build_crossphase_chart_svg(metric: str) -> str:
+    phases = list(range(4))
+    w, h = 620, 230
+    pad_l, pad_b, pad_t = 40, 56, 20
+    plot_w, plot_h = w - pad_l - 20, h - pad_b - pad_t
+    group_w = plot_w / len(phases)
+    bar_w = group_w / (len(MODEL_KEYS) + 1)
+    all_vals = [v for ph in phases for p in MODEL_KEYS
+                for v in [_crossphase_value(metric, ph, p)] if v is not None]
+    vmax = max(all_vals) * 1.15
+    colors = {"anthropic": "var(--c-anthropic)", "openai": "var(--c-openai)", "google": "var(--c-google)"}
+    parts = [f'<svg viewBox="0 0 {w} {h}" class="barchart" xmlns="http://www.w3.org/2000/svg" '
+             f'role="img" aria-label="{metric} per model across phases, Gemini outlined">']
+    parts.append(f'<line x1="{pad_l}" y1="{pad_t}" x2="{pad_l}" y2="{h-pad_b}" class="axis"/>')
+    parts.append(f'<line x1="{pad_l}" y1="{h-pad_b}" x2="{w-20}" y2="{h-pad_b}" class="axis"/>')
+    for gi, ph in enumerate(phases):
+        gx = pad_l + gi * group_w
+        for mi, p in enumerate(MODEL_KEYS):
+            v = _crossphase_value(metric, ph, p)
+            x = gx + (mi + 0.3) * bar_w
+            if v is None:
+                parts.append(f'<text x="{x+bar_w*0.4:.1f}" y="{h-pad_b-6}" class="bar-label">n/a</text>')
+                continue
+            bh = (v / vmax) * plot_h
+            y = h - pad_b - bh
+            stroke = ' stroke="var(--fg)" stroke-width="1.6"' if p == "google" else ""
+            parts.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{bar_w*0.8:.1f}" height="{bh:.1f}" '
+                         f'fill="{colors[p]}"{stroke}><title>{MODEL_SHORT[p]} / {CROSSPHASE_LABELS[ph]}: '
+                         f'{metric}={v:.3f}</title></rect>')
+            parts.append(f'<text x="{x+bar_w*0.4:.1f}" y="{y-4:.1f}" class="bar-label">{v:.2f}</text>')
+        parts.append(f'<text x="{gx+group_w/2:.1f}" y="{h-pad_b+16}" class="axis-label" '
+                     f'transform="rotate(16 {gx+group_w/2:.1f} {h-pad_b+16})">{esc(CROSSPHASE_LABELS[ph])}</text>')
+    legend_x = pad_l
+    for i, p in enumerate(MODEL_KEYS):
+        lx = legend_x + i * 150
+        hl = ' stroke="var(--fg)" stroke-width="1.6"' if p == "google" else ""
+        parts.append(f'<rect x="{lx}" y="2" width="10" height="10" fill="{colors[p]}"{hl}/>')
+        parts.append(f'<text x="{lx+14}" y="11" class="legend-label">{MODEL_SHORT[p]}'
+                     f'{" (outlined)" if p == "google" else ""}</text>')
+    parts.append("</svg>")
+    return "".join(parts)
+
+
+def build_crossphase_section() -> str:
+    toggle_row = (
+        '<div class="crit-toggle">'
+        '<button class="crit-btn" data-target="verse" onclick="toggleCriterion(\'verse\')">Verse (primary)</button>'
+        '<button class="crit-btn" data-target="strict" onclick="toggleCriterion(\'strict\')">Strict (secondary)</button>'
+        '<button class="crit-btn" data-target="token" onclick="toggleCriterion(\'token\')">Token-overlap (secondary)</button>'
+        "</div>"
+    )
+    e1v2_tables = "".join(f'<div data-criterion="{c}">{build_e1v2_crossphase_table(c)}</div>' for c in CRITERIA)
+    verdict_body = extract_section(design_choice_doc_text, "Part 4 — Verdict", ["Sources"]) if design_choice_exists else ""
+    subtype = rtl_wrap(e1v2_config.SUBTYPE_FOCUS)
+    _z = _e1v2_overall("anthropic", "verse", "Z")
+    _a = _e1v2_overall("anthropic", "verse", "A")
+    reading_para = (
+        "<p><strong>Plain-English reading:</strong> Gemini led clearly in three places &mdash; "
+        "Phase 1's Trope F1, Phase 3's recall (both criteria), and E1v2's strict/token span-level "
+        "metrics once few-shot examples are added (panel (n) above / <code>E1_V2_RESULTS.md</code> "
+        "Q3). It did <strong>not</strong> lead in two places: E1v2's zero-shot verse-primary F1 "
+        "(GPT wins there) and the 3-model majority ensemble's leave-one-out marginal contribution "
+        "on the primary verse metric (&asymp;0, not significant in any of 10 few-shot sets &mdash; "
+        "panel (n)). <strong>Recall, not precision, drives most of the movement</strong>: few-shot "
+        "examples raise every model's E1v2 recall substantially over zero-shot (e.g. Claude's "
+        f"Z&rarr;A recall {_z['recall']:.3f}&rarr;{_a['recall']:.3f}) while precision moves far less "
+        f"(Claude {_z['precision']:.3f}&rarr;{_a['precision']:.3f}) &mdash; the same "
+        "recall-for-precision trade seen throughout this project (Phase 1 &sect;3f/g, panel (h) "
+        "ensemble, panel (n) D_C/D_D).</p>"
+    )
+    return f"""
+<details>
+<summary>o. Cross-phase model comparison: Phase 1 &rarr; Phase 3 &rarr; E1 v2 (added 2026-10-29)</summary>
+<div class="warning-banner">&#9888; <strong>Not directly comparable across phases</strong> &mdash;
+different prompt (Phase 1's whole-poem prompt vs. Phase 3/E1v2's per-verse subtype prompt),
+different element scope (Phase 1's Trope = the full {rtl_wrap("مجاز")} umbrella; Phase 3/E1v2 =
+{subtype} only, one narrow subtype of it), different metric (Phase 1 = 2-run-majority span-level
+strict/token; Phase 3 = recall-only, precision/F1 undefined by design; E1v2 = 1-run,
+verse-primary + strict/token secondary), and different poems (Phase 1's 5 poems are excluded from
+E1v2's 25-poem pool by construction &mdash; no same-poem comparison exists anywhere in this
+panel). <strong>Only rank/direction is compared below, never raw numbers across phases.</strong></div>
+
+<h4>1. Phase 1 Trope, TEST (frozen, 2-run majority, strict span-level)</h4>
+{build_phase1_table()}
+
+<h4>2. Phase 3 {subtype} (recall only, span-level)</h4>
+{build_phase3_table()}
+
+<h4>3. E1 v2 {subtype} (25-poem pool, Z + {len(E1V2_FEWSHOT_SETS)} few-shot sets; F5/F10 on their own 50-poem pool, labelled)</h4>
+{toggle_row}
+{e1v2_tables}
+
+<h4>4. Model &times; phase summary, with rank per phase</h4>
+{build_crossphase_summary_table()}
+<div class="chart-row">
+  <div class="chart-card"><h3>Recall per model across phases</h3>{build_crossphase_chart_svg('recall')}</div>
+  <div class="chart-card"><h3>F1 per model across phases</h3>{build_crossphase_chart_svg('f1')}</div>
+</div>
+{reading_para}
+
+<div class="exec-summary">
+<h4 style="margin-top:0">Verdict (full detail in panel (n) above)</h4>
+{md_block(verdict_body) if verdict_body else '<p>See panel (n) for the full design-choice verdict.</p>'}
+</div>
+</details>
+"""
+
+
 def build_pool_table() -> str:
     rows = []
     for poem in pool["poems"]:
@@ -1995,6 +2587,8 @@ calls in any step — all read already-collected data.</li>
 {build_multipoet_section()}
 {build_eras_section()}
 {build_quartile_section()}
+{build_design_choice_section()}
+{build_crossphase_section()}
 </section>
 """)
 
@@ -2034,5 +2628,37 @@ if opus_a_exists:
     assert "Opus 5.5" in written
 print("PASS: re-read the written file and confirmed every main-table F1 value string is present "
       "(all 6 sets x 3 models x 3 criteria), plus Opus 5.5's set-A F1 for all 3 criteria.")
+
+if design_choice_exists:
+    missing = []
+    for criterion in CRITERIA:
+        for fs in DC_FS_SETS:
+            for d, r in _dc_cell(fs, criterion).items():
+                s = f"{r['f1']:.3f}"
+                if s not in written:
+                    missing.append((criterion, fs, d, s))
+        a_f1 = analysis_design_choice["criteria"][criterion]["D_A_gpt_z"]["overall"]["f1"]
+        if f"{a_f1:.3f}" not in written:
+            missing.append((criterion, "D_A", a_f1))
+    assert not missing, f"design-choice (panel n) F1 values missing from written HTML: {missing[:10]}"
+    assert "n. Design choice" in written and "o. Cross-phase model comparison" in written
+    print(f"PASS: all {len(CRITERIA) * len(DC_FS_SETS) * len(DC_DESIGN_ORDER) + len(CRITERIA)} "
+          "design-choice (panel n) F1 values, across every FS set and criterion, found in the "
+          "written HTML; panels (n) and (o) both present.")
+
+    for p in MODEL_KEYS:
+        for s in ["Z"] + E1V2_FEWSHOT_SETS:
+            for c in CRITERIA:
+                v = _e1v2_overall(p, c, s)["f1"]
+                assert f"{v:.3f}" in written, f"cross-phase E1v2 F1 {v:.3f} ({p}/{c}/{s}) not in written HTML"
+    for prompt_key in ("baseline", "v4_combined"):
+        for p in MODEL_KEYS:
+            v = PHASE1_TROPE_TEST[prompt_key][p]["f1"]
+            assert f"{v:.3f}" in written, f"Phase 1 F1 {v:.3f} ({prompt_key}/{p}) not in written HTML"
+    assert f"{phase3_row['gemini_strict']:.3f}" in written and f"{phase3_row['gpt_strict']:.3f}" in written
+    print("PASS: every E1v2 cross-phase F1 (12 sets x 3 models x 3 criteria), every Phase 1 "
+          "Trope F1 (2 prompts x 3 models), and Phase 3's Gemini/GPT strict recall all confirmed "
+          "present in the written HTML (panel o).")
+
 rtl_count = written.count('dir="rtl"')
 print(f"RTL spans/pre blocks emitted: {rtl_count} (>0 confirms Arabic text is wrapped RTL).")

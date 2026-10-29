@@ -3383,3 +3383,127 @@ best-performing pair on span-level (strict/token) metrics in most sets, the find
 run with no replication, and only 1 of 25 subtypes was tested (the one where Phase 1 found Gemini
 strongest on the full Trope category). Recommended, not run: a ~$2.37-4.73 cheap zero-shot check
 on one additional, non-استعارة subtype with all 3 models before the full commitment.
+
+---
+
+## 2026-10-29 — HTML report extended: design-choice panel + cross-phase comparison panel
+
+**Task**: add two new collapsible panels to `docs/phase4/E1_V2_REPORT.html` (built, not
+hand-edited, by `scripts/build_e1v2_report.py`): (n) the design-choice question from the prior
+task (GPT-Z + Claude-FS, with/without Gemini) and (o) a cross-phase model comparison spanning
+Phase 1 &rarr; Phase 3 &rarr; E1 v2. **NO API calls.** Only `scripts/build_e1v2_report.py` was
+edited (as instructed); no existing result/analysis file was touched. Backed up the pre-task
+report to `docs/phase4/E1_V2_REPORT_before_designchoice.html` first, per the task's instruction
+(same naming convention as `_before_ensemble`/`_before_multipoet`/`_before_opus`/`_before_q`).
+
+**Step 1 — reading**: `CLAUDE.md`, `docs/phase4/DESIGN_CHOICE_GPTZ_CLAUDEFS.md` (prior task's
+write-up), `E1_V2_RESULTS.md`, `E1_V2_ERAS_FEWSHOT.md`, `E1_V2_MULTIPOET.md`, `PROJECT_STATE.md`
+§1-§7 (Phase 1 frozen Trope TEST table, §3a), `results/phase3_subelements/` +
+`results/phase3_crossmodel/` (found Phase 3's real per-subtype recall numbers in
+`results/phase3_crossmodel/summary.md` + `raw/crossmodel_scoring_snapshot.json` — n=110 for
+استعارة فعل, Gemini strict recall 0.264/token 0.255, GPT strict 0.155/token 0.164, **Claude never
+run in Phase 3**, Precision/F1 mathematically undefined there by design, no negative samples
+exist), `scripts/build_e1v2_report.py` in full (2038 lines) to learn its load/verify/build/assemble
+conventions (existence-guarded `*_exists` loads, `analysis_eras["models"][p][c]["per_set"][s]`
+/`analysis_quartile["models"][...]`/`analysis_multipoet["primary_pool"][...]` key shapes,
+`toggleCriterion`'s page-global `data-criterion` div convention, `verify_*()` functions called
+right after definition and a post-write re-read-and-assert block at the end).
+
+**Step 2 — new code in `scripts/build_e1v2_report.py`** (additive, existing functions/sections
+untouched):
+- New guarded loads: `analysis_design_choice` (the prior task's JSON), `design_choice_doc_text`,
+  `full_cost_model_v2_text`, `project_state_md`, `crossmodel_snapshot`/`crossmodel_summary_md`,
+  `phase3_row` (the استعارة فعل row from the snapshot). `PHASE1_TROPE_TEST`: the only hand-typed
+  numbers in this script (Phase 1's TP/FP/FN aren't in any JSON here) — P/R/F1 derived via a
+  locally-reimplemented `_prf1()` (4-line reimplementation of `pilot_3models.analyze.prf1`'s exact
+  formula, not an import, because that module's bare `from config import ...` only resolves when
+  `experiments/pilot_3models` itself is pushed onto `sys.path`, which this script doesn't do —
+  caught as an `ImportError` on first run, fixed by not importing it). `FULL_COST_MODEL_V2_S1_S2`:
+  8 hand-carried S1/S2 totals from that doc's §3, each checked present in the doc's own text.
+- 4 new `verify_*()` functions (called right after definition, same convention as the existing
+  ones): `verify_design_choice_matches_doc()` (6 headline F1s cross-checked against
+  `DESIGN_CHOICE_GPTZ_CLAUDEFS.md`'s own printed numbers), `verify_phase1_numbers_in_project_state()`
+  (asserts all 6 TP/FP/FN strings and all 6 F1 strings appear verbatim in `PROJECT_STATE.md`, and
+  that the locally-derived F1s match to 3dp), `verify_phase3_recall()` (TP/(TP+FN) self-consistency
+  against the snapshot's own stored recall, plus presence in `summary.md`), `verify_full_cost_model_v2()`.
+  All 4 passed on the first successful run (no numeric mismatches found).
+- Panel (n) builders: `_dc_cell()` (one (Claude-FS-set, criterion) &rarr; all 7 design "overall"
+  dicts: D_B, D_C-OR/AND, D_D-GeminiFS/GeminiZ, D_E-GPT+Gemini/Claude+Gemini), a 10-set &times;
+  7-design F1 matrix table, a headline-set-B P/R/F1 detail table, a leave-one-out CI table (every
+  one of the 10 Claude-FS sets, all 3 criteria), the GPT-Z-vs-Claude-FS[B] agreement-bucket table,
+  a real-cost-vs-projected-full-corpus-cost table (reusing `FULL_COST_MODEL_V2_S1_S2`), and the
+  Part-4 verdict prose (`extract_section()`'d straight out of `DESIGN_CHOICE_GPTZ_CLAUDEFS.md`,
+  the same reused-prose convention `E1_V2_RESULTS.md`'s Q1-Q4 sections already use elsewhere in
+  this script).
+- Panel (o) builders: `_e1v2_overall()` (dispatches a (model, criterion, set) lookup to whichever
+  of `analysis`/`analysis_eras`/`analysis_quartile` actually holds that set — Z/A/B/C/D/D2 vs.
+  M1/M2/E1/E2/H1/H2 vs. Q1/Q2), `_crossphase_value()` (one function covering all 4
+  phase-columns' recall/F1 lookups, returning `None` where a number doesn't exist — Claude in
+  Phase 3 — or isn't defined — Phase 3's F1 for anyone), the Phase 1 table, the Phase 3 table
+  (recall-only, Claude row explicitly "not run"), a 3-model &times; (Z + 12 few-shot sets, mean +
+  range, F5/F10 on their own pool labelled) P/R/F1 table per criterion, a model&times;phase rank
+  summary table, and two new inline-SVG bar charts (`build_crossphase_chart_svg('recall'|'f1')`,
+  reusing the existing `svg.barchart`/`.axis`/`.bar-label`/`.legend-label` CSS classes and
+  `var(--c-anthropic/openai/google)` color variables unchanged — Gemini's bars get an added
+  `stroke="var(--fg)"` outline, no new hardcoded colors anywhere, so dark mode needs no new CSS).
+  The "plain-English reading" paragraph's two quoted recall/precision numbers (Claude's Z&rarr;A
+  move) are pulled live from `_e1v2_overall()`, not hand-typed, so they can never drift from the
+  tables above them.
+- Wired both new builders into the existing panel-assembly line (`{build_quartile_section()}` 
+  &rarr; followed by the two new calls) and added their 6 new source files to `SOURCE_FILES_USED`.
+  Extended the post-write verification block with 2 new assertion groups (every design-choice F1
+  across all 10 sets &times; 3 criteria &times; 7 designs present in the written HTML; every
+  cross-phase E1v2/Phase-1/Phase-3 number present) — both passed.
+
+**Step 3 — run and fix**: first run failed with `ImportError: cannot import name 'RAW_DIR' from
+'config'` (the `pilot_3models.analyze.prf1` import collided with `sys.path` state, as flagged
+above) — fixed by reimplementing the 4-line formula locally instead of importing it. Second run:
+**all verification PASSed**, including the 4 new ones; wrote a 466,747-char file (up from the
+prior 413,790-char backup); `ALL_COMPLETE=True`, 5886/5886 cells, 0 errors (unchanged from before
+— this task added no new experiment data, only new read-only derived panels).
+
+**Step 4 — browser verification** (built-in browser, per `CLAUDE.md`'s mandatory-render-verification
+discipline, extended here to a non-RTL-bug check since there's no `.docx`/bidi concern in this
+HTML task): opened the written file, expanded panel (n) and confirmed the verse&rarr;strict
+toggle actually re-renders the matrix table with the strict-criterion numbers (D_A 0.549&rarr;0.246,
+D_B[B] 0.547&rarr;0.263, etc. — all matching the JSON exactly, confirming the shared page-global
+`toggleCriterion` correctly drives the new panels too, not just the pre-existing ones). Expanded
+panel (o), confirmed the Arabic subtype label and the comparability warning box render RTL
+correctly inline inside the new content. Checked both new SVG charts via
+`document.querySelectorAll('svg.barchart')`: both render with real (non-zero) geometry and the
+expected rect counts (14 for recall &mdash; 11 real bars + 3 legend swatches, since only
+Claude/Phase-3 is `None`; 12 for F1 &mdash; 9 real bars + 3 legend swatches, since the entire
+Phase-3 column is `None` for F1). Checked mobile width (375px emulation): confirmed via
+`document.documentElement.scrollWidth === window.innerWidth` that there is **no page-level
+horizontal overflow** &mdash; individual long tables scroll internally via the existing
+`overflow-x:auto` mobile rule (verified directly on a `<table>` element's own computed style),
+exactly as every pre-existing table in this report already does; an early same-session reading of
+`window.innerWidth` (284) before the viewport fully settled had briefly suggested an overflow,
+re-checked and found to be a stale reading, not a real bug. Dark mode could not be visually
+exercised (the browser tool renders local `file://` documents with light defaults regardless of
+color-scheme emulation), so this was checked structurally instead: `git diff` on the new code
+contains zero new hex-color literals (only the pre-existing `&#9888;` HTML entity, not a color) —
+every new table/chart cell uses the existing `var(--bg|fg|muted|panel|accent|c-anthropic|...)`
+variable system, which the stylesheet already redefines for both the `prefers-color-scheme: dark`
+media query and the `data-theme="dark"` override, unchanged by this task.
+
+**Step 5 — final numbers verified** (same figures as the prior task's write-up, now also
+embedded in the regenerated HTML and cross-checked against it):
+
+| Model | Phase 1 (Trope, v4, strict F1) | Phase 3 (recall, strict) | E1v2 Z (verse F1) | E1v2 few-shot mean (verse F1, 12 sets) |
+|---|---|---|---|---|
+| Claude Sonnet 4.6 | 0.242 (#3) | not run | 0.377 (#3) | **0.539 (#1)** |
+| GPT-5.4-mini | 0.251 (#2) | 0.155 (#2) | **0.549 (#1)** | 0.500 (#2) |
+| Gemini | **0.386 (#1)** | **0.264 (#1)** | 0.393 (#2) | 0.491 (#3) |
+
+(Corrected before commit: an earlier draft of this table mis-stated the few-shot-mean column as
+Gemini-led — re-derived directly from the written HTML's own summary table, which the script
+computes from real data, not hand-typed; Claude actually leads that column, Gemini is third.)
+
+**Verification result**: every assertion in `build_e1v2_report.py`'s verify suite passed,
+including the 4 new ones added this task (design-choice numbers match the prior doc, Phase 1
+numbers match `PROJECT_STATE.md` verbatim, Phase 3 recall is internally self-consistent and
+matches `summary.md`, the 8 full-cost-model figures match `FULL_COST_MODEL_V2.md`), plus the
+post-write re-read assertions confirming every one of those numbers actually landed in the
+written HTML file. No mismatches were found or needed fixing beyond the one import-path bug
+(caught and fixed before any numbers were ever wrong, not a silent data error).
