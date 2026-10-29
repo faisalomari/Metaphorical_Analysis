@@ -35,6 +35,7 @@ sys.path.insert(0, str(ROOT))
 from experiments.pilot_3models.rtl_utils import is_majority_arabic  # noqa: E402
 from experiments.pilot_3models import config as pilot_config  # noqa: E402
 from experiments.phase4_e1_v2 import e1v2_config  # noqa: E402
+from scripts.build_phase7_section import build_phase7_section  # noqa: E402
 from experiments.phase4_e1_v2 import prompt_builder  # noqa: E402
 
 RESULTS_DIR = ROOT / "results" / "phase4_e1_v2"
@@ -2589,6 +2590,7 @@ calls in any step — all read already-collected data.</li>
 {build_quartile_section()}
 {build_design_choice_section()}
 {build_crossphase_section()}
+{build_phase7_section()}
 </section>
 """)
 

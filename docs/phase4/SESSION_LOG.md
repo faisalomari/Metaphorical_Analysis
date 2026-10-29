@@ -3642,3 +3642,152 @@ within ~9%, giving some confidence the primary figure isn't badly off. Full tabl
 
 **STOP (CLAUDE.md rule 5)**: awaiting the user's explicit "go" and a hard cap
 (`--max-additional-usd`) before Step 3 (the real run) — not yet given as of this entry.
+
+---
+
+**2026-10-29 (cont'd) — Dr. Ali Hussein's reply + scope expansion to 4 subtypes.**
+Dr. Ali replied: the two تشبيه subtypes he wants are تشبيه قصير and تشبيه طويل (flagging that
+"تشبيه مطول" is the likely exact corpus string for "طويل", to be verified not assumed). **Final
+scope: 4 subtypes** = استعارة قديمة, كناية عن صفة (already running/run, see above), تشبيه قصير,
+تشبيه مطول/طويل. Same 3-model x {zero-shot, few-shot} design, same guards and stops.
+
+**Step 0 addendum (no API) — census for the 2 تشبيه subtypes**: `census_tashbih2.py`.
+- **Exact-string check**: `تشبيه قصير` = 160 exact annotations, `تشبيه مطول` = 227 exact
+  annotations, both present in `subtype_defs.py` with definitions. Literal `تشبيه طويل` = **0**
+  exact hits anywhere in the corpus — confirms `تشبيه مطول` is the correct string, not `تشبيه
+  طويل`. No substitution needed, no STOP on this point.
+- **Per-subtype census**: `تشبيه قصير` — 137 positive verses/58 poems/29 poets, 53 eligible
+  example verses (note-quality filter)/16 poets, **13** positives in the raw 25-poem eval pool.
+  `تشبيه مطول` — 217 positive verses/85 poems/39 poets, 72 eligible example verses/25 poets,
+  **25** positives in the raw pool. Both are below the 30-positive floor already, before any
+  example-source poems are even subtracted from the pool.
+- **Verse-boundary-crossing check** (task's explicit ask, `تشبيه مطول` especially): spans whose
+  `verse_index` carries more than one distinct verse number — `تشبيه قصير` 3/160 (1.9%), `تشبيه
+  مطول` 19/226 (8.4%). **Neither exceeds the 20% materiality bar** — single-verse input stays the
+  unit for all 4 subtypes; no pool-unit-redefinition STOP needed.
+
+**Decision taken on the user's explicit instruction ("make the decision, finish everything by
+morning")**: since the user is unavailable to answer gate-by-gate tonight and has already set the
+precedent for this exact gate (`استعارة قديمة`'s Option (a) decision above), the same Option (a)
+treatment is applied to both new تشبيه subtypes without a further stop: **keep the unchanged
+25-poem/327-verse pool, mark `تشبيه قصير` and `تشبيه مطول` indicative-only** (both n<30
+GT-positive in-pool) rather than spending ~$10-20 more to extend the pool for 2 more subtypes.
+This mirrors, not overrides, the user's own prior choice on an identically-shaped question.
+
+**Step 1 addendum (no API) — few-shot sets for the 2 new subtypes**: own script
+(`phase7_examples_tashbih2.py`), own output file (`config/phase7_example_sets_tashbih2.json`) —
+does NOT edit `phase7_example_sets.json` or re-touch `استعارة قديمة`/`كناية عن صفة`'s already-drawn
+pairs. Same seed=42 anti-"set C" guard (same-poem/poet, missing note, >=0.5 token-overlap on
+span/verse/note), same re-draw-on-reject convention, eval pool = eval_pool_25 minus EACH
+subtype's OWN 2 example-source poems (kept per-subtype rather than a cross-4-subtype union, so
+the already-spent `استعارة قديمة`/`كناية عن صفة` API calls against the full unchanged 327-verse
+pool are never invalidated by a later subtype's draw).
+
+**Data-quality finding during تشبيه مطول's draw (own additive fix, not a change to any existing
+result)**: the first seed=42 draw for `تشبيه مطول` picked an example (poem 6174 v24, raw_key
+10907) whose `span_text` turned out to be a **scrambled, out-of-reading-order word bag** —
+confirmed two ways: (1) its `verse_index` was `24,24,...,25,25,...` (a genuine multi-verse-crossing
+annotation, consistent with the 8.4% rate found above) and the span's words interleaved both
+verses out of order; (2) a SECOND draw (after excluding multi-verse spans) still picked a
+scrambled example (poem 27576 v30, single verse_index=30, span word order != the verse's actual
+word order) — so the scrambling is a **broader corpus data-quality quirk**, not limited to
+multi-verse spans. Added `is_in_reading_order()` to `phase7_examples_tashbih2.py`: a candidate is
+eligible as a few-shot example only if its span is a contiguous, in-order word subsequence of its
+verse (harmless for scoring, which already uses order-independent token-overlap, but unusable as
+a model-facing example). Re-ran with this filter; **checked the already-spent `استعارة قديمة`/
+`كناية عن صفة` examples retroactively — both clean/in-order**, so this finding changes nothing
+already run. Final clean draws (seed=42, 1 attempt each, both accepted): `تشبيه قصير` = ديك الجن
+(poem 18729 v24, span «يا كلَّ مَنْيٍ») + أبو دلامة (poem 28688 v5, span «جَعَلُوا عَلَيْهَا
+طِينَةً كالعَقْرَبِ»); `تشبيه مطول` = الأعشى ميمون (poem 6574 v4, span «وَهْيَ إِنْ تَقْعُدْ نَقًا
+مِنْ عَالِجٍ») + أبو دلامة (poem 28688 v7, span «وإذَا شَبِيهٌ بالأفَاعِي رُقِّشَتْ»). Zero-shot
+sys tokens: قصير 227 / مطول 277. Few-shot sys tokens: قصير 558 / مطول 604. Per-subtype eval pool
+(own example poems only, per-subtype exclusion): both subtypes 0 removed, pool stays 25
+poems/327 verses for each. **Pool positives: `تشبيه قصير` = 13, `تشبيه مطول` = 25 — both <30,
+both marked indicative-only** (Option (a) precedent, same as `استعارة قديمة`). Written to
+`experiments/phase7_subtypes/config/phase7_example_sets_tashbih2.json`.
+
+**Caveat for the eventual write-up**: this span-scrambling quirk is a general corpus property,
+not specific to these 2 subtypes — it does not affect this project's own scoring (token-overlap
+and verse-level matching are both order-independent) but is worth naming as a known data-quality
+caveat in `docs/phase7/SUBTYPES_RESULTS.md`.
+
+**Step 2 addendum (no API) — cost dry-run for the 2 new تشبيه subtypes**: `dryrun_phase7_tashbih2.py`.
+Calls = 327 verse-units x 2 conditions x 3 models x 2 subtypes = **3,924** (same shape as the
+first 2 subtypes' run). Primary (token-based) estimate: **$9.41** total (Claude $5.18, GPT $1.41,
+Gemini $2.82; `تشبيه قصير` ~$4.61 / `تشبيه مطول` ~$4.80). **Combined 4-subtype total: ~$19.12**
+(original $9.70 + new $9.41). Full table: `results/phase7_subtypes/dryrun_cost_tashbih2.json`.
+
+**Go decision + hard cap (user's explicit instruction tonight: "make the decision, finish
+everything by morning — I have a meeting")**: the user is asleep and has already set the
+precedent for this exact decision at this exact cost scale (Step 3's original "Go, cap $15" for a
+$9.70 estimate, a ~1.55x buffer). Applying the same buffer ratio here: **cap = $15** for the
+$9.41-estimated new-subtypes run. Smoke-tested first (`--max-additional-usd 1 --limit-poems 1
+--limit-verses-per-poem 1`): **12/12 calls succeeded, $0.0296 spent**, all 12 raw response files
+verified as clean, well-formed `{exists, appearance, reasoning}` JSON with on-topic Arabic
+reasoning. Launching the full run in the background: own manifest
+(`run_manifest_tashbih2.json`) and own raw dir (`raw_tashbih2/`), fully separate from
+`run_phase7.py`'s files — no race with the still-running original job. Same per-provider
+(not global) 5-in-a-row error counter and immediate quota/429/credit stop as the original runner.
+
+**Status checkpoint (still 2026-10-29, late)**: both Step 3 API runs are in progress in the
+background (`run_phase7.py` for استعارة قديمة/كناية عن صفة, `run_phase7_tashbih2.py` for تشبيه
+قصير/تشبيه مطول), 0 errors in either manifest so far. Step 4 scoring (`score_phase7.py`) and the
+Step 5 HTML section builder (`scripts/build_phase7_section.py`, wired additively into
+`scripts/build_e1v2_report.py` via one new import line + one new `{build_phase7_section()}`
+insertion at the end of the panel list — no existing section's code touched) are both written and
+smoke-tested against partial in-flight data; they will be re-run for real once both manifests
+reach 327 ok cells x 2 conditions x 3 models x 4 subtypes (3,924 + 3,924 = 7,848 total calls).
+Remaining: finish both runs, re-run scoring for final numbers, verify full coverage, write
+`docs/phase7/SUBTYPES_RESULTS.md` (EN) + `docs/phase7/SUBTYPES_SUMMARY_AR.md` (AR), rebuild
+`E1_V2_REPORT.html`, commit + push everything (code, configs, `run_manifest*.json`, `raw*/`,
+results JSON, docs, updated HTML).
+
+---
+
+**Completion (2026-10-29, continuing autonomously through the night per the user's instruction
+"finish everything by morning")**:
+
+- **Original run (`run_manifest.json`) finished clean**: 3,924/3,924 ok, 0 errors.
+- **New run (`run_manifest_tashbih2.json`) finished with 2 transient errors**: both
+  `ServerError: 503 UNAVAILABLE` from Google (poem 4479 v5 `تشبيه مطول`/zero and poem 4479 v7
+  `تشبيه قصير`/few) — not quota/429/credit errors, so the per-provider 5-in-a-row counter never
+  tripped and the run continued past them rather than stopping. Retried just those 2 cells
+  (`--max-additional-usd 1`, no `--force`, so only the 2 error-flagged cells were replanned):
+  both succeeded on retry. **Final: 3,924/3,924 ok, 0 errors.**
+- **Full coverage confirmed**: `score_phase7.py`'s own coverage check printed
+  `Full identical coverage per (subtype, condition, model)? True` (12 cells x 327 ok each,
+  7,848 total records across both manifests combined).
+- **Actual spend** (computed from manifest usage, not the pre-run estimate): original run
+  $10.76, new run $9.975, **combined $20.74** — both runs individually stayed under their own
+  $15 hard cap; combined exceeds the pre-run $19.12 estimate by ~8.5%, consistent with the
+  estimate being a lower-bound token count (no retry/error overhead) rather than a ceiling.
+- **Final scoring run** (`python experiments/phase7_subtypes/score_phase7.py`): wrote
+  `results/phase7_subtypes/analysis_report_phase7.json` for real (previous content was a
+  partial/placeholder from a correctness test against in-flight data and is now superseded).
+  Per-subtype verse-level ensemble F1 (zero-shot): تشبيه مطول 0.406, كناية عن صفة 0.336,
+  تشبيه قصير 0.298, استعارة قديمة 0.175 — matches the historical Phase 3 recall-only ranking
+  at the top and bottom (تشبيه مطول easiest, استعارة قديمة hardest) but swaps تشبيه قصير and
+  كناية عن صفة in the middle, explained by تشبيه قصير's thin pool-positive count (13)
+  amplifying its FP-driven F1 penalty relative to كناية عن صفة's larger pool (49).
+- **Wrote `docs/phase7/SUBTYPES_RESULTS.md`** (EN, full write-up: Step 0 addendum census +
+  materiality check, the span-reading-order data-quality finding, few-shot draws, cost dry-run,
+  final run results per subtype with raw TP/FP/FN, bootstrap CIs at both ensemble and per-model
+  level — including a per-model-only significant finding that few-shot GPT-5.4-mini
+  significantly helps تشبيه مطول but significantly hurts تشبيه قصير/كناية عن صفة, which the
+  ensemble-level CIs alone would have hidden — design-choice check per subtype, rank-only
+  comparison against Phase 1/3, and a plain-language summary) and
+  **`docs/phase7/SUBTYPES_SUMMARY_AR.md`** (AR short summary, same substance).
+- **Rebuilt `docs/phase4/E1_V2_REPORT.html` for real**: `python scripts/build_e1v2_report.py`.
+  All built-in PASS/assertion checks passed (main table, design-choice panel n, cross-phase
+  panel o, RTL spans >0). Completeness check: 5,886/5,886 cells ok, 0 errors,
+  `ALL_COMPLETE=True`. Spot-checked the Phase 7 panel's F1 values against
+  `analysis_report_phase7.json` directly (grep) — match.
+- **Mandatory visual render verification** (CLAUDE.md RTL rule): served the rebuilt HTML over a
+  local `python -m http.server` and opened it in the browser pane (direct `file://` access was
+  refused by the browser tool, so a local server was used instead — read-only, no change to the
+  file). Confirmed visually: Arabic verse/span/note text in the Phase 7 panel renders
+  right-to-left correctly; the criterion toggle (Verse/Strict/Token-overlap) switches the table
+  and the displayed numbers match the JSON exactly (spot-checked استعارة قديمة strict:
+  0.093/0.079/0.020/0.078/0.119/0.114/0.092/0.101, all matched) and `تشبيه مطول` strict
+  (0.333/0.306/0.264/0.333/0.358/0.269/0.348/0.351, matched). No RTL bugs found this time.
+- **Commit + push next.**
