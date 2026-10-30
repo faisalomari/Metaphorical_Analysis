@@ -3791,3 +3791,95 @@ results JSON, docs, updated HTML).
   0.093/0.079/0.020/0.078/0.119/0.114/0.092/0.101, all matched) and `تشبيه مطول` strict
   (0.333/0.306/0.264/0.333/0.358/0.269/0.348/0.351, matched). No RTL bugs found this time.
 - **Commit + push next.**
+
+## 2026-10-30 — Consolidated Excel workbook of every E1_V2_REPORT.html result (excl. Phase 5-6), no API calls
+
+**Goal**: one `ALL_RESULTS.xlsx` workbook (new script `scripts/build_results_excel.py`, openpyxl)
+covering every result shown in `docs/phase4/E1_V2_REPORT.html` -- E1 v2 core (Z/A/B/C/D/D2), eras
++ quartile few-shot (M1/M2/E1/E2/H1/H2/Q1/Q2), multi-poet F5/F10, Opus 5.5 set A, all 4 Phase 7
+subtypes, and Phase 1 frozen (for context/contrast only) -- EXCLUDING local fine-tuning (Phase
+5-6). No existing results/code file edited. No API calls.
+
+**Architecture**: reused `experiments/phase4_e1_v2/ensemble_v2.py` (`build_parsed_cache`,
+`score_set_single_model`, `gt_v2.gt_spans_for_subtype`, `ali_poems_io.load_poem_json`,
+`pilot_3models.analyze.prf1`) and `experiments/phase7_subtypes/score_phase7.py`
+(`load_manifests`, `build_cell_index`, `build_ground_truth`) **unchanged**, imported directly
+(both modules' own internal `sys.path` wiring was verified collision-free in the same process
+before relying on it — confirmed `score_set_single_model` reproduces
+`analysis_report_verse.json` exactly via the shared cache). Added exactly one piece of new
+scoring math neither existing script has: a generic k-of-n combination scorer
+(`score_set_combo_e1v2` / `score_set_combo_p7`) for the "Top 3 models ENSEMBLE (2-of-3 / 1-of-3)"
+rows the task asked for, which no existing report computes. Every other combination number
+(2-of-3 majority, GPT-Z OR/AND Claude-FS) reuses pre-computed
+`analysis_report_ensemble.json` / `design_choice/analysis_report_design_choice.json` /
+`analysis_report_phase7.json` and/or is recomputed fresh from the same cache and cross-checked
+against those files.
+
+**Verse-level metrics ONLY** (explicit user decision for this workbook, overriding CLAUDE.md
+rule 4's "always both strict and token" for this one deliverable — stated prominently in the
+Notes sheet and every sheet's own info block).
+
+**MEAN-over-sets convention**: a few-shot MEAN row is the mean of each set's own already-computed
+P/R/F1 (Excel `=AVERAGE(...)` referencing the sibling rows' P/R/F1 cells), never derived from
+averaged TP/FP/FN (a different, nonlinear quantity for F1) — TP/FP/FN shown on MEAN rows are
+plain means of the counts, for reference only, non-integer by design. Min-max range stated in
+each MEAN row's Notes cell. "Never pick the best set" — every individual set's row is always
+shown.
+
+**Top 3 definition**: among a sheet's 6 base (model x zero/few) configurations, the 3 with the
+highest verse-level RECALL (few-shot recall = that model's mean over its own few-shot sets) are
+chosen — never by F1/precision. The SAME model can occupy 2 of 3 slots (happened on several
+sheets, e.g. E1v2 Core chose GPT-Z and GPT-FS together) since the rule ranks configurations, not
+models 1-for-1; this is stated explicitly in the Notes sheet and shown in each sheet's own
+"Top 3 by recall (chosen: ...)" line.
+
+**Per-sheet adaptations** (documented on-sheet, not silently assumed): Multipoet F5/F10 (own
+50-poem pool, no Z) gets no MEAN(F5,F10) row (two different designs, not replicate draws) and no
+GPT-Z OR/AND row (no Z on this pool); Opus 5.5/set-A-only sheet reuses Z/A data from the core
+sheet plus Opus's own set-A cell; the 3 non-كناية Phase 7 subtypes (استعارة قديمة n=15, تشبيه
+قصير n=13, تشبيه مطول n=25) are flagged indicative-only (<30 pool positives, this project's own
+floor); Phase 1 Frozen (sheet 9) has no TN column (span-level multi-instance scoring, not a
+per-verse binary classification) and is labeled NOT comparable to any other sheet (different
+prompt, element scope, pool, and metric) — its TP/FP/FN/F1 strings were verified verbatim against
+`PROJECT_STATE.md`'s own text programmatically before use (same technique
+`scripts/build_e1v2_report.py`'s `verify_phase1_numbers_in_project_state` already uses).
+
+**Formatting**: header styling, frozen panes (header row + label column), Arial throughout,
+Arabic cells right-aligned (via a `>50% Arabic-character` majority check per cell, same rule
+family as `rtl_utils.is_majority_arabic` but reimplemented locally since this is a plain `.xlsx`
+output, not a `.docx` — CLAUDE.md's RTL-helper rule is scoped to `.docx` builders), best-F1 cell
+per logical block highlighted green, P/R/F1 as live Excel formulas from each row's own TP/FP/FN
+cells (`=IFERROR(TP/(TP+FP),0)` etc., never hand-typed), TN as `=<pool size>-TP-FP-FN`.
+
+**Verification performed**:
+- `scripts/office/recalc.py` (the xlsx skill's LibreOffice-based recalculator) failed in this
+  Windows sandbox (`module 'socket' has no attribute 'AF_UNIX'` — LibreOffice itself is also not
+  installed here) — not fixable from this script. **Substituted a real Microsoft Excel COM
+  recalculation** (PowerShell + `Excel.Application`, `CalculateFullRebuild()`, scan every used
+  cell for a leading `#` error string): **0 formula errors across all 11 sheets**, both before and
+  after a later edit (see below), Excel process cleanly released each time (no orphaned
+  `EXCEL.EXE`). LibreOffice itself was not available to additionally test — flagged as an open
+  gap for this environment, not a known incompatibility in the formulas used (only `AVERAGE` and
+  `IFERROR`, both pre-2007 functions per the xlsx skill's own compatibility guidance).
+- Reopened with `openpyxl(data_only=True)` and independently recomputed P/R/F1 from every row's
+  own cached TP/FP/FN: **205 data-row cells checked, 16 "mismatches"**, all 16 confirmed to be
+  MEAN rows behaving exactly as designed (F1 = mean of sibling F1s, not derived from mean
+  TP/FP/FN) — e.g. Core sheet's "Claude / few-shot MEAN over 5 sets" F1 (0.5336508...) equals
+  `AVERAGE` of its 5 sibling rows' F1 values to full float precision, confirmed by hand.
+- Cross-checked **88 single-model / ensemble / design-choice cells** across all 4 E1v2-family
+  sheets and all 4 Phase 7 sheets directly against `analysis_report_D.json`,
+  `analysis_report_eras.json`, `analysis_report_quartile.json`, `analysis_report_multipoet.json`,
+  and `analysis_report_phase7.json` — **0 mismatches**.
+- Spot-checked the E1v2 Core sheet's ENSEMBLE/zero and ENSEMBLE/few[A-D2] rows against every F1 in
+  `docs/phase4/E1_V2_ENSEMBLE.md` §1 (Z 0.450, A 0.568, B 0.543, C 0.475, D 0.577, D2 0.550) —
+  **exact match**, and the GPT-Z OR/AND Claude-FS rows against every value in
+  `docs/phase4/DESIGN_CHOICE_GPTZ_CLAUDEFS.md` §2.3/§2.7 (OR/AND for A/B/D/D2) — **exact match**.
+  Phase 7's كناية عن صفة sheet's OR/AND rows (0.301/0.356) match
+  `docs/phase7/SUBTYPES_RESULTS.md` §5's table exactly.
+- Best-F1 highlighting and Arabic-right-align spot-checked directly via `openpyxl` style
+  inspection (fill color on the correct cell per group; `horizontal='right'` only on
+  majority-Arabic cells, e.g. the pure-Arabic subtype name, not on mixed English/Arabic prose).
+
+**Result**: `docs/phase4/ALL_RESULTS.xlsx` written (11 sheets: E1v2 Core, Eras FewShot, Multipoet
+F5F10, Opus5.5 SetA, 4x Phase 7 subtype sheets, Phase1 Frozen, Summary, Notes), 56.6 KB. Committed
+alongside the new script.
