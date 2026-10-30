@@ -424,6 +424,22 @@ def build_sheet1():
                                     "Ranking by recall favors liberal configurations; the 1-of-3 OR "
                                     "typically trades precision for recall." if thr == 1 else ""})
 
+    # Fixed, user-requested combo (not recall-selected): Gemini-FS + GPT-Z + Claude-FS, 1-of-3 (OR)
+    rows.append({"kind": "section", "label": "Fixed combo (user-requested, not recall-selected)"})
+    idxs = []
+    for s in few_sets:
+        cells = [(s, "google"), ("Z", "openai"), (s, "anthropic")]
+        e = score_set_combo_e1v2(E1V2_CACHE, POOL25, cells, 1)
+        rows.append({"kind": "data", "label": f"Gemini-FS + GPT-Z + Claude-FS (1-of-3) [{s}]", "tp": e["tp"],
+                     "fp": e["fp"], "fn": e["fn"], "f1": e["f1"], "group": "combo_fixed3",
+                     "extra_note": ("Fixed combo: positive if ANY of Gemini few-shot, GPT zero-shot, "
+                                    "Claude few-shot says true -- not the recall-selected Top 3 above."
+                                    if s == few_sets[0] else "")})
+        idxs.append(len(rows) - 1)
+        summary_rows.append((f"Gemini-FS+GPT-Z+Claude-FS(1of3)/{s}", e["f1"]))
+    rows.append({"kind": "mean", "label": "Gemini-FS + GPT-Z + Claude-FS (1-of-3) MEAN over 5 sets",
+                 "source_rows": idxs, "extra_note": "Mean of per-set P/R/F1."})
+
     # GPT-Z OR/AND Claude-FS
     rows.append({"kind": "section", "label": "GPT-Z + Claude-FS combination"})
     for op, thr, name in (("or", 1, "GPT-Z OR Claude-FS"), ("and", 2, "GPT-Z AND Claude-FS")):
@@ -545,6 +561,21 @@ def build_sheet2():
         rows.append({"kind": "mean", "label": f"{name} MEAN over 8 sets", "source_rows": idxs,
                      "extra_note": "1-of-3 = positive if ANY of the 3 chosen configs says true." if thr == 1 else ""})
 
+    rows.append({"kind": "section", "label": "Fixed combo (user-requested, not recall-selected)"})
+    idxs = []
+    for s in few_sets:
+        cells = [(s, "google"), ("Z", "openai"), (s, "anthropic")]
+        e = score_set_combo_e1v2(E1V2_CACHE, POOL25, cells, 1)
+        rows.append({"kind": "data", "label": f"Gemini-FS + GPT-Z + Claude-FS (1-of-3) [{s}]", "tp": e["tp"],
+                     "fp": e["fp"], "fn": e["fn"], "f1": e["f1"], "group": "combo_fixed3",
+                     "extra_note": ("Fixed combo: positive if ANY of Gemini few-shot, GPT zero-shot, "
+                                    "Claude few-shot says true -- not the recall-selected Top 3 above."
+                                    if s == few_sets[0] else "")})
+        idxs.append(len(rows) - 1)
+        summary_rows.append((f"Gemini-FS+GPT-Z+Claude-FS(1of3)/{s}", e["f1"]))
+    rows.append({"kind": "mean", "label": "Gemini-FS + GPT-Z + Claude-FS (1-of-3) MEAN over 8 sets",
+                 "source_rows": idxs, "extra_note": "Mean of per-set P/R/F1."})
+
     rows.append({"kind": "section", "label": "GPT-Z + Claude-FS combination"})
     for op, thr, name in (("or", 1, "GPT-Z OR Claude-FS"), ("and", 2, "GPT-Z AND Claude-FS")):
         idxs = []
@@ -618,6 +649,9 @@ def build_sheet3():
     rows.append({"kind": "note", "label": "GPT-Z OR/AND Claude-FS: N/A on this sheet",
                  "extra_note": "Zero-shot (Z) was never run on the 50-poem multi-poet pool -- "
                                 "GPT-Z does not exist here."})
+    rows.append({"kind": "note", "label": "Gemini-FS + GPT-Z + Claude-FS (1-of-3): N/A on this sheet",
+                 "extra_note": "Same reason -- this fixed combo requires GPT-Z, which was never run "
+                                "on the 50-poem multi-poet pool."})
 
     rows.append({"kind": "section", "label": "Ensemble (majority vote across Claude/GPT/Gemini), per set"})
     for s in ("F5", "F10"):
@@ -720,6 +754,14 @@ def build_sheet4():
                      "group": f"combo_{name}", "extra_note": f"Chosen 3: {top3_labels}."})
         summary_rows.append((name, e["f1"]))
 
+    rows.append({"kind": "section", "label": "Fixed combo (user-requested, not recall-selected)"})
+    e = score_set_combo_e1v2(E1V2_CACHE, POOL25, [("A", "google"), ("Z", "openai"), ("A", "anthropic")], 1)
+    rows.append({"kind": "data", "label": "Gemini-FS + GPT-Z + Claude-FS (1-of-3) [A]", "tp": e["tp"],
+                 "fp": e["fp"], "fn": e["fn"], "f1": e["f1"], "group": "combo_fixed3",
+                 "extra_note": "Fixed combo: positive if ANY of Gemini few-shot[A], GPT zero-shot, "
+                                "Claude few-shot[A] says true -- not the recall-selected Top 3 above."})
+    summary_rows.append(("Gemini-FS+GPT-Z+Claude-FS(1of3)/A", e["f1"]))
+
     rows.append({"kind": "section", "label": "GPT-Z + Claude-FS[A] combination"})
     for thr, name in ((1, "GPT-Z OR Claude-FS[A]"), (2, "GPT-Z AND Claude-FS[A]")):
         e = score_set_combo_e1v2(E1V2_CACHE, POOL25, [("Z", "openai"), ("A", "anthropic")], thr)
@@ -814,6 +856,15 @@ def build_phase7_sheet(subtype, sheet_title):
         rows.append({"kind": "data", "label": name, "tp": e["tp"], "fp": e["fp"], "fn": e["fn"], "f1": e["f1"],
                      "group": f"combo_{name}", "extra_note": f"Chosen 3: {top3_labels}."})
         summary_rows.append((name, e["f1"]))
+
+    rows.append({"kind": "section", "label": "Fixed combo (user-requested, not recall-selected)"})
+    e = score_set_combo_p7(P7_CELL_INDEX, subtype, P7_POOL_POEM_IDS, gt,
+                            [("few", "google"), ("zero", "openai"), ("few", "anthropic")], 1)
+    rows.append({"kind": "data", "label": "Gemini-FS + GPT-Z + Claude-FS (1-of-3)", "tp": e["tp"], "fp": e["fp"],
+                 "fn": e["fn"], "f1": e["f1"], "group": "combo_fixed3",
+                 "extra_note": "Fixed combo: positive if ANY of Gemini few-shot, GPT zero-shot, "
+                                "Claude few-shot says true -- not the recall-selected Top 3 above."})
+    summary_rows.append(("Gemini-FS+GPT-Z+Claude-FS(1of3)", e["f1"]))
 
     rows.append({"kind": "section", "label": "GPT-Z + Claude-FS combination (reused from analysis_report_phase7.json)"})
     dc = sub_report["design_choice"]
@@ -1008,6 +1059,14 @@ def build_notes(git_commit):
             "Claude Sonnet 4.6's few-shot call for the stated set. OR = positive if either says yes; "
             "AND = positive only if both agree. This is the project's own 'production candidate' "
             "combination, first analyzed in docs/phase4/DESIGN_CHOICE_GPTZ_CLAUDEFS.md.",
+            "Gemini-FS + GPT-Z + Claude-FS (1-of-3): a FIXED 3-voter combination requested directly "
+            "by the user (Gemini few-shot, GPT zero-shot, Claude few-shot), scored as 1-of-3 (OR -- "
+            "positive if ANY of the 3 says true). This is NOT the recall-selected 'Top 3' above -- it "
+            "is always this exact trio, on every sheet where all 3 inputs exist. Shown per few-shot "
+            "set + MEAN on 'E1v2 Core' and 'Eras FewShot' (same convention as every other combo row); "
+            "a single row on 'Opus5.5 SetA' (set A only) and each Phase 7 subtype sheet (1 few-shot "
+            "condition only); N/A on 'Multipoet F5F10' (no zero-shot run on that pool, so GPT-Z does "
+            "not exist there) and on 'Phase1 Frozen' (different metric entirely).",
             "MEAN (over sets) rows: the MEAN of each set's own already-computed Precision/Recall/F1 "
             "(not derived from averaged TP/FP/FN, which would be a different, nonlinear quantity for "
             "F1). TP/FP/FN shown on a MEAN row are plain means of the per-set counts, shown for "
