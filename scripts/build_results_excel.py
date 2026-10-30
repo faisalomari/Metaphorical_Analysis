@@ -248,11 +248,22 @@ def _set_cell(ws, r, c, value, font=None, fill=None, align=None, numfmt=None, bo
     return cell
 
 
+INFO_VALUE_LAST_COL = 9      # merge the value cell across B..I (the same width as the table below)
+INFO_CHARS_PER_LINE = 118    # rough capacity of the merged B..I span at Arial 10, for row-height sizing
+
+
 def write_info_block(ws, lines, start_row=1):
     r = start_row
     for label, value in lines:
         _set_cell(ws, r, 1, label, font=BOLD_FONT, border=False)
-        _set_cell(ws, r, 2, value, border=False)
+        ws.cell(r, 1).alignment = Alignment(vertical="top")
+        ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=INFO_VALUE_LAST_COL)
+        cell = ws.cell(r, 2, value)
+        cell.font = PLAIN_FONT
+        horiz = "right" if is_ar(str(value)) else "left"
+        cell.alignment = Alignment(horizontal=horiz, vertical="top", wrap_text=True)
+        n_lines = max(1, -(-len(str(value)) // INFO_CHARS_PER_LINE))  # ceil division
+        ws.row_dimensions[r].height = max(15, n_lines * 15)
         r += 1
     return r
 
@@ -327,7 +338,6 @@ def new_sheet(wb, name, info_lines, rows, total_verse_units, col_widths=None):
     widths = col_widths or [34, 7, 7, 7, 7, 8, 8, 8, 70]
     for i, w in enumerate(widths, start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
-    ws.freeze_panes = ws.cell(row=header_row + 1, column=2).coordinate
     return ws, header_row, last_row
 
 
@@ -944,12 +954,14 @@ def build_summary(all_summaries, all_top3):
         _set_cell(ws, r, 1, name, font=BOLD_FONT)
         _set_cell(ws, r, 2, f"{best[1]:.3f} ({best[0]})")
         _set_cell(ws, r, 3, f"{worst[1]:.3f} ({worst[0]})")
-        _set_cell(ws, r, 4, all_top3.get(name, ""))
+        top3_text = all_top3.get(name, "")
+        c4 = _set_cell(ws, r, 4, top3_text)
+        c4.alignment = Alignment(wrap_text=True, vertical="top")
+        ws.row_dimensions[r].height = max(15, 15 * max(1, -(-len(top3_text) // 70)))
         r += 1
     widths = [26, 30, 30, 70]
     for i, w in enumerate(widths, start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
-    ws.freeze_panes = "A2"
     return ws
 
 
